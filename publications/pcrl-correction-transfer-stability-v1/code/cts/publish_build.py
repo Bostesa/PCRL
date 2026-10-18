@@ -23,6 +23,7 @@ from mechanism_design.publish_build import sanitise
 from . import common as C
 
 NAME = C.PUBLICATION_NAME
+UNPUBLISHED_SUFFIXES = ('.lock', '.jsonl')   # not accepted by the leak scan; left unpublished openly (listed in the build output)
 
 
 def build(dest: Path, committed_only: bool = True) -> dict:
@@ -34,6 +35,8 @@ def build(dest: Path, committed_only: bool = True) -> dict:
     for f in sorted(C.RESULTS.rglob('*')):
         if not f.is_file() or f.name in ('.DS_Store',) or '__pycache__' in f.parts:
             continue
+        if f.suffix in UNPUBLISHED_SUFFIXES:          # recorded: the verifier's lock file and its append-only .jsonl notes log
+            skipped.append(f'{f.relative_to(C.ROOT)} (unpublished type {f.suffix}; content carried by CHECKS.json / REPORT.md)'); continue
         if committed_only and not C.committed(f):
             skipped.append(str(f.relative_to(C.ROOT))); continue
         d = out / 'results' / f.relative_to(C.RESULTS); d.parent.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,42 @@
+--- a/cts/deploy.py	2026-10-18 15:41:27
++++ b/cts/deploy.py	2026-10-18 15:41:27
+@@ -38,8 +38,9 @@
+ 
+ PERMITTED = OD.PERMITTED
+ ALLOWED = OD.ALLOWED
+-RELEASE_CODE = ('cts.common', 'cts.deploy', 'cts.trackf', 'ohn.common', 'ohn.fam_a', 'ohn.protect', 'ihs.common', 'ihs.bases',
+-                'ihs.fam_h', 'acs_replication.deploy', 'acs_replication.schema', 'acs_replication.trees', 'scm_bench.common')
++RELEASE_CODE = ('cts.common', 'cts.deploy', 'cts.trackf', 'cts.sensitivity', 'ohn.common', 'ohn.deploy', 'ohn.devrun', 'ohn.fam_a',
++                'ohn.protect', 'ihs.common', 'ihs.bases', 'ihs.fam_h', 'acs_replication.deploy', 'acs_replication.schema',
++                'acs_replication.trees', 'scm_bench.common')
+ 
+ 
+ def store_dir(P):
+@@ -73,12 +74,13 @@
+             arrs[f'occ__{r}'] = ODR.source_occupation('JOINT', TF.seed_of(P), r)
+         else:
+             arrs[f'occ__{r}'] = occupation_from_features(P, name, F['X'], F['feature_names'])
+-    if name not in ('ANCHOR', 'W'):                 # consistency with the evaluated MODEL_SELECT / MODEL_FIT arrays
+-        wrec, W, O = TF.load_witness(P)
+-        drec, T, D = TF.load_direction(P, name.split('@')[0])
+-        s = float(name.split('@')[1][1:])
++    if name != 'ANCHOR':                            # consistency with the evaluated MODEL_SELECT / MODEL_FIT arrays (witness too)
++        wrec, W, O = TF.load_witness(P)
++        if name != 'W':
++            drec, T, D = TF.load_direction(P, name.split('@')[0])
++            s = float(name.split('@')[1][1:])
+         for r in ('MODEL_SELECT', 'MODEL_FIT'):
+-            ref = TF.release_at(W[f'dep__{r}'], D[f'full__{r}'], s)
++            ref = W[f'dep__{r}'] if name == 'W' else TF.release_at(W[f'dep__{r}'], D[f'full__{r}'], s)
+             if not np.array_equal(ref, arrs[f'occ__{r}']):
+                 raise AssertionError(f'{r}: release from features differs from the evaluated release arrays')
+     sha = TF._save_npz(out, **arrs)
+@@ -237,7 +239,7 @@
+     rec = {'schema': 'CTS1-deployment-check-v1', 'utc': C.now(), 'packages': res, 'labels_read': False, 'environment': OD._environment()}
+     rec['all_bitwise'] = all(all(all(v.values()) for v in r['bitwise_equal_to_stored_DEV_REPORT_wire'].values()) for r in res.values())
+     rec['all_refused'] = all(v.startswith('refused') for r in res.values() for v in r['refusals'].values())
+-    C.write_json(report, rec)
++    C.write_json_x(report, rec)
+     print(json.dumps({'all_bitwise': rec['all_bitwise'], 'all_refused': rec['all_refused']}, indent=1))
+     return rec
+ 

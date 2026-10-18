@@ -1,0 +1,21 @@
+--- a/cts/compression.py
++++ b/cts/compression.py
+@@ -59,6 +59,10 @@
+     pw = W['dep__MODEL_FIT'][rows]
+     cand = TF.cost_summary(TF.release_at(pw, D['full__MODEL_FIT'][rows], s_sel), pw, G['occupation'], G['sex'], G['unit'])
+     target = utilization_of(cand['stats'], sslack)
++    if not np.isfinite(target):
++        raise ValueError(f'{name}: the candidate has a positive GUARD cost on a statistic whose reserve slack is nonpositive '
++                         f'(utilization = inf; stat slack {sslack}); no code can be matched to it - the bisection would return the '
++                         'smallest K labelled MATCHED')
+     seen = {}
+ 
+     def ev(i):
+@@ -86,6 +90,7 @@
+            'guard_utilization': target, 'guard_cost': cand['stats']}, 'K': b['K'], 'flag': flag, 'guard_cost': b['cost'],
+            'guard_utilization': b['utilization'], 'ladder_path': [{'K': v['K'], 'utilization': v['utilization']} for _, v in sorted(seen.items())],
+            'kmeans_info': b['info'], 'npz_sha256': sha, 'n_kmeans_fits': len(seen),
++           'search': 'bisection assuming GUARD utilization falls with K (as ohn.protect.comp_select); unevaluated K are not checked',
+            'operation': 'label-free K-means code of the cross-fitted FIT witness vectors; nearest centroid of the deployed witness vector',
+            'cpu_s': time.process_time() - t0, 'utc': C.now(), 'unit_id': os.environ.get(C.UNIT_ENV)}
+     C.write_json(d / 'COMP.json', rec)

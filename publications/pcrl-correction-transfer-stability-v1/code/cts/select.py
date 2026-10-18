@@ -113,13 +113,22 @@ def realized(P, did):
             dep = key.split('|')[1]
             if dep == 'full':
                 cs = TF.cost_summary(TF.release_at(pw, dl, s), pw, X['occupation'], X['sex'], X['unit'])
+                res[name][key] = {'selected': s, 'cost': cs, 'outcome': RL.rule_outcome(s, cs['stats'], base)}
+                res[name][key]['outcome_complete'] = res[name][key]['outcome']
             else:
-                cs = TF.cost_summary(TF.ensemble_at(pf, df, s), e0, X['occupation'], X['sex'], X['unit'])
-            res[name][key] = {'selected': s, 'cost': cs, 'outcome': RL.rule_outcome(s, cs['stats'], base)}
+                es = TF.ensemble_at(pf, df, s)
+                cs = TF.cost_summary(es, e0, X['occupation'], X['sex'], X['unit'])
+                # the reserve / margin in `base` belong to the deployed witness W; the released ensemble spends
+                # (e_s - e_0) + (e_0 - W) of them, so its complete-release outcome is measured against W (dstage G2 / G3)
+                cw = TF.cost_summary(es, pw, X['occupation'], X['sex'], X['unit'])
+                res[name][key] = {'selected': s, 'cost': cs, 'outcome': RL.rule_outcome(s, cs['stats'], base),
+                                  'cost_vs_witness': cw, 'outcome_complete': RL.rule_outcome(s, cw['stats'], base)}
     rec = {'schema': 'CTS1-realized-v2', 'partition': P, 'direction': did, 'realized': res,
            'selection_file_sha256': C.sha(TF.pdir(P) / 'SELECT' / f'{did}.json'), 'cpu_s': time.process_time() - t0, 'utc': C.now(),
            'unit_id': os.environ.get(C.UNIT_ENV),
-           'note': 'ens outcomes are increments of the deployed ensemble against the uncorrected ensemble on the same people'}
+           'note': 'outcome: increments against the same deployment at s = 0 (ens: the uncorrected ensemble; transfer diagnostics); '
+                   'outcome_complete: increments against the deployed witness W whose MODEL_SELECT margins define the reserve '
+                   '(equal to outcome for full; used by the G2 / G3 gates)'}
     C.write_json(out, rec)
     print(json.dumps({'partition': P, 'direction': did,
                       'reserve_crossing': {n: {k: v['outcome']['reserve_crossing'] for k, v in x.items()} for n, x in res.items()}}))

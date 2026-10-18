@@ -1,0 +1,295 @@
+{
+ "code_sha256": {
+  "cts/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "cts/admit.py": "b0f443ccf6e32e19f7e3a2751cba12949d0dde5623d28cd63886edba1f3360f3",
+  "cts/closeout.py": "e766fb46a1ce479894a0c107788b0c0ec15bcda2daa5a6fad5f2ce9ca94ac77e",
+  "cts/common.py": "33c6b00b6c50f93f2da792a3f6f1aca143abbfcbfe98ce70f83f1afc10e01b6a",
+  "cts/compression.py": "8cae6d85b5ab4f2e0db2e996dad735df229438788d8b6648e5639f4579265478",
+  "cts/custody.py": "763f1294e4a4f894230245290357d637bc9776b2f9aec85068bc688f1159a7e3",
+  "cts/deploy.py": "73d6e1a3731575117a5eba75e79fe583783e4750d1d251944c44c99653a1aaf5",
+  "cts/devreaders.py": "e4a01205fa7f74e2d22fcddcb83b3d099d574be1a6372732dce19856f044c725",
+  "cts/diagnosis.py": "2d6603e3d7514345cec81ecc4337a3ce3e4773de2ba849b34f15b7cc25ed85b3",
+  "cts/dstage.py": "12ef858abce7a9e5f0eba7b49adf885a1488da2080f2d48d904985fdcb59e4d8",
+  "cts/evaluate.py": "8c89f25f72107b5f727c7a82e37698a27380454f89ac8545628a152cb706737f",
+  "cts/figures.py": "2da4791f7e4d5af24ab8ac80ca51f8e947fa396ec25e39009fce30aebaafc6f7",
+  "cts/freeze.py": "d1b5ac6369a58f0463a3675fca8cc3e62fa2de41db4ab32171027ed2788df66d",
+  "cts/jobqueue.py": "4ab8a25a2dfa11b2a0dde2ba7bdb2a37800b9214088d4948a6fe55e5178f7d6a",
+  "cts/lane.py": "a644b7756125951650d45cc99176e78eae2d02d1a3dd5f53ebb7a7d450e41b05",
+  "cts/ledger.py": "699956b7c16188b8a2accbc0753bd326ffe88a1353a3c653cb96b46116c4770b",
+  "cts/nested.py": "c6ad0def67f8798b788d7858b4bd819592a74bcca51a7c625542a24bffbb393c",
+  "cts/partitions.py": "99cf8612c88c7519e0953c09a3bed5fd82b321cc36693e901f4bc942b63935f5",
+  "cts/preflight.py": "79b5ca2270cb7ced4bb2dfba3f4b70e13398d6eab263c44becd132167370a2e4",
+  "cts/publish_build.py": "c4ea0706545ad32bab877d777bd4621865ddcfe5162950f08f983a38deb7d242",
+  "cts/questiona.py": "3e911669885807064f2e8effe4687727847d2836e79c4d3d660545aed71aa673",
+  "cts/receipt.py": "e64f032b0c85fc69dbe96f0bd66e75e91438d89aa2215648273a0cb44367e2cb",
+  "cts/releases.py": "bb251e09a2cfbd38566235daa2ad68b641d23bfef71c2292588eec860019d2a8",
+  "cts/restore_check.py": "4b510143e2a575dac4ed1938297f6c40790da5313a29e246f712f07a3bcf12e2",
+  "cts/rstage.py": "d5cadaa8a7f4fae273df83deb34fa033f352515d8a46c4b7688b81b7badd4264",
+  "cts/rules.py": "f2ceae962da4e8f4374be4a1b3fb043c51061fd4094c6dbc1bfd9159600827d2",
+  "cts/screen_study.py": "4cfa4a1086ab692c78e7aaa0b633f314ddd74ee9df54e2a608e7281f15ac59ac",
+  "cts/select.py": "ee78d35059e442f5f1680476aaf7b827ccf6e6891b2b506d2120388135bc7990",
+  "cts/sensitivity.py": "b50dedc2f1543136009d6d7a6a3b1d8c01bed9f599c6ededbf030b0c688de363",
+  "cts/tables.py": "34538c5616fb3ebc062420f3de5ba3d68aa6116ce5a51321f8fbeb5fe6fa7cd1",
+  "cts/test_receipt.py": "70ce03bcf6ccbb7b56aef1eea288fdba8d022a7771c98810c41e673c0302dcd6",
+  "cts/test_rules.py": "7d557d7637003a0f43c8d57bbeae08575f323dcaa587e3bcb3039ecbf8dc0443",
+  "cts/track_r.py": "c1d24572aa70663f86d85d2ecc93d188c1829fa5a7bc0195e08185170bf99dcc",
+  "cts/trackf.py": "d74cb1ef97f9178777672759d8d1531d60b04e351f72ae8de55bfa571828dcb7"
+ },
+ "comparison_plan": {
+  "E1_transfer": "cts.select check (realized CHECK and MODEL_SELECT outcomes of every frozen selection), cts.trackf ladder --check (CHECK and MODEL_SELECT costs at all 11 ladder strengths) and cts.questiona run (OOF vs GUARD prediction of CHECK: PREDICTION_IMPROVED label, RULES.md section 6) for REFIT_PAIR, REFIT_LOC, REFIT_CONT (full and ens) and REFIT_PAIR_TR (full) on R0 and R1",
+  "E2_utility": "realized MODEL_SELECT outcomes of every selection (8 occupation-side conditions: reserve and point crossings); Track R complete releases (H3R and HCR income with the refitted witness): 12 clauses + 2 guards per seed and the whole-release reserve",
+  "E3_protection": "R reader bank R_FRONTIER (stage R; R0 -> seed-0 cells, R1 -> seed-1 cells; registered grid R1 / R2 x k0 / k1): the witness; REFIT_PAIR, REFIT_LOC and REFIT_CONT at the common strengths 0.1, 0.2, 0.3, 0.5, 1.0 and at every nonzero rule selection on both R partitions; compression twins matched on GUARD utilization to REFIT_PAIR at those strengths (refused for an infinite target); the six required comparators (cached). Stability over the 8 cells per comparison; the old per-cell recipient gate and AGG1 beside each other; the matched frontier (realized MODEL_SELECT reserve use vs pair AUC)",
+  "claim_ladder": "cts.rules.claim_ladder: rung 1 (improved cost prediction on D0, D1, R0, R1) is evaluated for the REFIT directions; rungs 2-5 are NOT_CLAIMABLE under NO_RECIPE and are described only; joint design NOT_CLAIMABLE; novelty NOT_CLAIMED",
+  "deployments": [
+   "full",
+   "ens"
+  ],
+  "directions_fitted_before_freeze": [
+   "REFIT_PAIR",
+   "REFIT_LOC",
+   "REFIT_CONT",
+   "REFIT_PAIR_TR (Track R refitted income wire)"
+  ],
+  "frontier_strengths": [
+   0.1,
+   0.2,
+   0.3,
+   0.5,
+   1.0
+  ],
+  "partitions": {
+   "R0": {
+    "check_panel": "C0",
+    "source_seed": 0
+   },
+   "R1": {
+    "check_panel": "C1",
+    "source_seed": 1
+   }
+  },
+  "readers_after": "screen operating-characteristic study completed and reviewed (SCREEN_REVIEW.md) before any new release was scored",
+  "recipe": "NO_RECIPE (diagnosis/RECIPE_SELECTION.json): no recipe passed gates G1-G3 on both diagnostic partitions (every rule selected identity on D1, whose refitted witness misses the men's reserve; the nonzero ensemble selections on D0 crossed the reserve on CHECK). With no selected recipe, rungs 2-5 of the claim ladder cannot be claimed; the repair panels answer question A on reserved households and describe every frozen rule and the matched frontier.",
+  "rules_evaluated": [
+   "OLD-B80",
+   "OLD-B50",
+   "SIMPLE",
+   "UNCERTAINTY"
+  ],
+  "track_r": "refitted H3-recipe income (H3R) and task-only twin (HCR) on R0 / R1 with the refitted witness; REFIT_PAIR_TR selections, realized outcomes and question A; a recipe test on different training subsets, not confirmation of the frozen H3 package"
+ },
+ "deployments": [
+  "full",
+  "ens"
+ ],
+ "frozen_rules": [
+  "OLD-B80",
+  "OLD-B50",
+  "SIMPLE",
+  "UNCERTAINTY"
+ ],
+ "notes": [
+  "No direction redesign: the diagnosis locates the binding constraint in the refitted witnesses' baseline slack (training-size effect, F2) and in the sampling noise of SEX-group costs (F4-F5), not mainly in the direction's group allocation; a redesign card was therefore not written.",
+  "The adaptive training-size diagnostic (amendment 9: P70, P70A) is outside the repair comparison and cannot change any of its labels."
+ ],
+ "recipe_selection": {
+  "file_sha256": "7ec71039195d59a20f0111f345c9ffe580e2f2277c5bf5f0e9607ad0fb50e9cc",
+  "gates_file_sha256": "f215056aadd99425ed72b756f3b738d8306e9db848433651a9e074a99624f43a",
+  "outcome": "NO_RECIPE",
+  "selected": null
+ },
+ "redesign": null,
+ "repair_panel_label_reads_before_freeze": 0,
+ "repair_partitions": {
+  "R0": {
+   "directions": {
+    "REFIT_CONT": {
+     "DELTA.npz": "2deadca52e18039a92cead0b32593674b29b0bebef58de52c0d5362c55a1ad41",
+     "DIR.json": "092dd4faeed2a0787b0269f4c1912df50e3e3341cfa8ae94863c0ff27f19cc41",
+     "TRAIN.npz": "749fda9a3c54026076a94c2038e7615f4fdc12a4b919a71ee86558ef4208da97"
+    },
+    "REFIT_LOC": {
+     "DELTA.npz": "52fee58716bed88dd8065d7ad7c0cf5e98571c0327443f0b04b88924616c3418",
+     "DIR.json": "7269054b25a91a36c9335dd614cd5d76e4885654c94206854d5ab33ac8c67d2d",
+     "TRAIN.npz": "35f5adfb86c50b3501995ce02cf982c49302f3f3b8694d66898bfb75632ba453"
+    },
+    "REFIT_PAIR": {
+     "DELTA.npz": "1ed9ffc295c697f44decfcaccd9d0f3a08184674a832a7a6cb7419799955c406",
+     "DIR.json": "e1b465670cf7a5eb39bd76e31e3b8a1354a68ab6bf3ab13542b65884108714fc",
+     "TRAIN.npz": "9f748158b06d961fc362dd790d0bea276905db4185a7b1bc3b0fcab321831b27"
+    },
+    "REFIT_PAIR_TR": {
+     "DELTA.npz": "9803a567492ad7dbfb44e1af4e3051f87de1bb7700a415364415de1eebe6e003",
+     "DIR.json": "26c64e7431f13d4a2f7b7bb08cedcdc45ef4ec1f768cd74981c2ddf3776106ec",
+     "TRAIN.npz": "07eb18ce96025c4984e60b4ec6791a1b1ed9e14184b48925e59214debc8f1f18"
+    }
+   },
+   "routing": {
+    "ROUTING.json": "a68d5114a621e2a1e236e183548653dbe3e807ff7f18f47d6e54a545a8c2c218",
+    "TEACHER_occupation.json": "594f956bf7b3c2ce1a09e3fe69e41f4dbd30f1592fd7a9b77f78b9ee3b91ea39"
+   },
+   "selections": {
+    "REFIT_CONT": {
+     "selected": {
+      "OLD-B50|ens": 0.02316801731474697,
+      "OLD-B50|full": 0.02316801731474697,
+      "OLD-B80|ens": 0.03690381520427764,
+      "OLD-B80|full": 0.03690381520427764,
+      "SIMPLE|ens": 0.7,
+      "SIMPLE|full": 0.1,
+      "UNCERTAINTY|ens": 0.1,
+      "UNCERTAINTY|full": 0.0
+     },
+     "sha256": "ccdd4861ed8b7a0038e8ad5a5934c79135a502ab38a2f67088c012a2f57549be"
+    },
+    "REFIT_LOC": {
+     "selected": {
+      "OLD-B50|ens": 0.014535626927390693,
+      "OLD-B50|full": 0.014535626927390693,
+      "OLD-B80|ens": 0.023047093972563742,
+      "OLD-B80|full": 0.023047093972563742,
+      "SIMPLE|ens": 0.3,
+      "SIMPLE|full": 0.0,
+      "UNCERTAINTY|ens": 0.0,
+      "UNCERTAINTY|full": 0.0
+     },
+     "sha256": "88e5d436fbe9a6f32a8048d92129163f280ac03a229a3b793cd763e32fa8a917"
+    },
+    "REFIT_PAIR": {
+     "selected": {
+      "OLD-B50|ens": 0.01719967247918248,
+      "OLD-B50|full": 0.01719967247918248,
+      "OLD-B80|ens": 0.027125980574637654,
+      "OLD-B80|full": 0.027125980574637654,
+      "SIMPLE|ens": 0.5,
+      "SIMPLE|full": 0.0,
+      "UNCERTAINTY|ens": 0.0,
+      "UNCERTAINTY|full": 0.0
+     },
+     "sha256": "283e2a6a7164023878b4e0e9a6bd3fb3efb432cde2deb10a49499450b14f82cb"
+    },
+    "REFIT_PAIR_TR": {
+     "selected": {
+      "OLD-B50|ens": 0.014332582773640754,
+      "OLD-B50|full": 0.014332582773640754,
+      "OLD-B80|ens": 0.022675395878031843,
+      "OLD-B80|full": 0.022675395878031843,
+      "SIMPLE|ens": 0.2,
+      "SIMPLE|full": 0.0,
+      "UNCERTAINTY|ens": 0.0,
+      "UNCERTAINTY|full": 0.0
+     },
+     "sha256": "a4e92c0c42d3311424d50efd286c4609ecb49bd319ef09944c1c475aceae11b6"
+    }
+   },
+   "witness": {
+    "MODEL.pkl": "2388a8a4e232995d553ce859defc2ce1c8a62f58f96c78fa7b66d1228ddae4d6",
+    "OOF.npz": "b7a9665fd7fd25decd396aec1ee8f487267d1a67b6e04348e948a205b659aeaf",
+    "WITNESS.json": "fd1dbc26c84c2b096941212f37f0f770db6ff7dbfcc4e4543c338bc72e216cf1",
+    "WITNESS.npz": "356c2f1459a56d427c2ca36deac95042942516481bc3ecfa0208ce1fe5597706"
+   },
+   "witness_eval_ms": "63a77f4191c6a43594ff2fbf706c65a22c35f33be3d7dc74ff9bfe44978ff94e"
+  },
+  "R1": {
+   "directions": {
+    "REFIT_CONT": {
+     "DELTA.npz": "2bb5700ea712e5ce6a50a0feb77e1a56639a9bcf090caf19981298f926e0122b",
+     "DIR.json": "d287a7e640d4ac094b24a977d798c60401bb7ac38b3e2cedfddb9080efe5c19f",
+     "TRAIN.npz": "3757424b0e7115d97a8f65a78bc03e6d3ab1e3efe39657b106730068843ad049"
+    },
+    "REFIT_LOC": {
+     "DELTA.npz": "848a24b73ff0677b49fb231436e932643daf09d9a222edb6deffedf5fb1c5889",
+     "DIR.json": "a2379cd6a2f03b3d397d1c26069de9af1b57e590a616253f64d9ec1fd5369d9a",
+     "TRAIN.npz": "47a203921e39cac9ea42b32f02248f1c2f4ffa41b273ade9d0c6d4247a3d63ef"
+    },
+    "REFIT_PAIR": {
+     "DELTA.npz": "31f41d5e600c02730533e994b6b7fc2d37abbf2dcd51be02402a3bd34e26d32b",
+     "DIR.json": "10ec9b562baf7b14f4196b06b9d8ac9ee76b4baa188f3070158e78dcee0125f2",
+     "TRAIN.npz": "06fe72f06cbe901f30c95f90ebe2e81cf27fba51539c79c8ab53fbc2c286e505"
+    },
+    "REFIT_PAIR_TR": {
+     "DELTA.npz": "190800dfc57a70e962c98b7fad942f38b08b72a99b46076d03a5c8f16a5e541b",
+     "DIR.json": "d6a79dd6a476960f299ba29bdc56ed356fc0b61844613188629bf0e943be1041",
+     "TRAIN.npz": "149c679c724cbb07eb3aef9d6701a80db8007d01a223c5b18ac0b18de0a765c0"
+    }
+   },
+   "routing": {
+    "ROUTING.json": "283d7d4691eaa1c97a37791db6b5d5ebb2a25c9bd9f6131933861dff65ad4798",
+    "TEACHER_occupation.json": "494a9005e2d353f97ec20b7d15d2443dd52193668b83290032dabe6fb2eb19d6"
+   },
+   "selections": {
+    "REFIT_CONT": {
+     "selected": {
+      "OLD-B50|ens": 0.0,
+      "OLD-B50|full": 0.0,
+      "OLD-B80|ens": 0.0,
+      "OLD-B80|full": 0.0,
+      "SIMPLE|ens": 0.0,
+      "SIMPLE|full": 0.0,
+      "UNCERTAINTY|ens": 0.0,
+      "UNCERTAINTY|full": 0.0
+     },
+     "sha256": "4eef59bb32dc689e38a861523b6d1cb7e4a12b0b8446315f45868cfd8c05f272"
+    },
+    "REFIT_LOC": {
+     "selected": {
+      "OLD-B50|ens": 0.0,
+      "OLD-B50|full": 0.0,
+      "OLD-B80|ens": 0.0,
+      "OLD-B80|full": 0.0,
+      "SIMPLE|ens": 0.0,
+      "SIMPLE|full": 0.0,
+      "UNCERTAINTY|ens": 0.0,
+      "UNCERTAINTY|full": 0.0
+     },
+     "sha256": "5ca7a5a5f81bf0070f201c053b3397cfdebe27842f36629bae72ace0aee80d5d"
+    },
+    "REFIT_PAIR": {
+     "selected": {
+      "OLD-B50|ens": 0.0,
+      "OLD-B50|full": 0.0,
+      "OLD-B80|ens": 0.0,
+      "OLD-B80|full": 0.0,
+      "SIMPLE|ens": 0.0,
+      "SIMPLE|full": 0.0,
+      "UNCERTAINTY|ens": 0.0,
+      "UNCERTAINTY|full": 0.0
+     },
+     "sha256": "50bdbe393df4133035b50d6cfab5f40ad647e3702d792b100cc0c3540629c1bd"
+    },
+    "REFIT_PAIR_TR": {
+     "selected": {
+      "OLD-B50|ens": 0.0,
+      "OLD-B50|full": 0.0,
+      "OLD-B80|ens": 0.0,
+      "OLD-B80|full": 0.0,
+      "SIMPLE|ens": 0.0,
+      "SIMPLE|full": 0.0,
+      "UNCERTAINTY|ens": 0.0,
+      "UNCERTAINTY|full": 0.0
+     },
+     "sha256": "fec991d1c52452a4aee6c88086459bebb7444f5b52f7cc4dc3e72d6372b75eed"
+    }
+   },
+   "witness": {
+    "MODEL.pkl": "cfaaa92552f43531c79a433aad4662e2055d227b2cf2ca7b9dc838904e36e88d",
+    "OOF.npz": "f23dbb79479599c4c7f3d0f2264e9e4001325884560570a7b996d9e12a86a496",
+    "WITNESS.json": "6acfdc212fe68551b06579768ac980f6584d2d1419badfcf5145353426eafa2c",
+    "WITNESS.npz": "534184ef6786d8001211084d93ec8f6eae0295a2c1017403f3388a01c3d9460e"
+   },
+   "witness_eval_ms": "816b3369547d14a99b9d4cdf2d6573678b4a22c9ea7dd9d56ad080330a9ff83c"
+  }
+ },
+ "research_head_at_freeze": "22f531a49340785fd14f9f94a0b973bb8040393e",
+ "rules": {
+  "RULES.json": "5393b1437acd873c9456f80289dd7986bb2914acd50b0c4f40c1e19fcfed2e43",
+  "RULES.md": "646c24102ca1db3bf8e6e784b29456a2dbe0722aec3a5733b2152defbeaf2ea4",
+  "cts/compression.py": "8cae6d85b5ab4f2e0db2e996dad735df229438788d8b6648e5639f4579265478",
+  "cts/questiona.py": "3e911669885807064f2e8effe4687727847d2836e79c4d3d660545aed71aa673",
+  "cts/rules.py": "f2ceae962da4e8f4374be4a1b3fb043c51061fd4094c6dbc1bfd9159600827d2",
+  "cts/select.py": "ee78d35059e442f5f1680476aaf7b827ccf6e6891b2b506d2120388135bc7990",
+  "cts/trackf.py": "d74cb1ef97f9178777672759d8d1531d60b04e351f72ae8de55bfa571828dcb7"
+ },
+ "schema": "CTS1-repair-freeze-v1",
+ "statement": "frozen before either repair CHECK panel (C0, C1) is opened for any new release; after a repair CHECK outcome is seen, revisions using it are adaptive and descriptive and cannot replace or relabel the primary repair result",
+ "utc": "2026-10-18T20:23:46+00:00"
+}

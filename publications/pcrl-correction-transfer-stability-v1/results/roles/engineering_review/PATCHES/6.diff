@@ -1,0 +1,20 @@
+--- a/cts/common.py
++++ b/cts/common.py
+@@ -117,7 +117,7 @@
+     pool = np.isin(b, POOL_BLOCKS)
+     out['POOL'] = pool
+     for pid, spec in PARTITIONS.items():
+-        tag = spec['tag'] + TAG_SUFFIX.get(pid, '')
++        tag = spec['tag'] + TAG_SUFFIX.get(spec.get('same_rows_as', pid), '')     # D0B follows D0's support suffix
+         part = household_folds(unit[pool], spec['parts'], tag)
+         full = np.full(len(unit), -1, dtype=np.int64)
+         full[pool] = part
+@@ -374,6 +374,8 @@
+             raise PermissionError(f'operation {operation} may not read repair-panel labels')
+         if touches_panel and operation in ('check_repair', 'verify') and not repair_frozen():
+             raise PermissionError('repair CHECK panels stay closed until the committed REPAIR_FREEZE')
++    elif partition is not None or prole is not None:
++        raise PermissionError(f'{role} has no partitions (partition / prole apply to MODEL_FIT only; the log would misstate the rows)')
+     elif pol['rows'] != 'ALL' and pol['rows'] != ('FIT', 'GUARD', 'CHECK', 'ALL'):
+         raise PermissionError(f'operation {operation} reads MODEL_FIT partition rows only')
+     for name in labels:

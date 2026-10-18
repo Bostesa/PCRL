@@ -1,0 +1,15 @@
+--- a/cts/jobqueue.py	2026-10-18 15:39:33
++++ b/cts/jobqueue.py	2026-10-18 15:39:33
+@@ -137,11 +137,7 @@
+     cache = ROOT / 'interpreters.json'
+     known = json.loads(cache.read_text()) if cache.is_file() else {}
+     key = str(executable)
+-    try:
+-        st = os.stat(executable if os.path.isabs(key) else subprocess.run(['which', key], capture_output=True, text=True).stdout.strip())
+-        stamp = f'{key}|{st.st_mtime_ns}'
+-    except Exception:
+-        stamp = key
++    stamp = f'{key}|{time.time_ns()}'           # probe every time: a pip install inside a venv leaves the executable's mtime unchanged
+     if stamp not in known:
+         r = subprocess.run([key, '-c', VERSION_PROBE], capture_output=True, text=True, env={**os.environ, **THREAD_ENV})
+         known[stamp] = json.loads(r.stdout) if r.returncode == 0 and r.stdout.strip() else {'error': r.stderr[-400:]}

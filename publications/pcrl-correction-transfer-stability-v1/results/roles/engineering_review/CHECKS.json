@@ -1,0 +1,332 @@
+{
+ "schema": "CTS1-engineering-review-checks-v1",
+ "reviewer": "engineering / deployment reviewer (ENG_REVIEW_V1)",
+ "utc": "2026-10-18T20:45:00+00:00",
+ "reviewed_tip": "fde40f058",
+ "scope": "code review + invented-data tests; no label, feature or person-level file read",
+ "summary": {
+  "checks": 46,
+  "findings": 20,
+  "blocker": 0,
+  "major": [
+   "ENG-01",
+   "ENG-02",
+   "ENG-03",
+   "PROV-01",
+   "PROV-02"
+  ],
+  "patches_apply_together_and_compile": true
+ },
+ "checks": [
+  {
+   "id": "ACC-01",
+   "status": "PASS",
+   "file": "cts/common.py:320-390",
+   "note": "load(): registration receipt gate, closed ATTACK/DEV_REPORT labels, role x field x operation policy, purpose length, entry-point check, MODEL_FIT rows restricted to the requested partition role; repair panels refused except source_replay / support_count and (after a committed REPAIR_FREEZE) check_repair / verify; fit/select/check_diag cannot name a panel (row-role or partition list refusal)."
+  },
+  {
+   "id": "ACC-02",
+   "status": "PASS",
+   "file": "cts/*.py (26 load call sites)",
+   "note": "Every label read in coordinator code goes through cts.common.load. Source helpers called here (ohn.common.frozen_bank, ohn.devrun.anchor_income, ohn.evaluate.complete_eval, ohn.protect.crossfit_train/train_correction) hold predictions or take labels from the dict load returned; none reads a label file."
+  },
+  {
+   "id": "EXC-01",
+   "status": "PASS",
+   "file": "cts/trackf.py:141-196,245-275,356-404; cts/nested.py; cts/compression.py:56-80",
+   "note": "Witness (dictionary, T*, cross-fitting), REFIT routing, correction directions and the nested pipeline read FIT rows only ('fit'); GUARD only through 'select' (ladder costs, compression K choice), CHECK only through check_diag / check_repair; K-means codes fitted on the FIT OOF vectors (label-free)."
+  },
+  {
+   "id": "EXC-02",
+   "status": "PASS",
+   "file": "cts/trackf.py:278-314,317-329,342-353",
+   "note": "Documented exposures only: FROZEN routing and H3's income wire saw every MODEL_FIT household (GUARD, CHECK, C0, C1); routing_repro refits on all MODEL_FIT under source_replay but never saves or uses the model (record only)."
+  },
+  {
+   "id": "EXC-03",
+   "status": "PASS",
+   "file": "cts/select.py:35-47; cts/evaluate.py; cts/dstage.py",
+   "note": "MODEL_SELECT is used for the witness baseline slack, SEX-group counts in UNCERTAINTY's predictive SE, realized outcomes and the G2/G3 gates / tie-breaks (all registered in RULES sections 2, 5, 8); it is never a fitting or calibration set."
+  },
+  {
+   "id": "EST-01",
+   "status": "PASS",
+   "file": "cts/select.py:59-77",
+   "note": "OLD fed the OOF base and delta_oof with FIT labels (not GUARD); SIMPLE / UNCERTAINTY fed GUARD for 'full' and GUARD_ENS for 'ens'; n_guard from the GUARD s=0 record; n_MS by SEX."
+  },
+  {
+   "id": "EST-02",
+   "status": "PASS",
+   "file": "cts/trackf.py:441-464; cts/select.py:109-118; cts/questiona.py; cts/nested.py:144; cts/compression.py:60,67,120-121",
+   "note": "Increments are corrected minus uncorrected on the same people with the matching base: full vs W, ens vs e_0, OOF vs softmax(logp(OOF)), NESTED vs the fold-k witness, compression vs W."
+  },
+  {
+   "id": "EST-03",
+   "status": "PASS",
+   "file": "cts/select.py:67-77; cts/releases.py:49-62; cts/dstage.py:57-70; cts/compression.py:44-49; cts/rstage.py:22-30",
+   "note": "Strength keys 'RULE|dep' (RULE in OLD-B80, OLD-B50, SIMPLE, UNCERTAINTY; dep in full, ens) and COMP directory names agree across select, releases, dstage, compression, rstage and figures."
+  },
+  {
+   "id": "EST-04",
+   "status": "PASS",
+   "file": "cts/select.py:50-84",
+   "note": "selections() reads only GUARD / GUARD_ENS ladder entries, OOF and the witness baseline; CHECK / MS outcomes of the correction are never read; realized() refuses repair partitions before the freeze. See ENG-09 for the ordering note."
+  },
+  {
+   "id": "EST-05",
+   "status": "PASS",
+   "file": "cts/dstage.py:62-68",
+   "note": "For the FULL deployment, witness excess + (r_s - W) increment equals the corrected release's excess exactly (invented test FULL_G3_EXACT, 1.9e-17), so G3 via point_cap_crossing is exact there."
+  },
+  {
+   "id": "EST-06",
+   "status": "PASS",
+   "file": "cts/trackf.py:430-431; cts/select.py:94-95; cts/compression.py:101-102; cts/questiona.py:42-43",
+   "note": "Every repair CHECK path checks repair_frozen() and reads through check_repair (refused again in load)."
+  },
+  {
+   "id": "EST-07",
+   "status": "PASS",
+   "file": "cts/nested.py:37-151; cts/questiona.py:55-62",
+   "note": "Nested variant: dictionary, witness (inner CV, own cross-fitting), routing and correction all refitted inside FIT minus fold k; NESTED arrays in FIT row order, as questiona expects."
+  },
+  {
+   "id": "ENG-01",
+   "status": "FINDING",
+   "severity": "MAJOR",
+   "file": "cts/select.py:114-118; cts/dstage.py:62-68",
+   "note": "ENS deployment: realized MS / CHECK outcomes are e_s - e_0 increments judged against the reserve and margin of the deployed FULL witness W. The released ensemble spends (e_s - e_0) + (e_0 - W), so G3 ('complete release passes at the point on MODEL_SELECT'), G2 and the reserve ratios are not computed for the release that is deployed. With men's reserve +0.0005 (D0) / -0.0008 (D1), a base shift of ~1e-3 flips the gate (invented demo ENS_BASE_G3). Patch 1 records outcome_complete (vs W) and gates ens on it. Rule-level question for the statistical reviewer: SIMPLE / UNCERTAINTY / OLD for 'ens' budget e_s - e_0 against W's reserve and ignore e_0 - W; ens 'identity' is e_0, not W.",
+   "patch": "PATCHES/1.diff"
+  },
+  {
+   "id": "ENG-02",
+   "status": "FINDING",
+   "severity": "MAJOR",
+   "file": "cts/compression.py:61-80",
+   "note": "If a statistic's reserve slack is <= 0 (D1 men's guard -0.0008) and the candidate's GUARD cost there exceeds it, utilization_of returns inf, every K satisfies the target, and the bisection returns the smallest K (2) labelled MATCHED: the 'ordinary compression code at matched cost' control becomes the most compressed code (invented demo COMP_INF_TARGET). Likely at the R-stage fixed frontier strengths on a seed-1 partition. Patch 2 refuses (no matched control exists) and records the bisection's monotonicity assumption (inherited from ohn.protect.comp_select).",
+   "patch": "PATCHES/2.diff"
+  },
+  {
+   "id": "ENG-03",
+   "status": "FINDING",
+   "severity": "MAJOR (conditional on the D-stage selection)",
+   "file": "cts/rstage.py:22-44,63-76",
+   "note": "The R bank and post-freeze lane cover only REFIT routing, and full deployment for rule selections. RULES section 8 allows a FROZEN or ensemble recipe; then the selected recipe's primary endpoints (select check, ladder check, reader grid vs matched CONT) are never produced, and adding them after a CHECK outcome is adaptive. Patch 3 adds the selected recipe, its matched CONT and its FROZEN directions. If the recipe is FROZEN, its R0/R1 directions, GUARD ladders and selections must also exist before the freeze (outside rstage).",
+   "patch": "PATCHES/3.diff"
+  },
+  {
+   "id": "ENG-04",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/freeze.py:24-64; cts/common.py:196-197",
+   "note": "freeze.write accepts a missing RECIPE_SELECTION.json and R partitions without witness / directions / selections; repair_frozen() opens the panels for ANY committed file named REPAIR_FREEZE.json (no schema or content check); its code hashes omit common, evaluate, releases, rstage, nested and deploy. Patch 4.",
+   "patch": "PATCHES/4.diff"
+  },
+  {
+   "id": "ENG-05",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/trackf.py:113",
+   "note": "cost_summary's mean_abs_logit_change sums over the 5 classes: 5x the RULES section 5 definition (mean over people and classes; cts.rules.correction_magnitude). D0's NESTED_PAIR.json already uses it, so patch 5 adds the registered per-class key beside the old one instead of redefining it (invented demo MAGNITUDE_DEF ratio 5.0).",
+   "patch": "PATCHES/5.diff"
+  },
+  {
+   "id": "ENG-06",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/common.py:120,377",
+   "note": "(a) D0B ('same_rows_as D0') looks up its own TAG_SUFFIX key, so a D0 support suffix would silently give D0B different households (latent: no support failure; demo D0B_SUFFIX_LATENT). (b) For non-MODEL_FIT roles, partition / prole are ignored but logged, so a log line could state rows that were not the rows returned. Patch 6.",
+   "patch": "PATCHES/6.diff"
+  },
+  {
+   "id": "ENG-07",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/common.py:229-280",
+   "note": "Entry points are authorized per module. 'source_replay' (all MODEL_FIT rows including C0/C1, before the freeze) is open to every function of cts.trackf, not only routing_repro (demo ENTRY_MODULE_LEVEL). Actual use is clean: only routing_repro calls it. No patch, because narrowing the registered policy needs a dated amendment. Recommendation: the verifier asserts every source_replay log line has entry_point cts.trackf:routing_repro or cts.preflight:*."
+  },
+  {
+   "id": "ENG-08",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/diagnosis.py factors() (commit fde40f058)",
+   "note": "The 'sampling' z divides by sqrt(se_a^2 + se_b^2), which assumes independent people sets, but NESTED_OOF vs OOF (both FIT) and CHECK vs CHECK_ENS (same CHECK people) are same-people pairs. Their z is mis-scaled (usually understated). No patch: label it as an independence approximation, or take paired SEs from questiona's per-person increments."
+  },
+  {
+   "id": "ENG-09",
+   "status": "PASS",
+   "file": "cts/trackf.py:445-464; cts/select.py:50-84",
+   "note": "Disclosure: on D partitions the ladder computes CHECK and MS outcomes at every strength before select.py writes the selection. The selection reads only GUARD / OOF and is code-locked, so nothing leaks, but 'selections saved before realized outcomes' holds for the REALIZED files only."
+  },
+  {
+   "id": "ENG-10",
+   "status": "PASS",
+   "file": "cts/releases.py:103-104",
+   "note": "Grid specs are overwritable (write_json), but devreaders embeds the full spec in GRID.json, so what was run stays recorded."
+  },
+  {
+   "id": "ENG-11",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/compression.py:97-125",
+   "note": "COMP_REALIZED.json is one write-once file per partition covering the codes present when it runs; a code fitted later can never be realized. The R lane must order CTS_<P>_COMP_REALIZED after every COMP fit (queue ordering)."
+  },
+  {
+   "id": "ENG-12",
+   "status": "PASS",
+   "file": "cts/trackf.py:416-417,454",
+   "note": "The full estimators use raw W as base while s = 0 is softmax(logp(W)); the identity cost is ~1e-18 rather than exactly 0 (demo IDENTITY_BASE). Harmless."
+  },
+  {
+   "id": "PROV-01",
+   "status": "FINDING",
+   "severity": "MAJOR",
+   "file": "cts/jobqueue.py:238-243 (cts/lane.py:27 inherits)",
+   "note": "On a max_wall_s timeout the queue calls proc.kill() without proc.wait(); RUSAGE_CHILDREN counts only waited-for children, so the killed unit's CPU is charged as 0. This is live because python3 lacks psutil. Invented test: about 1 s of CPU burned, 0.0 s charged; with the patch, 1.005 s. An interrupted runner also frees its slot while the child may keep running, and writes no unit_end. The live ledger has no killed unit yet. Patch 20: reap the child, bound the sampler by the deadline, and record status 'interrupted'.",
+   "patch": "PATCHES/20.diff"
+  },
+  {
+   "id": "PROV-02",
+   "status": "FINDING",
+   "severity": "MAJOR",
+   "file": "cts/closeout.py:94,104-106",
+   "note": "The freeze time comes from git %cI with a local offset (-04:00) and is compared as a string with UTC access-log times, so a panel read up to 4 h before the freeze is missed (invented test: read 22:00Z, freeze 23:00Z). With no freeze committed, panel reads are hidden. The last freeze commit is used instead of the first. load() still enforces the lock at read time, so ACCESS_RECEIPT's certification is at risk, not results. Patch 23 compares UTC from %ct, uses the first freeze commit, and lists unended units.",
+   "patch": "PATCHES/23.diff"
+  },
+  {
+   "id": "PROV-03",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/jobqueue.py:186-233",
+   "note": "Code is hashed at registration and at launch, not after. Lazy imports inside functions happen later, so an edit during a unit goes unrecorded (same exposure as PROTOCOL_DEVIATIONS item 3). Patch 20 adds code_digest_at_end and code_changed_during_run.",
+   "patch": "PATCHES/20.diff"
+  },
+  {
+   "id": "PROV-04",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/jobqueue.py:75-76,103-105",
+   "note": "charge() accepts NaN, which disables the CPU-limit refusal for good, and negative values, which reopen the budget (both shown by invented tests). Patch 21 refuses non-finite or negative charges and fails closed on a corrupt record.",
+   "patch": "PATCHES/21.diff"
+  },
+  {
+   "id": "PROV-05",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/jobqueue.py:135-149",
+   "note": "Interpreter versions are cached by executable path and mtime; a pip install inside a venv does not change the mtime, so CODE_AT_START can record stale library versions. Patch 22 probes every time (about 0.1 s).",
+   "patch": "PATCHES/22.diff"
+  },
+  {
+   "id": "PROV-06",
+   "status": "PASS",
+   "file": "cts/receipt.py; cts/test_receipt.py",
+   "note": "A failed verification writes no write-once record; every attempt is appended; a second verified attempt is refused; test_receipt passes 8/8. FREEZE_RECEIPT is defined but unused, consistent with PROTOCOL section 8."
+  },
+  {
+   "id": "PROV-07",
+   "status": "PASS",
+   "file": "cts/jobqueue.py:57-62,97,175,185",
+   "note": "Append-only: ledger appended under flock, START_UTC.json created exclusively, a reused unit id refused, each unit directory new. Minor gap: an RSS-reservation refusal after a slot is acquired (226-228) leaves CODE_AT_START with no ledger line."
+  },
+  {
+   "id": "PROV-08",
+   "status": "PASS",
+   "file": "cts/jobqueue.py:177-183,191-218",
+   "note": "Window ends 02:32:40Z (8 h) and 03:02:40Z (8.5 h); CPU limit checked at start; two flock slots with FIFO tickets. Limits are checked only at start, and stages are self-declared."
+  },
+  {
+   "id": "PROV-09",
+   "status": "PASS",
+   "file": "cts/closeout.py:33-52",
+   "note": "The counting globs match what the modules write (COMP, NESTED, TRACK_R INCOME, the D0B witness)."
+  },
+  {
+   "id": "PROV-10",
+   "status": "PASS",
+   "file": "cts/lane.py",
+   "note": "Per-unit CPU deltas are correct when several units share one process; done units are skipped; failed ids cannot be reused."
+  },
+  {
+   "id": "PROV-11",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/closeout.py:49-51",
+   "note": "H3R and HCR are counted as one fitted specification although each is evaluated as its own complete release (possibly 1 short per Track R partition); redesign fits have no counting rule; the 72-spec cap is only counted at closeout and never enforced before a fit. No patch (counting judgment for the coordinator)."
+  },
+  {
+   "id": "DEP-01",
+   "status": "PASS",
+   "file": "cts/deploy.py:155-163",
+   "note": "release() refuses through ohn.deploy.check_rows: SEX, sex, OCCP and PINCP give PermissionError; extra, reordered, missing fields and a CSV extra-value row give ValueError."
+  },
+  {
+   "id": "DEP-02",
+   "status": "PASS",
+   "file": "cts/deploy.py:166-172; acs_replication.deploy.read_raw_csv",
+   "note": "The CSV header must match exactly: extra, reordered and missing columns give ValueError; mixed-case Sex gives PermissionError."
+  },
+  {
+   "id": "DEP-03",
+   "status": "PASS",
+   "file": "cts/deploy.py:146-152",
+   "note": "The underlying entry point (check_encoded) refuses SEX, SEX=2 and OCCP columns (PermissionError) and extra, missing, reordered, non-finite or wrong-width input (ValueError). Inner helpers have no schema check but select columns by name; only an undocumented direct call bypasses the refusals."
+  },
+  {
+   "id": "DEP-04",
+   "status": "PASS",
+   "file": "cts/deploy.py:156-157,162",
+   "note": "Hidden-output requests (raw_score, or a bare string) are refused; only probability and decision are returned, with no identifiers."
+  },
+  {
+   "id": "DEP-05",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/deploy.py:76-83,196-197",
+   "note": "Parity is bitwise against the hash-checked stored file and is real for ANCHOR and H3 income. For W and correction packages, the stored DEV_REPORT wire comes from the same code path as deployment. The tie to the evaluated arrays is the store-time MODEL_SELECT / MODEL_FIT check, which skips W. Patch 25 extends it to W.",
+   "patch": "PATCHES/25.diff"
+  },
+  {
+   "id": "DEP-06",
+   "status": "PASS",
+   "file": "cts/deploy.py:138-143; cts/trackf.py:207-211",
+   "note": "Dependency hashes are checked before any model is loaded; MODEL.pkl is hashed before pickle.load; the FROZEN teacher is checked by ohn.common.admitted."
+  },
+  {
+   "id": "DEP-07",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/deploy.py:41-42",
+   "note": "RELEASE_CODE leaves out ohn.deploy (the refusal logic and FORBIDDEN list), ohn.devrun and cts.sensitivity, so a change to the refusal code passes the dependency check. Patch 25.",
+   "patch": "PATCHES/25.diff"
+  },
+  {
+   "id": "DEP-08",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/deploy.py:240",
+   "note": "The deployment-check report is overwritable (write_json), so a rerun can replace an earlier failing report. Patch 25 uses write_json_x.",
+   "patch": "PATCHES/25.diff"
+  },
+  {
+   "id": "DEP-09",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/deploy.py:138-143",
+   "note": "PACKAGE.json is the root of trust: an empty dependency list is accepted and the embedded encoder is not pinned, so a manifest edit after the check goes undetected at use. No patch; record the PACKAGE.json sha256 in the check report and verify it at use."
+  },
+  {
+   "id": "DEP-10",
+   "status": "FINDING",
+   "severity": "MINOR",
+   "file": "cts/deploy.py:49-62",
+   "note": "A Track R direction (*_TR) can be packaged with the frozen H3 income; the income is labelled honestly but the package is not the Track R complete release. No patch; refuse _TR names in build."
+  },
+  {
+   "id": "DEP-11",
+   "status": "PASS",
+   "file": "cts/trackf.py:171-173",
+   "note": "MODEL.pkl stores only dep[0]; correct because A1_PO_16 is a single refit. A committee recipe would break silently, and patch 25's W check would catch it."
+  }
+ ]
+}

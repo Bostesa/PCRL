@@ -115,6 +115,46 @@ def tables():
     return agg
 
 
+def factors(parts=('D0', 'D1')):
+    """Factor comparisons of the transfer error (label-free), over the nonzero ladder strengths, per partition and statistic:
+    - routing: (CHECK - OOF) and (MS - OOF) under FROZEN vs REFIT, and the CHECK - MS gap (CHECK households were seen by the FROZEN
+      routing, MODEL_SELECT never was);
+    - deployment: (CHECK - OOF) for the full release vs the ensemble (the OOF estimator uses fold corrections, as the ensemble does);
+    - nesting: NESTED_OOF - OOF and (CHECK - NESTED_OOF) vs (CHECK - OOF) (REFIT PAIR / LOC on D0);
+    - H3 anchor: the same errors for PAIR (critic reads H3's income) vs LOC (does not);
+    - magnitude: the error at s = 0.2, 0.5, 1.0;
+    - sampling: the error in units of its SE (sqrt(se_a^2 + se_b^2))."""
+    out = {}
+    for P in parts:
+        for routing in ('FROZEN', 'REFIT'):
+            for arm in ('PAIR', 'LOC', 'CONT'):
+                est = _load(P, f'{routing}_{arm}')
+                if est is None:
+                    continue
+                for k in RL.STATS:
+                    def err(a, b, svals=None):
+                        if a not in est or b not in est:
+                            return None
+                        xs = [s for s in TF.LADDER[1:] if str(s) in est[a] and str(s) in est[b] and (svals is None or s in svals)]
+                        e = [est[b][str(s)]['stats'][k] - est[a][str(s)]['stats'][k] for s in xs]
+                        z = [x / max(1e-12, (est[a][str(s)]['se'][k] ** 2 + est[b][str(s)]['se'][k] ** 2) ** 0.5) for x, s in zip(e, xs)]
+                        return {'mean': sum(e) / len(e), 'max_abs': max(abs(v) for v in e), 'mean_z': sum(z) / len(z),
+                                'at': {str(s): round(v, 6) for s, v in zip(xs, e) if s in (0.2, 0.5, 1.0)}} if e else None
+                    out[f'{P}|{routing}_{arm}|{k}'] = {
+                        'CHECK-OOF': err('OOF', 'CHECK'), 'MS-OOF': err('OOF', 'MS'), 'CHECK-GUARD': err('GUARD', 'CHECK'),
+                        'MS-GUARD': err('GUARD', 'MS'), 'CHECK-MS': err('MS', 'CHECK'),
+                        'CHECK_ENS-OOF': err('OOF', 'CHECK_ENS'), 'CHECK-CHECK_ENS': err('CHECK_ENS', 'CHECK'),
+                        'CHECK-NESTED_OOF': err('NESTED_OOF', 'CHECK'), 'NESTED_OOF-OOF': err('OOF', 'NESTED_OOF'),
+                        'MS-NESTED_OOF': err('NESTED_OOF', 'MS')}
+    C.write_json(C.RESULTS / 'diagnosis' / 'TRANSFER_FACTORS.json', {'schema': 'CTS1-transfer-factors-v1', 'utc': C.now(), 'factors': out,
+                                                                     'note': 'error = second estimator minus first (realized minus predicted '
+                                                                             'when the second is CHECK or MS); means over the 10 nonzero '
+                                                                             'ladder strengths; label-free'})
+    print(json.dumps({'entries': len(out)}))
+    return out
+
+
 if __name__ == '__main__':
     tables()
+    factors()
     sys.exit(0)

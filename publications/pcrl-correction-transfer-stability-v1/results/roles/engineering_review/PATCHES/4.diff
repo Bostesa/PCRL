@@ -1,0 +1,45 @@
+--- a/cts/freeze.py
++++ b/cts/freeze.py
+@@ -26,6 +26,8 @@
+     if out.exists():
+         raise PermissionError('REPAIR_FREEZE.json exists (write-once)')
+     plan = json.loads(Path(plan_path).read_text())
++    if not (C.RESULTS / 'diagnosis' / 'RECIPE_SELECTION.json').is_file():
++        raise PermissionError('no diagnosis/RECIPE_SELECTION.json: the freeze must record the selected recipe (or NO_RECIPE)')
+     head = subprocess.run(['git', '-C', str(C.ROOT), 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
+     rparts = {}
+     for P in ('R0', 'R1'):
+@@ -40,6 +42,8 @@
+                 raise PermissionError(f'{P}: a realized repair outcome exists before the freeze ({sf.name})')
+             s = json.loads(sf.read_text())
+             rec['selections'][sf.stem] = {'sha256': C.sha(sf), 'selected': s['selected']}
++        if rec['witness']['WITNESS.json'] is None or not rec['directions'] or not rec['selections']:
++            raise PermissionError(f'{P}: witness, directions and GUARD selections must exist before the freeze')
+         rparts[P] = rec
+     panel_reads = [e for e in C.access_events() if e.get('touches_repair_panel') and e.get('operation') not in ('source_replay', 'support_count')]
+     rec = {'schema': 'CTS1-repair-freeze-v1', 'utc': C.now(), 'research_head_at_freeze': head,
+@@ -47,6 +51,7 @@
+                      'RULES.md': C.sha(C.RESULTS / 'roles/statistical_reviewer/RULES.md'), 'cts/rules.py': C.sha(C.ROOT / 'cts/rules.py'),
+                      'cts/select.py': C.sha(C.ROOT / 'cts/select.py'), 'cts/questiona.py': C.sha(C.ROOT / 'cts/questiona.py'),
+                      'cts/trackf.py': C.sha(C.ROOT / 'cts/trackf.py'), 'cts/compression.py': C.sha(C.ROOT / 'cts/compression.py')},
++           'code_sha256': {str(p.relative_to(C.ROOT)): C.sha(p) for p in sorted((C.ROOT / 'cts').glob('*.py'))},
+            'frozen_rules': ['OLD-B80', 'OLD-B50', 'SIMPLE', 'UNCERTAINTY'], 'deployments': ['full', 'ens'],
+            'recipe_selection': {'file_sha256': _sha_or_none(C.RESULTS / 'diagnosis' / 'RECIPE_SELECTION.json'),
+                                 'gates_file_sha256': _sha_or_none(C.RESULTS / 'diagnosis' / 'RECIPE_GATES.json'),
+--- a/cts/common.py
++++ b/cts/common.py
+@@ -194,7 +194,13 @@
+ 
+ 
+ def repair_frozen():
+-    return committed(RESULTS / FREEZE_FILE)
++    """A committed REPAIR_FREEZE.json written by cts.freeze (schema, recorded recipe selection, no earlier panel read)."""
++    p = RESULTS / FREEZE_FILE
++    if not committed(p):
++        return False
++    rec = json.loads(p.read_text())
++    return (rec.get('schema') == 'CTS1-repair-freeze-v1' and rec.get('repair_panel_label_reads_before_freeze') == 0
++            and bool((rec.get('recipe_selection') or {}).get('file_sha256')))
+ 
+ 
+ # ------------------------------------------------------------------ access policy (ROLE x FIELD x OPERATION x PURPOSE)

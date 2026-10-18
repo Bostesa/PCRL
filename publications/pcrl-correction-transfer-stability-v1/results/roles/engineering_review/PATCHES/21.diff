@@ -1,0 +1,34 @@
+--- a/cts/jobqueue.py	2026-10-18 15:39:33
++++ b/cts/jobqueue.py	2026-10-18 15:39:33
+@@ -22,6 +22,7 @@
+ import fcntl
+ import hashlib
+ import json
++import math
+ import os
+ import resource
+ import subprocess
+@@ -73,7 +74,12 @@
+ 
+ 
+ def charged_cpu_s():
+-    return sum(float(e.get('charged_cpu_s', 0.0)) for e in entries() if e.get('event') in ('unit_end', 'charge'))
++    tot = 0.0
++    for e in entries():
++        if e.get('event') in ('unit_end', 'charge'):
++            v = float(e.get('charged_cpu_s', 0.0))
++            tot += max(v, 0.0) if math.isfinite(v) else math.inf      # fail closed on a corrupt record
++    return tot
+ 
+ 
+ def running_reservations():
+@@ -102,6 +108,9 @@
+ 
+ def charge(label, cpu_s, note):
+     """Charge non-queue work (agent analysis, light scripts, out-of-queue upper estimates) to the same budget."""
++    cpu_s = float(cpu_s)
++    if not math.isfinite(cpu_s) or cpu_s < 0:
++        raise ValueError(f'a charge must be a finite, non-negative CPU-second upper estimate (got {cpu_s!r})')
+     _append({'event': 'charge', 'label': label, 'charged_cpu_s': float(cpu_s), 'note': note, 'utc': now().isoformat(timespec='seconds')})
+ 
+ 

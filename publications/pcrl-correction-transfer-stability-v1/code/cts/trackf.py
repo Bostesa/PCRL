@@ -72,6 +72,14 @@ def fit_dictionary(X_fit, names, min_count=DICT_MIN):
             'n_collapsed': {b: len(v) for b, v in collapsed.items()}}
 
 
+def admitted_dictionary(names):
+    """The admitted (all-MODEL_FIT, label-free) dictionary unchanged: no level collapsed (training-size diagnostic P70A only)."""
+    names = tuple(map(str, names))
+    kept = {b: [n for n in names if n.startswith(b + '=') and not n.endswith('__OTHER__')] for b in BLOCKS}
+    return {'min_count': None, 'kept': kept, 'collapsed': {b: [] for b in BLOCKS}, 'n_collapsed': {b: 0 for b in BLOCKS},
+            'note': 'admitted dictionary (levels with >= 10 MODEL_FIT people), not re-collapsed on FIT'}
+
+
 def recode(X, names, dic):
     """Move every collapsed level to its block's __OTHER__ column (rows stay complete one-hot)."""
     names = tuple(map(str, names)); X = np.array(X, dtype=np.float64, copy=True)
@@ -110,7 +118,9 @@ def cost_summary(p, base, y, sex, unit):
            'nll': float(v['nll'].mean()), 'acc_loss': float(v['acc_loss'].mean())}
     se = {'men_brier': subgroup_se(v['brier'], men, unit), 'women_brier': subgroup_se(v['brier'], women, unit),
           'brier': cluster_se(v['brier'], unit), 'nll': cluster_se(v['nll'], unit), 'acc_loss': cluster_se(v['acc_loss'], unit)}
-    mag = {'mean_abs_logit_change': float(np.abs(logp(p) - logp(base)).sum(1).mean()),
+    dlog = np.abs(logp(p) - logp(base))
+    mag = {'mean_abs_logit_change': float(dlog.sum(1).mean()),            # summed over classes (K x the registered definition)
+           'mean_abs_logit_change_per_class': float(dlog.mean()),         # RULES.md section 5: mean over people AND classes
            'flip_rate': float((p.argmax(1) != base.argmax(1)).mean()), 'max_abs_prob_change': float(np.abs(p - base).max())}
     return {'stats': out, 'se': se, 'n': int(len(y)), 'n_men': int(men.sum()), 'n_women': int(women.sum()),
             'households': int(len(np.unique(unit))), 'magnitude': mag}
@@ -148,15 +158,18 @@ def fit_witness(P):
     if (d / 'WITNESS.json').exists():
         raise PermissionError(f'{P} witness exists (append-only)')
     s = seed_of(P)
-    F = C.load('MODEL_FIT', ('features', 'occupation'), 'fit', f'Track F {P}: occupation witness (A1_PO_16 recipe) fit, inner CV and '
-               'household cross-fitting on FIT; no SEX', partition=P, prole='FIT')
+    spec = C.PARTITIONS[P]
+    base = spec.get('same_rows_as', P)                         # P70A shares P70's rows and folds (only the dictionary differs)
+    adaptive = 'training-size diagnostic (ADAPTIVE, amendment item 9): ' if spec['kind'] == 'witness_curve' else ''
+    F = C.load('MODEL_FIT', ('features', 'occupation'), 'fit', f'{adaptive}Track F {P}: occupation witness (A1_PO_16 recipe) fit, inner '
+               'CV and household cross-fitting on FIT; no SEX', partition=P, prole='FIT')
     names = F['feature_names']; y = F['occupation']; unit = F['unit']
-    dic = fit_dictionary(F['X'], names)
+    dic = admitted_dictionary(names) if spec.get('dictionary') == 'admitted' else fit_dictionary(F['X'], names)
     roles = _role_features(dic)
     cfg = dict(FA.CONFIGS[W_RECIPE])
     Xr = FA.rep_matrix(cfg['rep'], recode(F['X'], names, dic), names)
-    folds = C.household_folds(unit, 5, f'CTS1_cf_{P}')
-    inner = C.household_folds(unit, 5, f'CTS1_inner_{P}')
+    folds = C.household_folds(unit, 5, f'CTS1_cf_{base}')
+    inner = C.household_folds(unit, 5, f'CTS1_inner_{base}')
     reps = {r: FA.rep_matrix(cfg['rep'], roles[r]['X'], names) for r in ROLES}
     pipe = FA.run_pipeline(cfg, s, Xr, y, folds, inner, extra={r: reps[r] for r in ('MODEL_FIT', 'MODEL_SELECT')},
                            log=lambda m: print(m, flush=True))
@@ -335,14 +348,28 @@ def route(P, kind, X, names):
 
 
 # ------------------------------------------------------------------ directions (torch venv)
-def direction_id(routing, arm):
-    return f'{routing}_{arm}'
+def direction_id(routing, arm, income='H3'):
+    return f'{routing}_{arm}' + ('' if income == 'H3' else '_TR')
 
 
-def fit_direction(P, routing, arm):
+def income_wire_all(P, income):
+    """(n, 2) income probabilities on all MODEL_FIT rows: the frozen H3 (Track F) or the Track R refitted H3-recipe income (H3R)."""
+    from ohn import devrun as OD
+    if income == 'H3':
+        return OD.anchor_income('H3', seed_of(P), 'MODEL_FIT')
+    if income == 'TRACKR':
+        from . import track_r as TR
+        inc, rid = TR.release_arrays(P, 'H3R', 'MODEL_FIT')
+        if not np.array_equal(rid, C.features('MODEL_FIT')['row_id']):
+            raise AssertionError('Track R MODEL_FIT row order differs')
+        return inc
+    raise ValueError(income)
+
+
+def fit_direction(P, routing, arm, income='H3'):
     from ohn import protect as PR, devrun as OD
     t0 = time.process_time()
-    did = direction_id(routing, arm)
+    did = direction_id(routing, arm, income)
     d = pdir(P) / 'DIR' / did
     if (d / 'DIR.json').exists():
         raise PermissionError(f'{P}/{did} exists (append-only)')
@@ -359,9 +386,9 @@ def fit_direction(P, routing, arm):
     S = C.features('MODEL_SELECT')
     leaves_ms, _ = route(P, routing, S['X'], S['feature_names'])
     z_oof = logp(O['oof'])
-    inc_all = OD.anchor_income('H3', s, 'MODEL_FIT')
+    inc_all = income_wire_all(P, income)
     if inc_all.shape[0] != len(Fall['row_id']):
-        raise AssertionError('H3 MODEL_FIT income rows differ')
+        raise AssertionError('MODEL_FIT income rows differ')
     inc_wire = PR.income_wire(inc_all[fit_rows])
     folds = O['fold']
     full, fold_res, delta_oof = PR.crossfit_train(z_oof, leaves_all[fit_rows], F['occupation'], F['sex'], inc_wire, folds, teacher.T,
@@ -377,7 +404,8 @@ def fit_direction(P, routing, arm):
     rec = {'schema': 'CTS1-direction-v1', 'partition': P, 'seed': s, 'direction': did, 'routing': routing, 'arm': arm,
            'recipe': 'ohn.protect.crossfit_train, source P2 recipe (guard none), RECIPE as ohn.protect.RECIPE',
            'routing_teacher_sha256': teacher.sha(), 'T': teacher.T, 'L': teacher.L, 'witness_files_sha256': wrec['files_sha256'],
-           'income_wire': f'H3_STRONG_LJDIR_PB seed {s} MODEL_FIT release restricted to FIT rows (in-sample for H3)',
+           'income_wire': (f'H3_STRONG_LJDIR_PB seed {s} MODEL_FIT release restricted to FIT rows (in-sample for H3)' if income == 'H3'
+                           else f'Track R refitted H3-recipe income (H3R) of {P} restricted to FIT rows (fitted on FIT and CALIBRATION)'),
            'training_full': PR.fold_summary(full), 'training_folds': {str(k): PR.fold_summary(r) for k, r in fold_res.items()},
            'lambda_full': full['lambda'], 'files_sha256': files, 'interpreter': sys.executable, 'cpu_s': time.process_time() - t0,
            'utc': C.now(), 'unit_id': os.environ.get(C.UNIT_ENV),
@@ -491,6 +519,7 @@ def main(argv=None):
     x = sub.add_parser('routing_repro'); x.add_argument('--seed', type=int, required=True)
     x = sub.add_parser('direction'); x.add_argument('--partition', required=True, choices=tuple(C.PARTITIONS))
     x.add_argument('--routing', required=True, choices=('REFIT', 'FROZEN')); x.add_argument('--arm', required=True, choices=('PAIR', 'LOC', 'CONT'))
+    x.add_argument('--income', default='H3', choices=('H3', 'TRACKR'))
     x = sub.add_parser('ladder'); x.add_argument('--partition', required=True, choices=tuple(C.PARTITIONS)); x.add_argument('--direction', required=True)
     x.add_argument('--check', action='store_true')
     a = ap.parse_args(argv)
@@ -503,7 +532,7 @@ def main(argv=None):
     elif a.cmd == 'routing_repro':
         routing_repro(a.seed)
     elif a.cmd == 'direction':
-        fit_direction(a.partition, a.routing, a.arm)
+        fit_direction(a.partition, a.routing, a.arm, a.income)
     elif a.cmd == 'ladder':
         ladder(a.partition, a.direction, include_check=True if a.check else None)
     return 0

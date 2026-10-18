@@ -1,0 +1,16 @@
+{
+ "schema": "CTS1-verifier-check-changes-v1",
+ "rule": "append-only; a change records the original result, the changed rule and the reason; no criterion is widened; every change awaits independent adjudication by the coordinator; the original check entries stay in CHECKS.json unchanged",
+ "changes": [
+  {
+   "change": 1,
+   "utc": "2026-10-18T20:22:25+00:00",
+   "checks_affected": ["C5.D_FRONTIER.S0.READER_REFIT_S0R1k0__V1", "C5.D_FRONTIER.S1.READER_REFIT_S1R1k0__V1"],
+   "original_result": "FAIL on both seeds. Problems listed: 'REFIT_PAIR@s1.0/pair: no cache entry' and 'REFIT_PAIR@s1.0/occupation: no cache entry'. Every comparison the check did make passed: W pair-view OUT_LR and LOG_LR refits equal the cached reader scores exactly (SCORE AUC difference 0.0, same orientation, VALIDATION AUC difference 0.0), and the 6 recorded winner SCORE AUCs equal the AUC of the cached winner scores exactly.",
+   "bug": "In part (c) the verifier fed the readers its OWN recomposition of the REFIT_PAIR@s1.0 occupation array, softmax(centred log p_W + 1.0 x Delta_full). That array differs from the stored release in the last bits: the max abs difference is 3.3e-16 to 4.4e-16, the size part (b) RELEASE_MATERIALIZATION already reports and accepts within 1e-12. The reader cache key hashes the exact float64 bytes, so the verifier computed a key for an array the grid never read and found no cache entry. W was found because the stored W array is the witness output itself, byte for byte.",
+   "changed_rule": "Part (c) now reads the exact stored release bytes. Part (b) of the same run checks those bytes first: file SHA-256 against the bank spec, wire hash, and recomposition within 1e-12. If no hash-checked stored array exists, the check records a problem; it never falls back to the recomposition. The criteria are unchanged: refit SCORE and VALIDATION AUC within 1e-6 with the same orientation, and winner AUC within 1e-12.",
+   "rerun_as": "C5.D_FRONTIER.*__V2 (unit VER_GRID_D_FRONTIER_V2)",
+   "adjudication": "PENDING (coordinator)"
+  }
+ ]
+}

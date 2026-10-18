@@ -22,6 +22,7 @@ import datetime as dt
 import fcntl
 import hashlib
 import json
+import math
 import os
 import resource
 import subprocess
@@ -73,7 +74,12 @@ def start_utc():
 
 
 def charged_cpu_s():
-    return sum(float(e.get('charged_cpu_s', 0.0)) for e in entries() if e.get('event') in ('unit_end', 'charge'))
+    tot = 0.0
+    for e in entries():
+        if e.get('event') in ('unit_end', 'charge'):
+            v = float(e.get('charged_cpu_s', 0.0))
+            tot += max(v, 0.0) if math.isfinite(v) else math.inf      # fail closed on a corrupt record
+    return tot
 
 
 def running_reservations():
@@ -102,6 +108,9 @@ def init():
 
 def charge(label, cpu_s, note):
     """Charge non-queue work (agent analysis, light scripts, out-of-queue upper estimates) to the same budget."""
+    cpu_s = float(cpu_s)
+    if not math.isfinite(cpu_s) or cpu_s < 0:
+        raise ValueError(f'a charge must be a finite, non-negative CPU-second upper estimate (got {cpu_s!r})')
     _append({'event': 'charge', 'label': label, 'charged_cpu_s': float(cpu_s), 'note': note, 'utc': now().isoformat(timespec='seconds')})
 
 
@@ -137,11 +146,7 @@ def interpreter_versions(executable):
     cache = ROOT / 'interpreters.json'
     known = json.loads(cache.read_text()) if cache.is_file() else {}
     key = str(executable)
-    try:
-        st = os.stat(executable if os.path.isabs(key) else subprocess.run(['which', key], capture_output=True, text=True).stdout.strip())
-        stamp = f'{key}|{st.st_mtime_ns}'
-    except Exception:
-        stamp = key
+    stamp = f'{key}|{time.time_ns()}'           # probe every time: a pip install inside a venv leaves the executable's mtime unchanged
     if stamp not in known:
         r = subprocess.run([key, '-c', VERSION_PROBE], capture_output=True, text=True, env={**os.environ, **THREAD_ENV})
         known[stamp] = json.loads(r.stdout) if r.returncode == 0 and r.stdout.strip() else {'error': r.stderr[-400:]}
@@ -149,7 +154,7 @@ def interpreter_versions(executable):
     return known[stamp]
 
 
-def _peak_rss_loop(proc, interval=0.5):
+def _peak_rss_loop(proc, interval=0.5, deadline=None):
     try:
         import psutil
     except ImportError:
@@ -157,7 +162,7 @@ def _peak_rss_loop(proc, interval=0.5):
     peak = 0
     try:
         p = psutil.Process(proc.pid)
-        while proc.poll() is None:
+        while proc.poll() is None and (deadline is None or time.time() < deadline):
             try:
                 tree = [p] + p.children(recursive=True)
                 peak = max(peak, sum(c.memory_info().rss for c in tree if c.is_running()))
@@ -233,15 +238,31 @@ def run(unit_id, argv, stage, rss_gib, outputs=(), cwd=None, max_wall_s=6 * 3600
                  'interpreter': prov['interpreter'], 'utc': now().isoformat(timespec='seconds')})
         before = resource.getrusage(resource.RUSAGE_CHILDREN)
         t0 = time.time()
+        timed_out = False
         with open(log_dir / 'stdout.log', 'w') as so, open(log_dir / 'stderr.log', 'w') as se:
             proc = subprocess.Popen(argv, cwd=cwd or str(REPO), env=env, stdout=so, stderr=se)
-            peak = _peak_rss_loop(proc)
             try:
-                rc = proc.wait(timeout=max_wall_s)
-            except subprocess.TimeoutExpired:
-                proc.kill(); rc = -9
+                peak = _peak_rss_loop(proc, deadline=t0 + max_wall_s)
+                try:
+                    rc = proc.wait(timeout=max(0.0, t0 + max_wall_s - time.time()))
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+                    proc.kill(); proc.wait(); rc = -9          # reap it: RUSAGE_CHILDREN counts only waited-for children
+            except BaseException:                              # runner interrupted: no orphan, CPU charged, reservation freed
+                if proc.poll() is None:
+                    proc.kill()
+                proc.wait()
+                after = resource.getrusage(resource.RUSAGE_CHILDREN)
+                _append({'event': 'unit_end', 'unit_id': unit_id, 'stage': stage, 'returncode': proc.returncode,
+                         'wall_s': round(time.time() - t0, 3),
+                         'charged_cpu_s': round((after.ru_utime - before.ru_utime) + (after.ru_stime - before.ru_stime), 3),
+                         'rss_reservation_gib': rss_gib, 'status': 'interrupted', 'output_sha256': {}, 'unit_stats': {},
+                         'utc': now().isoformat(timespec='seconds')})
+                raise
         after = resource.getrusage(resource.RUSAGE_CHILDREN)
         cpu = (after.ru_utime - before.ru_utime) + (after.ru_stime - before.ru_stime)
+        end_code = code_manifest()                             # lazy imports can happen long after launch: record any drift
+        changed = sorted(k for k in set(launch['files']) | set(end_code['files']) if launch['files'].get(k) != end_code['files'].get(k))
         hashes = {str(o): _sha(o) for o in outputs if Path(o).is_file()}
         stats_p = log_dir / 'UNIT_STATS.json'
         try:
@@ -251,7 +272,8 @@ def run(unit_id, argv, stage, rss_gib, outputs=(), cwd=None, max_wall_s=6 * 3600
         rec = {'event': 'unit_end', 'unit_id': unit_id, 'stage': stage, 'returncode': rc, 'wall_s': round(time.time() - t0, 3),
                'charged_cpu_s': round(cpu, 3), 'child_maxrss_bytes_platform': after.ru_maxrss, 'sampled_peak_rss_bytes': peak,
                'rss_reservation_gib': rss_gib, 'status': 'done' if rc == 0 else 'failed', 'output_sha256': hashes,
-               'unit_stats': stats, 'utc': now().isoformat(timespec='seconds')}
+               'unit_stats': stats, 'timed_out': timed_out, 'code_digest_at_end': end_code['digest'],
+               'code_changed_during_run': changed, 'utc': now().isoformat(timespec='seconds')}
         _append(rec)
         return rec
     finally:

@@ -1,0 +1,55 @@
+--- a/cts/closeout.py	2026-10-18 15:41:27
++++ b/cts/closeout.py	2026-10-18 15:41:27
+@@ -30,6 +30,22 @@
+     return subprocess.run(['git', '-C', str(C.ROOT), *a], capture_output=True, text=True).stdout.strip()
+ 
+ 
++def freeze_commit_utc(first=True):
++    """Committer time of the first (or last) commit touching REPAIR_FREEZE.json as an aware UTC datetime; None if never committed.
++    git's %cI carries the committer's local offset (here -04:00), so it must not be string-compared with the UTC access log."""
++    out = _git('log', '--format=%ct', '--', str(C.RESULTS / C.FREEZE_FILE)).split()
++    if not out:
++        return None
++    return dt.datetime.fromtimestamp(int(out[-1] if first else out[0]), dt.timezone.utc)
++
++
++def panel_reads_before_freeze(panel_summary, freeze_utc):
++    """Repair-panel reads by new-release operations (not the whole-role source replay / support count) at or before the first
++    freeze commit; with no committed freeze, every such read counts."""
++    return [e for e in panel_summary if e['operation'] not in ('source_replay', 'support_count')
++            and (freeze_utc is None or dt.datetime.fromisoformat(e['utc']) <= freeze_utc)]
++
++
+ def fitted_specs():
+     """Fitted release specifications per training repetition: witness fits, correction directions, compression codes, nested
+     variant corrections, Track R income lineages, sensitivity witness."""
+@@ -73,6 +89,7 @@
+            'elapsed_h': round((now - Q.start_utc()).total_seconds() / 3600, 3), 'research_limit_h': Q.RESEARCH_LIMIT_H,
+            'elapsed_limit_h': Q.ELAPSED_LIMIT_H, 'charged_cpu_h': round(Q.charged_cpu_s() / 3600, 3), 'cpu_limit_h': Q.CPU_LIMIT_S / 3600,
+            'units_done': sum(e['status'] == 'done' for e in ends), 'units_failed': sum(e['status'] != 'done' for e in ends),
++           'units_started_without_end': sorted(set(starts) - {e['unit_id'] for e in ends}),
+            'failed_units': [{'unit': e['unit_id'], 'stage': e['stage'], 'charged_cpu_s': e['charged_cpu_s'], 'returncode': e.get('returncode')}
+                             for e in ends if e['status'] != 'done'],
+            'cpu_s_by_stage': {k: round(v, 1) for k, v in sorted(by_stage.items())},
+@@ -91,7 +108,8 @@
+     C.write_json(C.RESULTS / 'RESOURCE_ACCOUNTING.json', res)
+ 
+     acc = C.access_events()
+-    freeze_c = _git('log', '-1', '--format=%cI', '--', str(C.RESULTS / C.FREEZE_FILE)) or None
++    freeze_first, freeze_last = freeze_commit_utc(True), freeze_commit_utc(False)
++    freeze_c = freeze_first.isoformat() if freeze_first else None
+     by = Counter((e.get('operation'), e.get('role'), ','.join(e.get('fields') or []), e.get('entry_point', '').split(':')[0]) for e in acc)
+     panel = [e for e in acc if e.get('touches_repair_panel')]
+     panel_summary = [{'utc': e['utc'], 'operation': e['operation'], 'entry_point': e.get('entry_point'), 'partition': e.get('partition'),
+@@ -101,9 +119,8 @@
+            'by_operation_role_fields_entry': [{'operation': k[0], 'role': k[1], 'fields': k[2], 'entry_point': k[3], 'reads': v}
+                                               for k, v in sorted(by.items(), key=lambda kv: tuple(map(str, kv[0])))],
+            'repair_panel_reads': panel_summary, 'repair_freeze_committed_utc': freeze_c,
+-           'repair_panel_reads_before_freeze_by_new_release_operations': [e for e in panel_summary if e['operation'] not in
+-                                                                          ('source_replay', 'support_count') and freeze_c and
+-                                                                          e['utc'] < freeze_c],
++           'repair_freeze_last_commit_utc': freeze_last.isoformat() if freeze_last else None,
++           'repair_panel_reads_before_freeze_by_new_release_operations': panel_reads_before_freeze(panel_summary, freeze_first),
+            'ATTACK_or_DEV_REPORT_label_reads': [e for e in acc if e.get('role') in C.CLOSED_LABEL_ROLES],
+            'lineage_dev_report_log': {'campaign_start_snapshot_sha256': LINEAGE_SNAPSHOT, 'now_sha256': lineage_now,
+                                       'unchanged': lineage_now == LINEAGE_SNAPSHOT},

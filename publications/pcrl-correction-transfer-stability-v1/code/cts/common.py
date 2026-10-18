@@ -97,6 +97,14 @@ PARTITIONS = {
     # bounded sensitivity check: the same households as D0, with the second source witness recipe (B2_SINGLE) instead of A1_PO_16
     'D0B': {'kind': 'diagnosis', 'seed': 0, 'tag': 'CTS1_D0', 'parts': 10, 'FIT': range(0, 6), 'GUARD': range(6, 8), 'CHECK': range(8, 10),
             'witness': 'B2_SINGLE', 'same_rows_as': 'D0'},
+    # dated amendment (ACCESS_AMENDMENTS.json / PROTOCOL_DEVIATIONS item 9, after written statistical review, before its fit):
+    # witness training-size curve; FIT = the whole non-panel pool (70% of MODEL_FIT); no GUARD or CHECK role; witness only
+    'P70': {'kind': 'witness_curve', 'seed': 0, 'tag': 'CTS1_P70', 'parts': 1, 'FIT': range(0, 1), 'GUARD': range(0, 0),
+            'CHECK': range(0, 0)},
+    # the optional second fit registered together with P70 (statistical review condition 3): same rows and folds, but the admitted
+    # (all-MODEL_FIT, label-free) dictionary instead of the FIT-only re-collapse; separates dictionary collapse from training size
+    'P70A': {'kind': 'witness_curve', 'seed': 0, 'tag': 'CTS1_P70', 'parts': 1, 'FIT': range(0, 1), 'GUARD': range(0, 0),
+             'CHECK': range(0, 0), 'same_rows_as': 'P70', 'dictionary': 'admitted'},
 }
 TAG_SUFFIX = {}        # support-check repairs (filled from PARTITION_SUPPORT.json if a partition needed the next tag suffix)
 PROLES = ('FIT', 'GUARD', 'CHECK')
@@ -117,12 +125,12 @@ def partition_masks(unit):
     pool = np.isin(b, POOL_BLOCKS)
     out['POOL'] = pool
     for pid, spec in PARTITIONS.items():
-        tag = spec['tag'] + TAG_SUFFIX.get(pid, '')
+        tag = spec['tag'] + TAG_SUFFIX.get(spec.get('same_rows_as', pid), '')     # D0B follows D0's support suffix
         part = household_folds(unit[pool], spec['parts'], tag)
         full = np.full(len(unit), -1, dtype=np.int64)
         full[pool] = part
         m = {r: np.isin(full, list(spec[r])) & pool for r in ('FIT', 'GUARD')}
-        if spec['kind'] == 'diagnosis':
+        if spec['kind'] in ('diagnosis', 'witness_curve'):
             m['CHECK'] = np.isin(full, list(spec['CHECK'])) & pool
         else:
             m['CHECK'] = out[spec['CHECK']].copy()
@@ -194,7 +202,13 @@ def registered():
 
 
 def repair_frozen():
-    return committed(RESULTS / FREEZE_FILE)
+    """A committed REPAIR_FREEZE.json written by cts.freeze (schema, recorded recipe selection, no earlier panel read)."""
+    p = RESULTS / FREEZE_FILE
+    if not committed(p):
+        return False
+    rec = json.loads(p.read_text())
+    return (rec.get('schema') == 'CTS1-repair-freeze-v1' and rec.get('repair_panel_label_reads_before_freeze') == 0
+            and bool((rec.get('recipe_selection') or {}).get('file_sha256')))
 
 
 # ------------------------------------------------------------------ access policy (ROLE x FIELD x OPERATION x PURPOSE)
@@ -374,6 +388,8 @@ def load(role, fields, operation, purpose, partition=None, prole=None):
             raise PermissionError(f'operation {operation} may not read repair-panel labels')
         if touches_panel and operation in ('check_repair', 'verify') and not repair_frozen():
             raise PermissionError('repair CHECK panels stay closed until the committed REPAIR_FREEZE')
+    elif partition is not None or prole is not None:
+        raise PermissionError(f'{role} has no partitions (partition / prole apply to MODEL_FIT only; the log would misstate the rows)')
     elif pol['rows'] != 'ALL' and pol['rows'] != ('FIT', 'GUARD', 'CHECK', 'ALL'):
         raise PermissionError(f'operation {operation} reads MODEL_FIT partition rows only')
     for name in labels:

@@ -1,0 +1,1116 @@
+{
+ "schema": "CTS1-verifier-checks-v1",
+ "campaign": "pcrl_correction_transfer_stability_v1",
+ "role": "independent verifier (separate metric, partition and selection code under roles/verifier/code/)",
+ "rules": [
+  "append-only: a check entry is never edited or removed; every version is snapshotted to records/history/",
+  "kind NUMERICAL_REPLAY (own code recomputes a recorded number) and kind PROCEDURAL_COMPLIANCE (process and access evidence) are kept separate",
+  "a failing criterion is never widened; a genuine bug in a verifier check gets a separate correction in records/CHECK_CHANGES.json for adjudication by the coordinator",
+  "statuses: PASS, FAIL, ATTENTION (no failure of a registered criterion, but a discrepancy or caveat the coordinator must see), NOT_RUN"
+ ],
+ "checks": [
+  {
+   "id": "P1_REGISTRATION_LOCK__V1",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "registration files unchanged since the registration commit and byte-identical to the verified public receipt; the receipt verification precedes the first label read",
+   "method": "SHA-256 of the six registration files against REGISTRATION_RECEIPT_VERIFIED.json; git log / status of those files after 39a27cc1e; first LABEL_ACCESS.jsonl time",
+   "status": "PASS",
+   "numbers": {
+    "files_sha_match": {
+     "PROTOCOL.md": true,
+     "PARTITIONS.json": true,
+     "EXPOSURE_MAP.md": true,
+     "roles/statistical_reviewer/RULES.json": true,
+     "roles/statistical_reviewer/RULES.md": true,
+     "ACCESS_POLICY.json": true
+    },
+    "commits_touching_after_registration": [],
+    "uncommitted_changes": [],
+    "receipt_verified_utc": "2026-10-18T19:13:08+00:00",
+    "first_label_read_utc": "2026-10-18T19:13:16+00:00",
+    "receipt_commit": "2ad31d2afc0b3080a53713cb22d3f46e1e3c9922"
+   },
+   "code_sha256": {
+    "v_proc.py": "f3af36e500682ee24aca15a8fb80e56e02774523001e92e4643194a4c6f59dea",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "utc": "2026-10-18T19:51:07+00:00",
+   "unit_id": null
+  },
+  {
+   "id": "P2_ACCESS_AMENDMENTS_BEFORE_USE__V1",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "every dated ACCESS_AMENDMENTS.json entry is committed before the first label read through its entry point; its stated date is consistent with the commit",
+   "method": "git history of ACCESS_AMENDMENTS.json (first commit containing each entry) against LABEL_ACCESS.jsonl entry points",
+   "status": "ATTENTION",
+   "numbers": {
+    "amendments": [
+     {
+      "operation": "fit",
+      "entry_point": "cts.questiona",
+      "dated_utc": "2026-10-18T19:20:00+00:00",
+      "first_commit": "019241108",
+      "commit_utc": "2026-10-18T19:14:44+00:00",
+      "first_use_utc": null,
+      "uses": 0
+     },
+     {
+      "operation": "select",
+      "entry_point": "cts.questiona",
+      "dated_utc": "2026-10-18T19:20:00+00:00",
+      "first_commit": "019241108",
+      "commit_utc": "2026-10-18T19:14:44+00:00",
+      "first_use_utc": null,
+      "uses": 0
+     },
+     {
+      "operation": "check_diag",
+      "entry_point": "cts.questiona",
+      "dated_utc": "2026-10-18T19:20:00+00:00",
+      "first_commit": "019241108",
+      "commit_utc": "2026-10-18T19:14:44+00:00",
+      "first_use_utc": null,
+      "uses": 0
+     },
+     {
+      "operation": "check_repair",
+      "entry_point": "cts.questiona",
+      "dated_utc": "2026-10-18T19:20:00+00:00",
+      "first_commit": "019241108",
+      "commit_utc": "2026-10-18T19:14:44+00:00",
+      "first_use_utc": null,
+      "uses": 0
+     }
+    ],
+    "problems": [],
+    "dating_inconsistencies": [
+     "cts.questiona/fit: dated 2026-10-18T19:20:00+00:00 but committed at 2026-10-18T19:14:44+00:00 (dated after its own commit)",
+     "cts.questiona/select: dated 2026-10-18T19:20:00+00:00 but committed at 2026-10-18T19:14:44+00:00 (dated after its own commit)",
+     "cts.questiona/check_diag: dated 2026-10-18T19:20:00+00:00 but committed at 2026-10-18T19:14:44+00:00 (dated after its own commit)",
+     "cts.questiona/check_repair: dated 2026-10-18T19:20:00+00:00 but committed at 2026-10-18T19:14:44+00:00 (dated after its own commit)"
+    ]
+   },
+   "code_sha256": {
+    "v_proc.py": "f3af36e500682ee24aca15a8fb80e56e02774523001e92e4643194a4c6f59dea",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "utc": "2026-10-18T19:51:07+00:00",
+   "unit_id": null
+  },
+  {
+   "id": "P3_UNIT_CODE_PROVENANCE__V1",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "queue units launched with uncommitted code they import (deviation 3 says none other than the disclosed one), and code that changed between registration and launch of a unit",
+   "method": "ledger unit_start uncommitted_code_paths intersected with a static import closure of the unit entry module, built from the sources at the unit's recorded HEAD (uncommitted files: current text) (top-level imports: certainly executed; lazy imports: executed only on some code paths); CODE_AT_LAUNCH.json",
+   "status": "PASS",
+   "numbers": {
+    "units_checked": 31,
+    "units_with_uncommitted_top_level_imports": [],
+    "drifted_units_without_launch_record": [],
+    "reading": "PASS = no unit imported uncommitted campaign code at module top level, and every unit whose code changed while it waited has its launch-time hashes recorded (CODE_AT_LAUNCH.json); lazy imports listed below are reached only on other code paths (D0B witness, Track R income option); consistent with PROTOCOL_DEVIATIONS items 3 and 7",
+    "units_with_uncommitted_lazy_imports_only": [
+     {
+      "unit": "CTS_D0_DIR_REFIT_CONT_V1",
+      "utc": "2026-10-18T19:23:16+00:00",
+      "root": "cts/trackf.py",
+      "uncommitted_top_level_imports": [],
+      "uncommitted_lazy_imports_only": [
+       "cts/sensitivity.py"
+      ]
+     },
+     {
+      "unit": "CTS_TRACKR_R0_STAGEB_V1",
+      "utc": "2026-10-18T19:23:21+00:00",
+      "root": "cts/track_r.py",
+      "uncommitted_top_level_imports": [],
+      "uncommitted_lazy_imports_only": [
+       "cts/sensitivity.py"
+      ]
+     },
+     {
+      "unit": "CTS_D0_NESTED_ROUTING_V1",
+      "utc": "2026-10-18T19:24:46+00:00",
+      "root": "cts/nested.py",
+      "uncommitted_top_level_imports": [],
+      "uncommitted_lazy_imports_only": [
+       "cts/sensitivity.py"
+      ]
+     },
+     {
+      "unit": "CTS_D1_DIR_FROZEN_PAIR_V1",
+      "utc": "2026-10-18T19:25:01+00:00",
+      "root": "cts/trackf.py",
+      "uncommitted_top_level_imports": [],
+      "uncommitted_lazy_imports_only": [
+       "cts/sensitivity.py"
+      ]
+     },
+     {
+      "unit": "CTS_TRACKR_R0_INCOME_V1",
+      "utc": "2026-10-18T19:25:12+00:00",
+      "root": "cts/track_r.py",
+      "uncommitted_top_level_imports": [],
+      "uncommitted_lazy_imports_only": [
+       "cts/sensitivity.py"
+      ]
+     },
+     {
+      "unit": "CTS_D0_NESTED_PAIR_V1",
+      "utc": "2026-10-18T19:25:59+00:00",
+      "root": "cts/nested.py",
+      "uncommitted_top_level_imports": [],
+      "uncommitted_lazy_imports_only": [
+       "cts/sensitivity.py"
+      ]
+     }
+    ],
+    "units_with_code_drift_while_waiting": [
+     {
+      "unit": "CTS_D0_DIR_REFIT_LOC_V1",
+      "files_changed_while_waiting": [
+       "cts/dstage.py",
+       "cts/freeze.py"
+      ],
+      "in_unit_closure": []
+     },
+     {
+      "unit": "CTS_TRACKR_R0_TEACHERS_V1",
+      "files_changed_while_waiting": [
+       "cts/compression.py",
+       "cts/deploy.py",
+       "cts/freeze.py",
+       "cts/releases.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/trackf.py"
+      ]
+     },
+     {
+      "unit": "CTS_D1_DIR_REFIT_CONT_V1",
+      "files_changed_while_waiting": [
+       "cts/compression.py",
+       "cts/deploy.py",
+       "cts/releases.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/trackf.py"
+      ]
+     },
+     {
+      "unit": "CTS_D0_DIR_REFIT_CONT_V1",
+      "files_changed_while_waiting": [
+       "cts/evaluate.py",
+       "cts/rstage.py",
+       "cts/screen_study.py",
+       "cts/sensitivity.py"
+      ],
+      "in_unit_closure": [
+       "cts/sensitivity.py"
+      ]
+     },
+     {
+      "unit": "CTS_TRACKR_R0_STAGEB_V1",
+      "files_changed_while_waiting": [
+       "cts/evaluate.py",
+       "cts/rstage.py",
+       "cts/screen_study.py",
+       "cts/sensitivity.py"
+      ],
+      "in_unit_closure": [
+       "cts/sensitivity.py"
+      ]
+     },
+     {
+      "unit": "CTS_D0_NESTED_ROUTING_V1",
+      "files_changed_while_waiting": [
+       "cts/screen_study.py"
+      ],
+      "in_unit_closure": []
+     },
+     {
+      "unit": "CTS_D1_DIR_FROZEN_PAIR_V1",
+      "files_changed_while_waiting": [
+       "cts/screen_study.py",
+       "cts/sensitivity.py"
+      ],
+      "in_unit_closure": [
+       "cts/sensitivity.py"
+      ]
+     },
+     {
+      "unit": "CTS_TRACKR_R0_INCOME_V1",
+      "files_changed_while_waiting": [
+       "cts/sensitivity.py"
+      ],
+      "in_unit_closure": [
+       "cts/sensitivity.py"
+      ]
+     },
+     {
+      "unit": "CTS_D0_NESTED_PAIR_V1",
+      "files_changed_while_waiting": [
+       "cts/closeout.py",
+       "cts/sensitivity.py"
+      ],
+      "in_unit_closure": [
+       "cts/sensitivity.py"
+      ]
+     },
+     {
+      "unit": "CTS_D0_DIR_FROZEN_PAIR_V1",
+      "files_changed_while_waiting": [
+       "cts/closeout.py",
+       "cts/compression.py",
+       "cts/rstage.py"
+      ],
+      "in_unit_closure": []
+     },
+     {
+      "unit": "CTS_TRACKR_R1_TEACHERS_V1",
+      "files_changed_while_waiting": [
+       "cts/compression.py",
+       "cts/rstage.py"
+      ],
+      "in_unit_closure": []
+     },
+     {
+      "unit": "CTS_SCREEN_SIM_V1",
+      "files_changed_while_waiting": [
+       "cts/compression.py",
+       "cts/rstage.py"
+      ],
+      "in_unit_closure": []
+     },
+     {
+      "unit": "CTS_SCREEN_L0B_V1",
+      "files_changed_while_waiting": [
+       "cts/compression.py",
+       "cts/figures.py",
+       "cts/rstage.py"
+      ],
+      "in_unit_closure": []
+     },
+     {
+      "unit": "CTS_SCREEN_L2_V1",
+      "files_changed_while_waiting": [
+       "cts/compression.py",
+       "cts/custody.py",
+       "cts/diagnosis.py",
+       "cts/figures.py",
+       "cts/ledger.py",
+       "cts/restore_check.py",
+       "cts/rstage.py",
+       "cts/tables.py"
+      ],
+      "in_unit_closure": []
+     },
+     {
+      "unit": "CTS_D0B_WITNESS_V1",
+      "files_changed_while_waiting": [
+       "cts/custody.py",
+       "cts/diagnosis.py",
+       "cts/figures.py",
+       "cts/ledger.py",
+       "cts/restore_check.py",
+       "cts/rstage.py",
+       "cts/tables.py"
+      ],
+      "in_unit_closure": []
+     },
+     {
+      "unit": "CTS_D1_DIR_FROZEN_LOC_V1",
+      "files_changed_while_waiting": [
+       "cts/closeout.py",
+       "cts/common.py",
+       "cts/compression.py",
+       "cts/custody.py",
+       "cts/deploy.py",
+       "cts/diagnosis.py",
+       "cts/dstage.py",
+       "cts/figures.py",
+       "cts/freeze.py",
+       "cts/jobqueue.py",
+       "cts/ledger.py",
+       "cts/restore_check.py",
+       "cts/rstage.py",
+       "cts/select.py",
+       "cts/tables.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/trackf.py"
+      ]
+     },
+     {
+      "unit": "CTS_D0_NESTED_LOC_V1",
+      "files_changed_while_waiting": [
+       "cts/closeout.py",
+       "cts/common.py",
+       "cts/compression.py",
+       "cts/custody.py",
+       "cts/deploy.py",
+       "cts/diagnosis.py",
+       "cts/dstage.py",
+       "cts/figures.py",
+       "cts/freeze.py",
+       "cts/jobqueue.py",
+       "cts/ledger.py",
+       "cts/restore_check.py",
+       "cts/rstage.py",
+       "cts/select.py",
+       "cts/tables.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/trackf.py"
+      ]
+     },
+     {
+      "unit": "CTS_TRACKR_R1_STAGEB_V1",
+      "files_changed_while_waiting": [
+       "cts/closeout.py",
+       "cts/common.py",
+       "cts/compression.py",
+       "cts/custody.py",
+       "cts/deploy.py",
+       "cts/diagnosis.py",
+       "cts/dstage.py",
+       "cts/figures.py",
+       "cts/freeze.py",
+       "cts/jobqueue.py",
+       "cts/ledger.py",
+       "cts/restore_check.py",
+       "cts/rstage.py",
+       "cts/select.py",
+       "cts/tables.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/trackf.py"
+      ]
+     }
+    ]
+   },
+   "code_sha256": {
+    "v_proc.py": "f3af36e500682ee24aca15a8fb80e56e02774523001e92e4643194a4c6f59dea",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "utc": "2026-10-18T19:51:07+00:00",
+   "unit_id": null
+  },
+  {
+   "id": "P4_CPU_ACCOUNTING__V1",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "campaign CPU charged against the 14 CPU-hour limit (queue units + charges), the verifier's own share, failed units kept",
+   "method": "sum of charged_cpu_s over unit_end and charge events of the ledger",
+   "status": "PASS",
+   "numbers": {
+    "charged_cpu_h": 1.381,
+    "verifier_cpu_s": 0,
+    "failed_units_kept": [],
+    "units_started": 31
+   },
+   "code_sha256": {
+    "v_proc.py": "f3af36e500682ee24aca15a8fb80e56e02774523001e92e4643194a4c6f59dea",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "utc": "2026-10-18T19:51:07+00:00",
+   "unit_id": null
+  },
+  {
+   "id": "C1.1_PARTITIONS_REPRODUCED__V2",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "PARTITIONS.json household sets (C0, C1, POOL and FIT / GUARD / CHECK of D0, D0B, D1, R0, R1) and FIT overlaps reproduced from MODEL_FIT household ids",
+   "method": "own implementation of the PARTITIONS.json text: households ordered by SHA-256(\"<tag>|<household id>\") and dealt round-robin (20 blocks CTS1_blocks; pool partitions by their tags); people / household counts and SHA-256 of the comma-joined sorted household ids compared with the summary; overlaps of FIT household sets",
+   "status": "PASS",
+   "numbers": {
+    "compared_sets": 18,
+    "mismatches": [],
+    "sets": {
+     "C0": {
+      "people": 2981,
+      "households": 2001,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "C1": {
+      "people": 2997,
+      "households": 2001,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "POOL": {
+      "people": 14022,
+      "households": 9335,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "D0/FIT": {
+      "people": 8419,
+      "households": 5603,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "D0/GUARD": {
+      "people": 2816,
+      "households": 1866,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "D0/CHECK": {
+      "people": 2787,
+      "households": 1866,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "D0B/FIT": {
+      "people": 8419,
+      "households": 5603,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "D0B/GUARD": {
+      "people": 2816,
+      "households": 1866,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "D0B/CHECK": {
+      "people": 2787,
+      "households": 1866,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "D1/FIT": {
+      "people": 8390,
+      "households": 5603,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "D1/GUARD": {
+      "people": 2825,
+      "households": 1866,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "D1/CHECK": {
+      "people": 2807,
+      "households": 1866,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "R0/FIT": {
+      "people": 10523,
+      "households": 7002,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "R0/GUARD": {
+      "people": 3499,
+      "households": 2333,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "R0/CHECK": {
+      "people": 2981,
+      "households": 2001,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "R1/FIT": {
+      "people": 10506,
+      "households": 7002,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "R1/GUARD": {
+      "people": 3516,
+      "households": 2333,
+      "sha_match": true,
+      "counts_match": true
+     },
+     "R1/CHECK": {
+      "people": 2997,
+      "households": 2001,
+      "sha_match": true,
+      "counts_match": true
+     }
+    },
+    "fit_overlaps": {
+     "D0B|D1": {
+      "mine": 3329,
+      "recorded": 3329
+     },
+     "D0B|R0": {
+      "mine": 4190,
+      "recorded": 4190
+     },
+     "D0B|R1": {
+      "mine": 4203,
+      "recorded": 4203
+     },
+     "D0|D0B": {
+      "mine": 5603,
+      "recorded": 5603
+     },
+     "D0|D1": {
+      "mine": 3329,
+      "recorded": 3329
+     },
+     "D0|R0": {
+      "mine": 4190,
+      "recorded": 4190
+     },
+     "D0|R1": {
+      "mine": 4203,
+      "recorded": 4203
+     },
+     "D1|R0": {
+      "mine": 4212,
+      "recorded": 4212
+     },
+     "D1|R1": {
+      "mine": 4217,
+      "recorded": 4217
+     },
+     "R0|R1": {
+      "mine": 5268,
+      "recorded": 5268
+     }
+    },
+    "D0B_rows_identical_to_D0": true
+   },
+   "code_sha256": {
+    "v_struct.py": "a4a19afe57a2d84c0b33454a014c91d86529d5e05de3849c6b394c2a4f61defb",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "utc": "2026-10-18T19:52:06+00:00",
+   "unit_id": "VER_STRUCT_V2"
+  },
+  {
+   "id": "C1.2_DISJOINTNESS_AND_PANEL_EXCLUSION__V2",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "roles disjoint inside each partition; whole households; panels C0 / C1 disjoint from the pool and from every FIT / GUARD; diagnostic CHECK inside the pool; R CHECK = its panel",
+   "method": "boolean algebra on the verifier-reconstructed masks",
+   "status": "PASS",
+   "numbers": {
+    "problems": []
+   },
+   "code_sha256": {
+    "v_struct.py": "a4a19afe57a2d84c0b33454a014c91d86529d5e05de3849c6b394c2a4f61defb",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "utc": "2026-10-18T19:52:06+00:00",
+   "unit_id": "VER_STRUCT_V2"
+  },
+  {
+   "id": "C1.3_SOURCE_ADMISSION_SPOT_CHECK__V2",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "SOURCE_ADMISSION.json claims: the 28 used release hashes (OCC.npz / OCC.json / H3-HC RELEASE.json) and their presence in the published records of the pinned publications; a random 30-file sample of the 201 H3-mirror copies against the source campaign SOURCE_ADMISSION.json (itself compared with its published blob)",
+   "method": "SHA-256 recomputed by the verifier; published texts read with git show at 1435c395d / 89fd2f6e6 (read-only); the copies in the other worktree are not read (not touched by policy)",
+   "status": "PASS",
+   "numbers": {
+    "releases_checked": 28,
+    "release_problems": [],
+    "mirror_sample": 30,
+    "mirror_mismatches": [],
+    "source_admission_blob_identical_to_publication": true,
+    "per_release": {
+     "A/A1_PO_16/S0": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "A/A1_PO_16/S1": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "B/B2_SINGLE/S0": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "B/B2_SINGLE/S1": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "H/H3_STRONG_LJDIR_PB/S0": {
+      "release_sha_match": true,
+      "published_hits_reproduced": [
+       "FINALIST_LOCK.json",
+       "SERVICE_BANK_MANIFEST.json"
+      ]
+     },
+     "H/H3_STRONG_LJDIR_PB/S1": {
+      "release_sha_match": true,
+      "published_hits_reproduced": [
+       "FINALIST_LOCK.json",
+       "SERVICE_BANK_MANIFEST.json"
+      ]
+     },
+     "H/HC_STRONG/S0": {
+      "release_sha_match": true,
+      "published_hits_reproduced": [
+       "SERVICE_BANK_MANIFEST.json"
+      ]
+     },
+     "H/HC_STRONG/S1": {
+      "release_sha_match": true,
+      "published_hits_reproduced": [
+       "SERVICE_BANK_MANIFEST.json"
+      ]
+     },
+     "PROT/P2A_COMP_B80/S0": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2A_COMP_B80/S1": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2A_CONT/S0": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2A_CONT/S1": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2A_LOC_B80/S0": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2A_LOC_B80/S1": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 2,
+      "published_hits_recorded": 2
+     },
+     "PROT/P2A_PAIR_B50/S0": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2A_PAIR_B50/S1": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2A_PAIR_B80/S0": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2A_PAIR_B80/S1": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2_COMP_B80/S0": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2_COMP_B80/S1": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2_CONT/S0": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2_CONT/S1": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2_LOC_B80/S0": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2_LOC_B80/S1": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 2,
+      "published_hits_recorded": 2
+     },
+     "PROT/P2_PAIR_B50/S0": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2_PAIR_B50/S1": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2_PAIR_B80/S0": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     },
+     "PROT/P2_PAIR_B80/S1": {
+      "npz_sha_match": true,
+      "occ_sha_match": true,
+      "published_hits_reproduced": 3,
+      "published_hits_recorded": 3
+     }
+    }
+   },
+   "code_sha256": {
+    "v_struct.py": "a4a19afe57a2d84c0b33454a014c91d86529d5e05de3849c6b394c2a4f61defb",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "utc": "2026-10-18T19:52:06+00:00",
+   "unit_id": "VER_STRUCT_V2"
+  },
+  {
+   "id": "C2.1_WITNESS_ROWS_FOLDS_DICTIONARY__V2",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "OOF.npz FIT-row mask and row ids equal the verifier reconstruction; outer cross-fitting folds equal the household dealing of FIT with the recorded tag; DICT.json collapse lists follow from FIT inputs only (and differ from a pool or all-MODEL_FIT dictionary where noted); nested DICT_k from FIT minus fold k",
+   "method": "own masks / dealing / level counts (label-free admitted encoding, minimum 10 people)",
+   "status": "PASS",
+   "numbers": {
+    "partitions": {
+     "D0": {
+      "fit_rows_equal": true,
+      "row_id_equal": true,
+      "oof_rows": 8419,
+      "fit_people": 8419,
+      "outer_folds_equal": true,
+      "fold_households_disjoint": true,
+      "dict_equal_fit_only": true,
+      "dict_sha_matches_witness_record": true,
+      "n_collapsed": {
+       "COW": 0,
+       "SCHL": 3,
+       "MAR": 0,
+       "POBP": 25
+      },
+      "fit_only_differs_from_pool_dictionary": true,
+      "fit_only_differs_from_all_model_fit_dictionary": true,
+      "nested_dicts_equal_fit_minus_fold": {
+       "0": true,
+       "1": true,
+       "2": true,
+       "3": true,
+       "4": true
+      }
+     },
+     "D0B": {
+      "fit_rows_equal": true,
+      "row_id_equal": true,
+      "oof_rows": 8419,
+      "fit_people": 8419,
+      "outer_folds_equal": true,
+      "fold_households_disjoint": true,
+      "dict_equal_fit_only": true,
+      "dict_sha_matches_witness_record": true,
+      "n_collapsed": {
+       "COW": 0,
+       "SCHL": 3,
+       "MAR": 0,
+       "POBP": 25
+      },
+      "fit_only_differs_from_pool_dictionary": true,
+      "fit_only_differs_from_all_model_fit_dictionary": true
+     },
+     "D1": {
+      "fit_rows_equal": true,
+      "row_id_equal": true,
+      "oof_rows": 8390,
+      "fit_people": 8390,
+      "outer_folds_equal": true,
+      "fold_households_disjoint": true,
+      "dict_equal_fit_only": true,
+      "dict_sha_matches_witness_record": true,
+      "n_collapsed": {
+       "COW": 0,
+       "SCHL": 4,
+       "MAR": 0,
+       "POBP": 28
+      },
+      "fit_only_differs_from_pool_dictionary": true,
+      "fit_only_differs_from_all_model_fit_dictionary": true
+     }
+    },
+    "problems": [],
+    "verifier_errors": {}
+   },
+   "code_sha256": {
+    "v_struct.py": "a4a19afe57a2d84c0b33454a014c91d86529d5e05de3849c6b394c2a4f61defb",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "utc": "2026-10-18T19:52:06+00:00",
+   "unit_id": "VER_STRUCT_V2"
+  },
+  {
+   "id": "C2.2_LABEL_ACCESS_ROWS__V2",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "every label-access line: rows hash equals the verifier reconstruction of the stated partition role; fit reads only FIT rows, select only GUARD, check_diag only diagnostic CHECK; units named for a partition read only that partition; no repair-panel or closed-role label read except the registered whole-role preflight operations",
+   "method": "own masks + own row-set hash (SHA-256 of dtype + shape + bytes of the row ids) against LABEL_ACCESS.jsonl",
+   "status": "PASS",
+   "numbers": {
+    "lines": 33,
+    "by_operation_role": {
+     "support_count|MODEL_FIT": 1,
+     "source_replay|MODEL_FIT": 2,
+     "source_replay|MODEL_SELECT": 1,
+     "fit|MODEL_FIT": 24,
+     "benchmark|MODEL_SELECT": 2,
+     "calibrate|CALIBRATION": 1,
+     "screen_study|MODEL_SELECT": 2
+    },
+    "problems": []
+   },
+   "code_sha256": {
+    "v_struct.py": "a4a19afe57a2d84c0b33454a014c91d86529d5e05de3849c6b394c2a4f61defb",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "utc": "2026-10-18T19:52:06+00:00",
+   "unit_id": "VER_STRUCT_V2"
+  },
+  {
+   "id": "C2.3_MODEL_IDENTITY__V2",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "recorded file hashes of witnesses, routings and directions recomputed; direction records link the partition witness and the stated routing (REFIT teacher of the partition / admitted T_TREE of seed s); TRAIN delta_oof equals fold pipeline k on fold k; witness files, releases, REFIT teachers and thetas differ across partitions (deterministic aliases listed and counted once)",
+   "method": "SHA-256 of files and arrays (verifier code); payload SHA-256 of teacher JSON with sorted keys",
+   "status": "PASS",
+   "numbers": {
+    "artifacts_hashed": 101,
+    "unique_hashes": 101,
+    "integrity_problems": [],
+    "cross_partition_aliases": [],
+    "within_partition_aliases": [],
+    "max_oof_vs_fold_delta_diff": 0.0
+   },
+   "code_sha256": {
+    "v_struct.py": "a4a19afe57a2d84c0b33454a014c91d86529d5e05de3849c6b394c2a4f61defb",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "utc": "2026-10-18T19:52:06+00:00",
+   "unit_id": "VER_STRUCT_V2"
+  },
+  {
+   "id": "C2.4_DIRECTIONS_BEFORE_GUARD_CHECK__V2",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "PROTOCOL section 7: within each D partition, directions are frozen before any GUARD or CHECK outcome is computed",
+   "method": "DIR.json write times against the first GUARD / CHECK label read of the same partition in LABEL_ACCESS.jsonl",
+   "status": "PASS",
+   "numbers": {
+    "D0": {
+     "directions": 4,
+     "last_direction_utc": "2026-10-18T19:29:46+00:00",
+     "first_guard_or_check_read_utc": null,
+     "directions_written_after_first_guard_check_read": []
+    },
+    "D0B": {
+     "directions": 0,
+     "last_direction_utc": null,
+     "first_guard_or_check_read_utc": null,
+     "directions_written_after_first_guard_check_read": []
+    },
+    "D1": {
+     "directions": 5,
+     "last_direction_utc": "2026-10-18T19:50:31+00:00",
+     "first_guard_or_check_read_utc": null,
+     "directions_written_after_first_guard_check_read": []
+    }
+   },
+   "code_sha256": {
+    "v_struct.py": "a4a19afe57a2d84c0b33454a014c91d86529d5e05de3849c6b394c2a4f61defb",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "utc": "2026-10-18T19:52:06+00:00",
+   "unit_id": "VER_STRUCT_V2"
+  },
+  {
+   "id": "C2.5.D0.WITNESS_REFIT_IDENTITY__V1",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "D0: the stored deployed witness and its 5 outer-fold models (the out-of-fold base of OOF costs and the ensemble members) are reproduced bitwise by the A1_PO_16 recipe fitted on the verifier-reconstructed FIT rows alone (recorded T* and T_k); a FIT + GUARD fit is a negative control that must differ",
+   "method": "own FIT-only dictionary, own compact_po representation, scikit-learn HistGradientBoostingClassifier built from the recipe constants (lr, leaves, min leaf, l2, max_bins 255, no early stopping, COW / MAR categorical, random_state = seed); probabilities = softmax of the decision function; compared with WITNESS.npz / OOF.npz",
+   "status": "PASS",
+   "numbers": {
+    "deployed": {
+     "T": 113,
+     "MS_max_abs_diff": 0.0,
+     "MS_bitwise_equal": true
+    },
+    "fold0": {
+     "T": 91,
+     "MS_max_abs_diff": 0.0,
+     "OOF_max_abs_diff": 0.0,
+     "bitwise_equal": true
+    },
+    "fold1": {
+     "T": 86,
+     "MS_max_abs_diff": 0.0,
+     "OOF_max_abs_diff": 0.0,
+     "bitwise_equal": true
+    },
+    "fold2": {
+     "T": 95,
+     "MS_max_abs_diff": 0.0,
+     "OOF_max_abs_diff": 0.0,
+     "bitwise_equal": true
+    },
+    "fold3": {
+     "T": 112,
+     "MS_max_abs_diff": 0.0,
+     "OOF_max_abs_diff": 0.0,
+     "bitwise_equal": true
+    },
+    "fold4": {
+     "T": 101,
+     "MS_max_abs_diff": 0.0,
+     "OOF_max_abs_diff": 0.0,
+     "bitwise_equal": true
+    },
+    "negative_control_fit_plus_guard": {
+     "MS_max_abs_diff": 0.2290090911483897
+    }
+   },
+   "code_sha256": {
+    "v_refit.py": "0ec8ed291b9aabd6b6f201cfa7fbb3b9402046fa2d7233d9ec784e9c48056d3b",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "utc": "2026-10-18T19:54:20+00:00",
+   "unit_id": "VER_REFIT_WITNESS_D0_V1"
+  },
+  {
+   "id": "C2.6.D0.ROUTING_REFIT_IDENTITY__V1",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "D0: the stored REFIT routing teacher is reproduced by the T_TREE occupation recipe (CatBoost 1.2.8) fitted on the verifier-reconstructed FIT rows alone (FIT-only dictionary; internal 15% household split of FIT; tree count = first minimum + 1; refit on FIT)",
+   "method": "CatBoost built from the registered constants (depth 4, lr 0.05, l2 3, <= 800 trees, one thread, seed_for(ACSR1catboost, s, occupation, 4)); the stored teacher JSON evaluated by the verifier's own oblivious-tree code on MODEL_SELECT and compared with CatBoost leaf indexes and raw formula values",
+   "status": "PASS",
+   "numbers": {
+    "tree_count_mine": 755,
+    "tree_count_recorded": 755,
+    "catboost_seed_mine": 3843239816,
+    "catboost_seed_recorded": 3843239816,
+    "internal_split": [
+     7146,
+     1273,
+     0
+    ],
+    "internal_split_recorded": [
+     7146,
+     1273,
+     0
+    ],
+    "MS_routing_identical": true,
+    "MS_raw_max_abs_diff": 0.0
+   },
+   "code_sha256": {
+    "v_refit.py": "0ec8ed291b9aabd6b6f201cfa7fbb3b9402046fa2d7233d9ec784e9c48056d3b",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "utc": "2026-10-18T19:56:27+00:00",
+   "unit_id": "VER_REFIT_ROUTING_D0_V1"
+  },
+  {
+   "id": "C2.5.D1.WITNESS_REFIT_IDENTITY__V1",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "D1: the stored deployed witness and its 5 outer-fold models (the out-of-fold base of OOF costs and the ensemble members) are reproduced bitwise by the A1_PO_16 recipe fitted on the verifier-reconstructed FIT rows alone (recorded T* and T_k); a FIT + GUARD fit is a negative control that must differ",
+   "method": "own FIT-only dictionary, own compact_po representation, scikit-learn HistGradientBoostingClassifier built from the recipe constants (lr, leaves, min leaf, l2, max_bins 255, no early stopping, COW / MAR categorical, random_state = seed); probabilities = softmax of the decision function; compared with WITNESS.npz / OOF.npz",
+   "status": "PASS",
+   "numbers": {
+    "deployed": {
+     "T": 97,
+     "MS_max_abs_diff": 0.0,
+     "MS_bitwise_equal": true
+    },
+    "fold0": {
+     "T": 109,
+     "MS_max_abs_diff": 0.0,
+     "OOF_max_abs_diff": 0.0,
+     "bitwise_equal": true
+    },
+    "fold1": {
+     "T": 100,
+     "MS_max_abs_diff": 0.0,
+     "OOF_max_abs_diff": 0.0,
+     "bitwise_equal": true
+    },
+    "fold2": {
+     "T": 96,
+     "MS_max_abs_diff": 0.0,
+     "OOF_max_abs_diff": 0.0,
+     "bitwise_equal": true
+    },
+    "fold3": {
+     "T": 98,
+     "MS_max_abs_diff": 0.0,
+     "OOF_max_abs_diff": 0.0,
+     "bitwise_equal": true
+    },
+    "fold4": {
+     "T": 102,
+     "MS_max_abs_diff": 0.0,
+     "OOF_max_abs_diff": 0.0,
+     "bitwise_equal": true
+    },
+    "negative_control_fit_plus_guard": {
+     "MS_max_abs_diff": 0.15999772925392514
+    }
+   },
+   "code_sha256": {
+    "v_refit.py": "0ec8ed291b9aabd6b6f201cfa7fbb3b9402046fa2d7233d9ec784e9c48056d3b",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "utc": "2026-10-18T19:57:03+00:00",
+   "unit_id": "VER_REFIT_WITNESS_D1_V1"
+  }
+ ],
+ "summary": {
+  "n_checks": 14,
+  "by_kind_and_status": {
+   "NUMERICAL_REPLAY": {
+    "PASS": 8,
+    "FAIL": 0,
+    "ATTENTION": 0,
+    "NOT_RUN": 0
+   },
+   "PROCEDURAL_COMPLIANCE": {
+    "PASS": 5,
+    "FAIL": 0,
+    "ATTENTION": 1,
+    "NOT_RUN": 0
+   }
+  },
+  "updated_utc": "2026-10-18T19:57:03+00:00"
+ }
+}

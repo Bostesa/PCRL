@@ -32,14 +32,21 @@ def utilization_of(stats, sslack):
 
 
 def fit(P, did, rule):
+    """rule: a selection key 'RULE|full' (matched to the strength that rule selected for did) or 's<x>' (a fixed ladder strength,
+    for the matched frontier)."""
     from ohn import protect as PR
     t0 = time.process_time()
-    name = f'COMP__{did}__{rule}'
+    name = f'COMP__{did}__{rule.replace("|", "_")}'
     d = TF.pdir(P) / 'COMP' / name
     if (d / 'COMP.json').exists():
         raise PermissionError(f'{name} exists (append-only)')
     srec = json.loads((TF.pdir(P) / 'SELECT' / f'{did}.json').read_text())
-    s_sel = float(srec['selected'][rule])
+    if rule.startswith('s'):
+        s_sel = float(rule[1:])
+    else:
+        if '|' in rule and rule.split('|')[1] != 'full':
+            raise PermissionError('compression twins are matched to the full deployment')
+        s_sel = float(srec['selected'][rule if '|' in rule else f'{rule}|full'])
     if s_sel <= 0:
         raise PermissionError(f'{rule} selected identity for {did}: no compression twin to match')
     lad = json.loads((TF.pdir(P) / 'LADDER' / f'{did}.json').read_text())
@@ -52,6 +59,10 @@ def fit(P, did, rule):
     pw = W['dep__MODEL_FIT'][rows]
     cand = TF.cost_summary(TF.release_at(pw, D['full__MODEL_FIT'][rows], s_sel), pw, G['occupation'], G['sex'], G['unit'])
     target = utilization_of(cand['stats'], sslack)
+    if not np.isfinite(target):
+        raise ValueError(f'{name}: the candidate has a positive GUARD cost on a statistic whose reserve slack is nonpositive '
+                         f'(utilization = inf; stat slack {sslack}); no code can be matched to it - the bisection would return the '
+                         'smallest K labelled MATCHED')
     seen = {}
 
     def ev(i):
@@ -79,6 +90,7 @@ def fit(P, did, rule):
            'guard_utilization': target, 'guard_cost': cand['stats']}, 'K': b['K'], 'flag': flag, 'guard_cost': b['cost'],
            'guard_utilization': b['utilization'], 'ladder_path': [{'K': v['K'], 'utilization': v['utilization']} for _, v in sorted(seen.items())],
            'kmeans_info': b['info'], 'npz_sha256': sha, 'n_kmeans_fits': len(seen),
+           'search': 'bisection assuming GUARD utilization falls with K (as ohn.protect.comp_select); unevaluated K are not checked',
            'operation': 'label-free K-means code of the cross-fitted FIT witness vectors; nearest centroid of the deployed witness vector',
            'cpu_s': time.process_time() - t0, 'utc': C.now(), 'unit_id': os.environ.get(C.UNIT_ENV)}
     C.write_json(d / 'COMP.json', rec)
@@ -87,13 +99,48 @@ def fit(P, did, rule):
     return rec
 
 
+def realized(P):
+    """Realized CHECK and MODEL_SELECT costs of every saved compression code of P (repair panels only after the REPAIR_FREEZE)."""
+    t0 = time.process_time()
+    kind = C.PARTITIONS[P]['kind']
+    if kind == 'repair' and not C.repair_frozen():
+        raise PermissionError('repair CHECK stays closed until the committed REPAIR_FREEZE')
+    out = TF.pdir(P) / 'COMP' / 'COMP_REALIZED.json'
+    if out.exists():
+        raise PermissionError('COMP_REALIZED.json exists (append-only)')
+    wrec, W, O = TF.load_witness(P)
+    L = C.load('MODEL_FIT', ('features', 'occupation', 'sex'), 'check_diag' if kind == 'diagnosis' else 'check_repair',
+               f'realized CHECK costs of the compression codes of {P}', partition=P, prole='CHECK')
+    S = C.load('MODEL_SELECT', ('features', 'occupation', 'sex'), 'benchmark', f'realized MODEL_SELECT costs of the compression codes of {P}')
+    res = {}
+    for d in sorted((TF.pdir(P) / 'COMP').iterdir()):
+        if not (d / 'COMP.json').is_file():
+            continue
+        rec = json.loads((d / 'COMP.json').read_text())
+        if C.sha(d / 'CODE.npz') != rec['npz_sha256']:
+            raise PermissionError('compression record differs')
+        with np.load(d / 'CODE.npz') as z:
+            rf, rm = z['rel__MODEL_FIT'][L['rows']], z['rel__MODEL_SELECT']
+        res[d.name] = {'K': rec['K'], 'matched_to': rec['matched_to'],
+                       'CHECK': TF.cost_summary(rf, W['dep__MODEL_FIT'][L['rows']], L['occupation'], L['sex'], L['unit']),
+                       'MS': TF.cost_summary(rm, W['dep__MODEL_SELECT'], S['occupation'], S['sex'], S['unit'])}
+    C.write_json(out, {'schema': 'CTS1-comp-realized-v1', 'partition': P, 'codes': res, 'cpu_s': time.process_time() - t0,
+                       'utc': C.now(), 'unit_id': os.environ.get(C.UNIT_ENV)})
+    print(json.dumps({'partition': P, 'codes': len(res)}))
+    return res
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest='cmd', required=True)
     x = sub.add_parser('fit'); x.add_argument('--partition', required=True); x.add_argument('--direction', required=True)
     x.add_argument('--rule', required=True)
+    y = sub.add_parser('realized'); y.add_argument('--partition', required=True)
     a = ap.parse_args(argv)
-    fit(a.partition, a.direction, a.rule)
+    if a.cmd == 'fit':
+        fit(a.partition, a.direction, a.rule)
+    else:
+        realized(a.partition)
     return 0
 
 

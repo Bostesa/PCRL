@@ -1,0 +1,17 @@
+{
+ "comparison_plan": {
+  "partitions": {"R0": {"check_panel": "C0", "source_seed": 0}, "R1": {"check_panel": "C1", "source_seed": 1}},
+  "directions_fitted_before_freeze": ["REFIT_PAIR", "REFIT_LOC", "REFIT_CONT", "REFIT_PAIR_TR (Track R income wire, if Track R completes)"],
+  "rules_evaluated": ["OLD-B80", "OLD-B50", "SIMPLE", "UNCERTAINTY"],
+  "deployments": ["full", "ens"],
+  "E1_transfer": "cts.select check and cts.trackf ladder --check on R0 / R1 for every REFIT direction (realized CHECK and MODEL_SELECT costs at every ladder strength and at every rule selection); cts.questiona run for REFIT_PAIR, REFIT_LOC, REFIT_CONT x full / ens (PREDICTION_IMPROVED label per partition, RULES.md section 6)",
+  "E2_utility": "realized MODEL_SELECT outcomes of every rule selection (8 occupation-side conditions, reserve and point crossings); complete-release 24 clauses + 4 guards for the R pair at the selected recipe's strengths (cts.evaluate)",
+  "E3_protection": "R reader bank (cts.rstage bank): witness; REFIT_PAIR, REFIT_LOC, REFIT_CONT at the common strengths and at every nonzero rule selection (full deployment); compression twins matched on GUARD utilization to REFIT_PAIR at the common strengths and at the nonzero rule selections; the six required comparators (cached); stability summary (8 cells: R0 / R1 x 2 repetitions x 2 reader seeds) per matched control; old per-cell recipient gate and AGG1 beside each other",
+  "primary_recipe": "the one recipe recorded in diagnosis/RECIPE_SELECTION.json, or NO_RECIPE; it is never switched to another rule's winner on the repair panels",
+  "claim_ladder": "cts.rules.claim_ladder with the evidence of RULES.md section 7 (rungs 1-5 in order; joint design NOT_CLAIMABLE; novelty NOT_CLAIMED)",
+  "track_r": "refitted H3-recipe income (H3R) and task-only twin (HCR) on R0 / R1 with the refitted witness: 24 clauses + guards and reserve; REFIT_PAIR_TR selections and realized outcomes; readers if the budget allows; a recipe test on different training subsets, not confirmation of the frozen H3 package",
+  "readers_after": "screen operating-characteristic study completed and reviewed (roles/statistical_reviewer/SCREEN_REVIEW.md) before any new release is scored"
+ },
+ "redesign": null,
+ "notes": []
+}

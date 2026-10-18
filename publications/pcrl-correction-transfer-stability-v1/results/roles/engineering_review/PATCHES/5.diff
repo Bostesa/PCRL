@@ -1,0 +1,13 @@
+--- a/cts/trackf.py
++++ b/cts/trackf.py
+@@ -110,7 +110,9 @@
+            'nll': float(v['nll'].mean()), 'acc_loss': float(v['acc_loss'].mean())}
+     se = {'men_brier': subgroup_se(v['brier'], men, unit), 'women_brier': subgroup_se(v['brier'], women, unit),
+           'brier': cluster_se(v['brier'], unit), 'nll': cluster_se(v['nll'], unit), 'acc_loss': cluster_se(v['acc_loss'], unit)}
+-    mag = {'mean_abs_logit_change': float(np.abs(logp(p) - logp(base)).sum(1).mean()),
++    dlog = np.abs(logp(p) - logp(base))
++    mag = {'mean_abs_logit_change': float(dlog.sum(1).mean()),            # summed over classes (K x the registered definition)
++           'mean_abs_logit_change_per_class': float(dlog.mean()),         # RULES.md section 5: mean over people AND classes
+            'flip_rate': float((p.argmax(1) != base.argmax(1)).mean()), 'max_abs_prob_change': float(np.abs(p - base).max())}
+     return {'stats': out, 'se': se, 'n': int(len(y)), 'n_men': int(men.sum()), 'n_women': int(women.sum()),
+             'households': int(len(np.unique(unit))), 'magnitude': mag}

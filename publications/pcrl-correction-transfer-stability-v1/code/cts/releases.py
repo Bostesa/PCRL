@@ -40,7 +40,7 @@ def resolve(P, name):
         return W['dep__MODEL_SELECT'], {'kind': 'witness', 'strength': 0.0}
     if name.startswith('COMP:'):
         did, rule = name[5:].split('@')
-        d = TF.pdir(P) / 'COMP' / f'COMP__{did}__{rule}'
+        d = TF.pdir(P) / 'COMP' / f'COMP__{did}__{rule.replace("|", "_")}'
         rec = json.loads((d / 'COMP.json').read_text())
         if C.sha(d / 'CODE.npz') != rec['npz_sha256']:
             raise PermissionError('compression record differs')

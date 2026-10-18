@@ -96,6 +96,109 @@ def release(P, name, occ_ms, note=''):
     return rec
 
 
+def witness_curve(P):
+    """Training-size diagnostic (amendment item 9): the witness of P evaluated on MODEL_SELECT against BOTH source seeds'
+    references (the same deterministic model; one evaluation per seed), with H3 income of that seed."""
+    from . import trackf as TF
+    out = TF.pdir(P) / EVAL_DIR / 'WITNESS_CURVE_EVAL_MS.json'
+    if out.exists():
+        raise PermissionError('witness-curve evaluation exists (append-only)')
+    wrec, W, O = TF.load_witness(P)
+    S = _ms(f'benchmark: training-size diagnostic, witness of {P} ({wrec["n_fit_people"]} FIT people) on MODEL_SELECT, both seeds')
+    res = {}
+    for s in C.SEEDS:
+        ev = eval_release(s, W['dep__MODEL_SELECT'], h3_income(s), '', S=S)
+        u = ev['utility']
+        res[str(s)] = {'eval': ev, 'slack': slack_of(ev, s),
+                       'occupation_clauses': {f"{c['reference']}|{c['metric']}": c['value'] for c in u['clauses'] if c['task'] == 'occupation'},
+                       'guards': {g['group']: {'value': g['value'], 'se': g['se']} for g in u['guards']}}
+    rec = {'schema': 'CTS1-witness-curve-v1', 'partition': P, 'n_fit_people': wrec['n_fit_people'], 'results': res, 'utc': C.now()}
+    C.write_json(out, rec)
+    print(json.dumps({s: {'guards': r['guards'], 'nll_U0': r['occupation_clauses'].get('U0|nll_excess')} for s, r in res.items()}, default=float))
+    return rec
+
+
+def curve_pairs():
+    """Training-size diagnostic, condition 2 of the review (ADAPTIVE): paired differences on MODEL_SELECT between witness fits
+    (reference-free: the U0 / Ucal term cancels in a paired difference of the same people), household-clustered paired SEs, for the
+    occupation-side quantities (accuracy, NLL, summed Brier; men's and women's summed Brier); and the label-free dictionary
+    collapse at each training size (condition 3)."""
+    from ihs.evaluate import cluster_se, subgroup_se
+    from ohn import devrun as OD
+    from . import trackf as TF
+    out = C.RESULTS / 'diagnosis' / 'TRAINING_SIZE_CURVE.json'
+    S = _ms('benchmark: training-size diagnostic (ADAPTIVE, amendment item 9): paired differences between witness fits on MODEL_SELECT')
+    y, sex, unit = S['occupation'], S['sex'], S['unit']
+    rel = {}
+    for P in ('D0', 'D1', 'R0', 'R1', 'P70', 'P70A'):
+        if (TF.pdir(P) / 'WITNESS' / 'WITNESS.json').is_file():
+            rel[P] = TF.load_witness(P)[1]['dep__MODEL_SELECT']
+    for s in C.SEEDS:
+        occ, _, _ = OD.load_occupation('A', 'A1_PO_16', s)
+        rel[f'SOURCE_S{s}'] = occ['MODEL_SELECT']
+    vec = {k: C.task_vectors(y, p, C.K_OCC) for k, p in rel.items()}
+
+    def diff(a, b):
+        va, vb = vec[a], vec[b]
+        d = {'accuracy_gain': va['accuracy'] - vb['accuracy'], 'nll': va['nll'] - vb['nll'], 'brier': va['brier'] - vb['brier']}
+        r = {k: {'value': float(v.mean()), 'se': cluster_se(v, unit)} for k, v in d.items()}
+        for g, nm in ((0, 'men_brier'), (1, 'women_brier')):
+            m = sex == g
+            r[nm] = {'value': float(d['brier'][m].mean()), 'se': subgroup_se(d['brier'], m, unit)}
+        return r
+    pairs = [('P70', 'R0'), ('P70', 'R1'), ('P70', 'D0'), ('P70', 'D1'), ('SOURCE_S0', 'P70'), ('SOURCE_S1', 'P70'), ('P70A', 'P70'),
+             ('D1', 'D0'), ('R1', 'R0'), ('R0', 'D0'), ('R1', 'D1'), ('SOURCE_S1', 'SOURCE_S0')]
+    res = {f'{a}-{b}': diff(a, b) for a, b in pairs if a in vec and b in vec}
+    F = C.features('MODEL_FIT'); Sm = C.features('MODEL_SELECT')
+    names = F['feature_names']
+    pobp_cols = [i for i, n in enumerate(names) if n.startswith('POBP=') and not n.endswith('__OTHER__')]
+    dicts = {}
+    for P in ('D0', 'D1', 'R0', 'R1', 'P70'):
+        rows = C.partition_masks(F['unit'])[P]['FIT']
+        dic = TF.fit_dictionary(F['X'][rows], names)
+        coll = set(dic['collapsed']['POBP'])
+        share = float(Sm['X'][:, [i for i in pobp_cols if names[i] in coll]].sum() / len(Sm['row_id'])) if coll else 0.0
+        dicts[P] = {'fit_people': int(rows.sum()), 'n_collapsed': dic['n_collapsed'], 'share_MODEL_SELECT_with_collapsed_POBP': share}
+    dicts['admitted (100%)'] = {'fit_people': 20000, 'n_collapsed': {b: 0 for b in TF.BLOCKS}, 'share_MODEL_SELECT_with_collapsed_POBP': 0.0}
+    rec = {'schema': 'CTS1-training-size-curve-v1', 'label': 'ADAPTIVE', 'paired_differences_MODEL_SELECT': res, 'dictionary_collapse': dicts,
+           'note': ('paired differences A - B on the same MODEL_SELECT people (positive nll / brier = A worse; accuracy_gain positive = A '
+                    'better); household-clustered SEs; development evidence on an adaptively used role; read with the registered '
+                    'prediction rule (diagnosis/TRAINING_SIZE_BET.json)'), 'utc': C.now()}
+    C.write_json(out, rec)
+    print(json.dumps({k: {m: round(v[m]['value'], 5) for m in ('nll', 'men_brier')} for k, v in res.items()}))
+    return rec
+
+
+def trackr(P):
+    """Track R complete releases on MODEL_SELECT: the refitted H3-recipe income (H3R) and its task-only twin (HCR), each with the
+    partition's refitted occupation witness; 24-clause / guard utility (one seed) and the whole-release reserve of that seed."""
+    from . import trackf as TF
+    from . import track_r as TR
+    s = TF.seed_of(P)
+    out = TF.pdir(P) / EVAL_DIR / 'TRACKR_EVAL_MS.json'
+    if out.exists():
+        raise PermissionError('Track R evaluation exists (append-only)')
+    wrec, W, O = TF.load_witness(P)
+    S = _ms(f'benchmark: Track R {P} refitted income (H3R, HCR) with the refitted occupation witness on MODEL_SELECT')
+    res = {}
+    for tag in ('H3R', 'HCR'):
+        inc, rid = TR.release_arrays(P, tag, 'MODEL_SELECT')
+        if not np.array_equal(rid, S['row_id']):
+            raise AssertionError('Track R MODEL_SELECT row order differs')
+        ev = eval_release(s, W['dep__MODEL_SELECT'], inc, '', S=S)
+        from ohn import rules as OR
+        rr = OR.reserve({s: ev})
+        res[tag] = {'eval': ev, 'reserve_one_seed': {k: rr[k] for k in ('status', 'min_ratio', 'binding_condition', 'min_income_ratio',
+                                                                         'min_occupation_side_ratio', 'failed')}}
+    h3 = eval_release(s, W['dep__MODEL_SELECT'], h3_income(s), '', S=S)
+    res['H3_frozen_same_witness'] = {'income_clauses': [c for c in h3['utility']['clauses'] if c['task'] == 'income']}
+    rec = {'schema': 'CTS1-trackr-eval-v1', 'partition': P, 'seed': s, 'results': res, 'utc': C.now()}
+    C.write_json(out, rec)
+    print(json.dumps({tag: {'point_pass_12': res[tag]['eval']['utility']['point_pass_12'], **res[tag]['reserve_one_seed']}
+                      for tag in ('H3R', 'HCR')}, default=float))
+    return rec
+
+
 def pair(stage, name):
     from ohn import rules as OR
     from . import trackf as TF
@@ -127,9 +230,18 @@ def main(argv=None):
     x = sub.add_parser('release'); x.add_argument('--partition', required=True); x.add_argument('--name', required=True)
     x.add_argument('--occ', required=True); x.add_argument('--key', default='MODEL_SELECT')
     x = sub.add_parser('pair'); x.add_argument('--stage', required=True, choices=('D', 'R')); x.add_argument('--name', required=True)
+    x = sub.add_parser('trackr'); x.add_argument('--partition', required=True)
+    x = sub.add_parser('witness_curve'); x.add_argument('--partition', required=True)
+    sub.add_parser('curve_pairs')
     a = ap.parse_args(argv)
     if a.cmd == 'witness':
         witness(a.partition)
+    elif a.cmd == 'trackr':
+        trackr(a.partition)
+    elif a.cmd == 'witness_curve':
+        witness_curve(a.partition)
+    elif a.cmd == 'curve_pairs':
+        curve_pairs()
     elif a.cmd == 'release':
         with np.load(a.occ) as z:
             occ = z[a.key].copy()

@@ -1,0 +1,63 @@
+--- a/cts/rstage.py
++++ b/cts/rstage.py
+@@ -30,12 +30,35 @@
+     return names
+ 
+ 
++def selected_recipe():
++    """(direction id, 'RULE|dep') of the frozen D-stage recipe (cts.dstage select), or None (NO_RECIPE / not selected)."""
++    p = C.RESULTS / 'diagnosis' / 'RECIPE_SELECTION.json'
++    sel = json.loads(p.read_text()).get('selected') if p.is_file() else None
++    if not sel:
++        return None
++    did, key = sel.split('@')
++    return did, key
++
++
++def recipe_directions():
++    """Directions the R stage must evaluate for the selected recipe beyond the REFIT arms (e.g. FROZEN_PAIR + FROZEN_CONT)."""
++    rs = selected_recipe()
++    if rs is None:
++        return []
++    did, _ = rs
++    return [d for d in (did, f"{did.split('_')[0]}_CONT") if not d.startswith('REFIT_')]
++
++
+ def members(strengths, trackr=False):
+     m = ['W']
++    rs = selected_recipe()
++    if rs is not None:                       # the primary endpoint (E3): the selected recipe and its matched CONT, any routing / deployment
++        did, key = rs
++        m += [n for n in (f'{did}@{key}', f"{did.split('_')[0]}_CONT@{key}") if n not in m]
+     for arm in ('PAIR', 'LOC', 'CONT'):
+         did = f'REFIT_{arm}'
+         m += [f'{did}@s{s}' for s in strengths]
+-        m += nonzero_rule_names(did)
++        m += [n for n in nonzero_rule_names(did) if n not in m]
+     comps = []
+     for s in strengths:
+         comps.append(f'COMP:REFIT_PAIR@s{s}')
+@@ -65,15 +88,16 @@
+     arms = ['PAIR', 'LOC', 'CONT']
+     if trackr and all((TF.pdir(P) / 'DIR' / 'REFIT_PAIR_TR' / 'DIR.json').is_file() for P in RPARTS):
+         arms.append('PAIR_TR')
++    dids = [f'REFIT_{arm}' for arm in arms] + recipe_directions()     # + the selected recipe's FROZEN directions, if any
+     for P in RPARTS:
+-        for arm in arms:
+-            units.append({'unit': f'CTS_{P}_REALIZED_REFIT_{arm}_V1', 'stage': 'repair_check', 'rss_gib': 1.5,
+-                          'argv': ['PY', '-m', 'cts.select', 'check', '--partition', P, '--direction', f'REFIT_{arm}']})
+-            units.append({'unit': f'CTS_{P}_LADDER_CHECK_REFIT_{arm}_V1', 'stage': 'repair_check', 'rss_gib': 1.5,
+-                          'argv': ['PY', '-m', 'cts.trackf', 'ladder', '--partition', P, '--direction', f'REFIT_{arm}', '--check']})
++        for did in dids:
++            units.append({'unit': f'CTS_{P}_REALIZED_{did}_V1', 'stage': 'repair_check', 'rss_gib': 1.5,
++                          'argv': ['PY', '-m', 'cts.select', 'check', '--partition', P, '--direction', did]})
++            units.append({'unit': f'CTS_{P}_LADDER_CHECK_{did}_V1', 'stage': 'repair_check', 'rss_gib': 1.5,
++                          'argv': ['PY', '-m', 'cts.trackf', 'ladder', '--partition', P, '--direction', did, '--check']})
+             for dep in ('full', 'ens'):
+-                units.append({'unit': f'CTS_{P}_QA_REFIT_{arm}_{dep}_V1', 'stage': 'repair_check', 'rss_gib': 1.5,
+-                              'argv': ['PY', '-m', 'cts.questiona', 'run', '--partition', P, '--direction', f'REFIT_{arm}', '--deployment', dep]})
++                units.append({'unit': f'CTS_{P}_QA_{did}_{dep}_V1', 'stage': 'repair_check', 'rss_gib': 1.5,
++                              'argv': ['PY', '-m', 'cts.questiona', 'run', '--partition', P, '--direction', did, '--deployment', dep]})
+         for s in strengths:
+             units.append({'unit': f'CTS_{P}_COMP_REFIT_PAIR_s{s}_V1', 'stage': 'repair_fit', 'rss_gib': 1.5,
+                           'argv': ['PY', '-m', 'cts.compression', 'fit', '--partition', P, '--direction', 'REFIT_PAIR', '--rule', f's{s}']})
