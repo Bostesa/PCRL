@@ -1,0 +1,249 @@
+{
+  "schema": "OHN1-rules-v1",
+  "campaign": "pcrl_occupation_headroom_overnight_v1",
+  "author_role": "statistical and baseline reviewer",
+  "written_before_outcomes": "written 2026-10-18 04:48-05:30Z, before any model outcome of this campaign existed; uses only the source campaign's published records (REFERENCE_MS_TABLE.csv, RESERVE_RULE.json, NOMINATION.json, EXPERIMENT_LEDGER.csv, report/PRIMARY_ENDPOINTS.csv, RESEARCH_DECISION.md)",
+  "human_readable": "SELECTION_RULE.md (rules and rationale), CLAIMS_DRAFT.md (claims)",
+  "implementation": "ohn/rules.py (pure functions; load_rules() checks this file against the module constants); invented-data tests ohn/test_rules.py",
+  "status_of_every_rule": "development selection heuristic on adaptively used MODEL_SELECT data; changes no cap; proves no population guarantee",
+  "source_files": {
+    "results/pcrl_income_headroom_successor_v1/roles/statistical_reviewer/RESERVE_RULE.json": "aca4d8e45fbe523629ba74f3f36eb51cf30ee00941cc13b18927a9a1d0accd70",
+    "results/pcrl_income_headroom_successor_v1/REFERENCE_MS_TABLE.csv": "8f6eae435b69c4ba36e4afdc7abbd20828cdd0465162f6d757bc6389ecf73a91"
+  },
+  "original_limits": {
+    "caps": {"accuracy_loss": 0.01, "nll_excess": 0.01, "brier_excess": 0.005},
+    "within_sex_guard_cap": 0.005,
+    "recipient_limit_auc": 0.010,
+    "material_target_auc": 0.020,
+    "utility_clauses": "income and occupation x references U0 and Ucal x accuracy loss, NLL excess (nats), summed multiclass Brier excess; both seeds: 24 clauses",
+    "guards": "within-SEX occupation summed-Brier excess against U0 for men (sex0, SEX code 1) and women (sex1, SEX code 2); both seeds: 4 guards",
+    "recipient": "each single output's SEX recovery (income view, occupation view) minus the comparator's <= 0.010 AUC",
+    "unchanged": true
+  },
+  "reserve": {
+    "name": "whole-release development reserve (R1)",
+    "role": "MODEL_SELECT (8,001 people / 5,306 households)",
+    "conditions_per_seed": ["income|U0|accuracy_loss", "income|U0|nll_excess", "income|U0|brier_excess", "income|Ucal|accuracy_loss", "income|Ucal|nll_excess", "income|Ucal|brier_excess", "occupation|U0|accuracy_loss", "occupation|U0|nll_excess", "occupation|U0|brier_excess", "occupation|Ucal|accuracy_loss", "occupation|Ucal|nll_excess", "occupation|Ucal|brier_excess", "guard|sex0", "guard|sex1"],
+    "conditions_total": 28,
+    "condition": "margin = cap - value >= k x se_used (inclusive); non-finite value or SE fails the condition; no non-worsening escape for changed outputs",
+    "multiplier_k": 2.0,
+    "se_rule": "se_used = max(own SE, floor SE). Own SE: the household-clustered paired SE on MODEL_SELECT (clauses; G/(G-1) correction) or the linearized household-clustered SE (guards), as computed by the evaluator (identical to ihs.evaluate.utility). Floor SE: H_LJ's MODEL_SELECT SE of the same condition and seed (the source's registered conservative variance rule, unchanged), rescaled by sqrt(5306 / households) for another household count",
+    "zero_or_tiny_se": "own SE = 0 (identical paired vectors) or below the floor: se_used = floor (> 0), recorded as se_source 'floor' and own_se_zero; a floor that is missing, non-finite or <= 0 is refused (error); a negative own SE is refused (error); a non-finite own SE or value fails the condition",
+    "floor": {
+      "reference": "H_LJ",
+      "households": 5306,
+      "source": "results/pcrl_income_headroom_successor_v1/roles/statistical_reviewer/RESERVE_RULE.json floor.se (copied unchanged)",
+      "se": {
+        "0": {
+          "guard|sex0": 0.0018137835315699534,
+          "guard|sex1": 0.0016982056785958925,
+          "income|U0|accuracy_loss": 0.002812487342574766,
+          "income|U0|brier_excess": 0.0013554683278780726,
+          "income|U0|nll_excess": 0.0017675704470636448,
+          "income|Ucal|accuracy_loss": 0.002812487342574766,
+          "income|Ucal|brier_excess": 0.0012423233165908799,
+          "income|Ucal|nll_excess": 0.001551704113903701,
+          "occupation|U0|accuracy_loss": 0.003508552063819701,
+          "occupation|U0|brier_excess": 0.0012445265056945948,
+          "occupation|U0|nll_excess": 0.003008418813347219,
+          "occupation|Ucal|accuracy_loss": 0.003508552063819701,
+          "occupation|Ucal|brier_excess": 0.0011955902448131499,
+          "occupation|Ucal|nll_excess": 0.002870624896810981
+        },
+        "1": {
+          "guard|sex0": 0.001696534070467857,
+          "guard|sex1": 0.0017104809247479097,
+          "income|U0|accuracy_loss": 0.002882728064096661,
+          "income|U0|brier_excess": 0.0014122728308120541,
+          "income|U0|nll_excess": 0.001832065710178923,
+          "income|Ucal|accuracy_loss": 0.002882728064096661,
+          "income|Ucal|brier_excess": 0.0013278302443479565,
+          "income|Ucal|nll_excess": 0.0016712749318123679,
+          "occupation|U0|accuracy_loss": 0.003543392635156161,
+          "occupation|U0|brier_excess": 0.0012007928697899864,
+          "occupation|U0|nll_excess": 0.0027647937601303968,
+          "occupation|Ucal|accuracy_loss": 0.003543392635156161,
+          "occupation|Ucal|brier_excess": 0.001188638633934499,
+          "occupation|Ucal|nll_excess": 0.0027348115634206176
+        }
+      }
+    },
+    "status": {
+      "RESERVE_MET": "both seeds screened and all 28 conditions met",
+      "RESERVE_ONE_SEED_ONLY": "both seeds screened, exactly one met",
+      "RESERVE_NOT_MET": "no screened seed met",
+      "RESERVE_PENDING_SECOND_SEED": "one seed screened and met (never meets the reserve)"
+    },
+    "ranking_vector": "ascending vector of the 28 ratios margin / se_used; compared leximin (larger minimum first; exact ties within 1e-9 go to the next-smallest ratio)",
+    "anchor_fact_from_source": "the H3 income anchor's 12 income conditions are the same for every H3-anchored release (income clauses depend only on the income output): published MODEL_SELECT minimum income ratio 2.862 (seed-1 income accuracy loss 0.00175, se_used 0.0028827), so every H3-anchored complete release has whole-release minimum ratio <= 2.862"
+  },
+  "witness": {
+    "stage": "stage 1 (task-only occupation configurations)",
+    "candidates": "configurations whose occupation training never used SEX (record kind task_model, or a control declared task-only); combined with the H3 income anchor and evaluated as complete releases",
+    "eligibility_PROMISING_WITNESS": [
+      "both seeds evaluated with the registered evaluator",
+      "all 28 conditions of the complete release pass at the point on both seeds (original caps, inclusive)",
+      "all 16 occupation-side conditions (6 occupation clauses + 2 guards per seed) meet the reserve (k = 2, H_LJ floor); no aggregate quantity compensates for a failed condition"
+    ],
+    "labels_in_order": ["NOT_TASK_ONLY", "NOT_CONSIDERED_ONE_SEED_ONLY", "OCCUPATION_POINT_INELIGIBLE", "RELEASE_POINT_INELIGIBLE", "OCCUPATION_RESERVE_NOT_MET", "PROMISING_WITNESS"],
+    "ranking": ["leximin of the 16 occupation-side ratios (larger minimum first)", "fewer fitted components (n_model_fits + n_calibrator_fits, both seeds)", "earliest ledger entry of the seed-0 evaluation"],
+    "max_witnesses": 2,
+    "selection_labels": ["SELECTED_WITNESS", "PROMISING_NOT_SELECTED", "NOT_A_WITNESS"],
+    "measured_and_reported_for_every_promising_learner": [
+      "accuracy loss, NLL excess and summed Brier excess against U0 and Ucal (both tasks of the complete release)",
+      "men's and women's occupation summed-Brier excess against U0, with SEs",
+      "differences against the equally exposed task-only controls T_TREE and TASK_REFIT (occupation accuracy, NLL, summed Brier; both seeds) and the occupation-side minimum ratio of H3 + T_TREE occupation and H3 + TASK_REFIT occupation under the same rule",
+      "cross-fitted MODEL_FIT occupation utility (household 5-fold, tag OHN1_crossfit) and MODEL_SELECT utility",
+      "deployed minus fold-average MODEL_SELECT occupation NLL and Brier; flag CROSSFIT_DEPLOYED_GAP when its absolute value exceeds the clause's se_used"
+    ],
+    "label_meaning": "PROMISING_WITNESS / SELECTED_WITNESS = 'useful task-only component' evidence on development data only; says nothing about SEX recovery"
+  },
+  "comparators": {
+    "universe": ["NEURAL_RAW", "H_LJ", "B2TWIN", "RETIRED_B3CTL", "SUCC", "TWJ"],
+    "definitions": {
+      "NEURAL_RAW": "neural release (frozen; seed-1 output admitted by hash)",
+      "H_LJ": "tree release: LOCAL income + JOINT_TREE occupation",
+      "B2TWIN": "code release: 6-level LOCAL income code + JOINT_TREE occupation",
+      "RETIRED_B3CTL": "code release: the retired B3CTL_UNCOUPLED_MIX50_C6A (JOINT occupation + 6-level income code)",
+      "SUCC": "the source successor H3_STRONG_LJDIR_PB income + JOINT_TREE occupation (the matched-income reference)",
+      "TWJ": "the task-only strong-income twin HC_STRONG + JOINT_TREE occupation"
+    },
+    "eligibility_rule": "a frozen release is an ELIGIBLE comparator iff, from the source's published MODEL_SELECT values, all 24 utility clauses and 4 within-SEX guards pass at the point on both seeds and a frozen seed-specific package exists for both seeds. Reserve status, recovery results and the candidate's results play no role",
+    "eligibility_check": {
+      "NEURAL_RAW": "point-feasible (RESERVE_ONE_SEED_ONLY; reserve is not an eligibility criterion)",
+      "H_LJ": "point-feasible (RESERVE_MET)",
+      "B2TWIN": "point-feasible (RESERVE_MET)",
+      "RETIRED_B3CTL": "point-feasible (RESERVE_NOT_MET; retired as a candidate because of its reserve and validation, which are outcomes, not point feasibility)",
+      "SUCC": "point-feasible (NOMINATED_FINALIST of the source, RESERVE_MET)",
+      "TWJ": "point-feasible (UTILITY_HEADROOM_ONLY, RESERVE_MET)"
+    },
+    "required": ["NEURAL_RAW", "H_LJ", "B2TWIN", "RETIRED_B3CTL", "SUCC", "TWJ"],
+    "target_references": ["NEURAL_RAW", "H_LJ"],
+    "target_reference_rationale": "the original 0.020 material-improvement target was defined against the lineage's eligible references NEURAL_RAW and H_LJ; it is kept unchanged and reported against the other required comparators descriptively",
+    "descriptive": {
+      "PUB_IBSI": "point-ineligible on MODEL_SELECT (seed-1 men's guard 0.0050142 > 0.005): descriptive only",
+      "T_TREE, TASK_REFIT": "equally exposed task-only controls for the stage-1 utility comparisons; recovery reported descriptively",
+      "U0, Ucal": "utility references (define the clauses), not recovery comparators"
+    },
+    "frozen": "the required set and the target references never change after any outcome of this campaign is seen; the same set is used for dev-grid recipient points, stability, nomination score and every final-stage claim"
+  },
+  "stability": {
+    "grid": "2 household-split repetitions (R1, R2) x 2 reader seeds (k0, k1) per release seed on MODEL_SELECT; per repetition households split 50% FIT / 20% VALIDATION / 30% SCORE; readers = validated enhanced slate with ignore-one alternatives for the pair; winners by maximum oriented VALIDATION AUC; SCORE AUC per view; comparator readers refitted independently in every cell; household-bootstrap SE (B = 400, SCORE households, readers fixed) of each paired difference",
+    "cells": ["S0R1k0", "S0R1k1", "S0R2k0", "S0R2k1", "S1R1k0", "S1R1k1", "S1R2k0", "S1R2k1"],
+    "signs": {"pair_benefit": "comparator AUC - candidate AUC (positive favours the candidate)", "recipient_difference": "candidate AUC - comparator AUC (must be <= 0.010)"},
+    "z": 2.0,
+    "spread": "per-seed mean d_s over its 4 cells; v_rep = pooled within-seed variance of the 8 cell values (sum of squared deviations from d_s, divided by 8 - 2 = 6); v_samp = mean of the 8 squared cell SEs; sd_total = sqrt(v_rep + v_samp)",
+    "benefit_screen_STABLE_POSITIVE": ["all 8 cell benefits > 0 (strict; no sign change in any matched repetition)", "for each seed s: d_s - 2 x sd_total > 0"],
+    "benefit_labels": {"STABLE_POSITIVE": "both conditions", "POSITIVE_NOT_STABLE": "every cell > 0 but a seed's d_s - 2 sd_total <= 0", "SIGN_CHANGES": "8-cell mean > 0 but some cell <= 0", "NOT_POSITIVE": "8-cell mean <= 0", "INCOMPLETE": "a registered cell, a cell SE or a finite value missing"},
+    "recipient_point": "every one of the 8 cells <= 0.010 for the income view and for the occupation view, against every required comparator (gate)",
+    "recipient_stability": "for each seed s: d_s + 2 x sd_total <= 0.010 (recorded outcome, not a gate): RECIPIENT_STABLE / RECIPIENT_EDGE / RECIPIENT_POINT_FAILED; not computed when cell SEs are absent",
+    "material_target_dev_grid": "against NEURAL_RAW and H_LJ: DEV_GRID_TARGET_STABLE (every cell > 0.020 and d_s - 2 sd_total > 0.020 on both seeds), DEV_GRID_TARGET_POINT_ONLY (8-cell mean > 0.020), DEV_GRID_TARGET_NOT_MET; recorded, never a gate",
+    "recorded_never_gating": ["VALIDATION near ties (< 0.010) of every winner", "winner changes across cells", "paired benefit distribution (8 cells, mean, min, max, per-seed means, sd components, predicted flip probability Phi(-d_s / sd_total))", "learning curves at 1/4, 1/2 and full FIT size (flag BENEFIT_SHRINKS_WITH_READER_DATA when full < quarter - 0.005)"]
+  },
+  "income_branch": {
+    "max_seed_specific_configurations": 8,
+    "evaluated_at": "once, at stage-1 close (witness selection record), before any privacy-stage or income-branch fit",
+    "trigger": "PROMISING_WITNESS exists AND (leg A OR leg B)",
+    "trigger_clauses": ["income|U0|accuracy_loss", "income|Ucal|accuracy_loss"],
+    "leg_A": "MODEL_SELECT: the whole-release reserve of (H3 income + top-ranked witness occupation) is not RESERVE_MET and every failing condition is one of the trigger clauses (either seed)",
+    "leg_B": "published DEV_REPORT values of the frozen anchor (no new read): some trigger clause fails the final-stage replication rule margin >= 1.7267108 x max(SE_DEV(anchor), SE_DEV(H_LJ)) on either seed",
+    "anchor_dev_record": {
+      "anchor": "H3_STRONG_LJDIR_PB",
+      "source": "results/pcrl_income_headroom_successor_v1/report/PRIMARY_ENDPOINTS.csv (ENHANCED scorecard; income clauses are reader-free)",
+      "clauses": {
+        "s0|income|U0|accuracy_loss": {"cap": 0.01, "point": 0.00016826518593303046, "se_anchor": 0.003191779951958188, "se_h_lj": 0.0034626533831114935},
+        "s0|income|Ucal|accuracy_loss": {"cap": 0.01, "point": 0.00016826518593303046, "se_anchor": 0.003191779951958188, "se_h_lj": 0.0034626533831114935},
+        "s1|income|U0|accuracy_loss": {"cap": 0.01, "point": 0.007067137809187279, "se_anchor": 0.0033768945082380732, "se_h_lj": 0.003535299895775268},
+        "s1|income|Ucal|accuracy_loss": {"cap": 0.01, "point": 0.007067137809187279, "se_anchor": 0.0033768945082380732, "se_h_lj": 0.003535299895775268}
+      }
+    },
+    "known_values_before_any_fit": {
+      "leg_A": "FALSE for every H3-anchored release (published MODEL_SELECT seed-1 accuracy ratio 2.862 >= 2; income conditions do not depend on the occupation output)",
+      "leg_B": "TRUE (seed 1: margin 0.0029329 = 0.83 x se_used 0.0035353 < 1.7267108)",
+      "consequence": "the trigger reduces to 'a PROMISING_WITNESS exists'; a branch opened through leg B is DEV-guided (its motivation comes from a DEV_REPORT result of the source) and is disclosed as such"
+    },
+    "branch_configuration_rules": [
+      "each branch configuration is a complete release: a new income output paired with a SELECTED_WITNESS occupation output (or a privacy-stage occupation output derived from one)",
+      "its matched component comparison is the same occupation output with the H3 income (on the same grid)",
+      "it is subject to the same reserve, stability and nomination rules; no rule is relaxed for it",
+      "if the trigger does not fire, no income-branch configuration may be fitted"
+    ]
+  },
+  "nomination": {
+    "units": "a configuration = one specification fitted on seeds 0 and 1; first complete evaluation per seed counts; controls compete on equal terms",
+    "admissibility": ["both seeds evaluated", "runnable package for both seeds", "release computed from the six permitted raw fields", "grid entries for every required comparator", "not an alias (equal wire hashes, both tasks, both seeds) of a required comparator"],
+    "gates_in_order": [
+      "UTILITY_POINT: all 24 utility clauses and 4 guards pass at the point (MODEL_SELECT)",
+      "RECIPIENT_POINT: every dev-grid SCORE cell <= 0.010, income and occupation views, every required comparator",
+      "RESERVE: whole-release reserve RESERVE_MET",
+      "STABILITY: STABLE_POSITIVE against every required comparator",
+      "MATCHED_COMPONENT: a matched component comparison exists on the same 8 cells"
+    ],
+    "labels_in_order": ["NOT_CONSIDERED_ONE_SEED_ONLY", "NOT_ADMISSIBLE", "ALIAS_OF_<COMPARATOR>", "UTILITY_POINT_INELIGIBLE", "RECIPIENT_POINT_FAILED", "RESERVE_NOT_MET", "BENEFIT_NOT_STABLE", "NO_MATCHED_COMPONENT_COMPARISON", "QUALIFYING", "NOMINATED_FINALIST", "QUALIFYING_NOT_CHOSEN"],
+    "flags": ["EDGE_STABLE_BENEFIT_WITHOUT_RESERVE", "RECIPIENT_EDGE", "PAIR_NEAR_TIE", "CONTROL_DESIGNATED_FINALIST"],
+    "separate_outcomes": ["point", "reserve", "conditional_confidence", "recipient_protection", "reader_stability", "material_target", "matched_component_comparison", "incremental_protection_vs_matched_component"],
+    "score": "minimum over the 6 required comparators of the 8-cell mean pair benefit (both seeds x 2 repetitions x 2 reader seeds); higher is better",
+    "near_tie_width": 0.005,
+    "tie_breaks": ["leximin whole-release reserve ratio vector over 28 conditions (larger minimum first; exact ties, e.g. a shared anchor condition, go to the next-smallest ratio)", "simpler implementation: fewer fitted components n_model_fits + n_calibrator_fits over both seeds", "earliest ledger entry of the seed-0 evaluation"],
+    "not_used": "no income-only tie-break (the source's min_income_ratio) and no Brier-specific reserve",
+    "bonferroni_z_28": 3.1237346303238454,
+    "conditional_confidence": "UTILITY_CONFIDENCE_RESOLVED iff value + 3.1237346 x own SE <= cap for all 28 conditions; else UTILITY_CONFIDENCE_UNRESOLVED (n of 28); recorded, conditional on the fitted configuration, never a gate",
+    "max_finalists": 1,
+    "no_finalist": "no finalist; DEV_REPORT stays closed; the frontier (score against minimum whole-release ratio) and every label are reported"
+  },
+  "final_stage": {
+    "only_if": "a NOMINATED_FINALIST exists",
+    "readers": "validated enhanced slate (source 8 + ET5, ET25, HGB15, HGB31, MLP64, MLP6432, CATI01, CATI1) with ignore-one alternatives for the pair; fitted on ATTACK_FIT (8,001), selected and oriented on ATTACK_VALIDATION (3,000; ties to the earlier candidate, near tie < 0.010 flagged), scored on DEV_REPORT (5,943 people / 3,955 households); ORIGINAL bank (source 8) beside it",
+    "controls": "planted-SEX AUC >= 0.95 and |shuffled-label AUC - 0.5| <= 0.05 on ATTACK_VALIDATION and DEV_REPORT, every view and seed (CV)",
+    "inference": "household bootstrap B = 2048 with the lineage's weights seed 2026101705 shared across releases, endpoints and seeds; Wald intervals, df 3954; conditional on fitted releases and readers",
+    "refit_roster": "4 matched household-bootstrap refits of ATTACK_FIT per winning recipe and release (shared resampling across releases); reported beside every benefit and recipient clause; qualifier REFIT_SENSITIVE on a claim when any refit benefit of a BEN key in its conjunction is <= 0 or any refit recipient difference of an NW key exceeds 0.010, else REFIT_STABLE; a REFIT_SENSITIVE claim is never described as robust",
+    "r2_conditions": "all 28 conditions of the whole release (12 income + 12 occupation clauses + 4 guards): margin_DEV >= r2_factor x max(SE_DEV(S), SE_DEV(H_LJ)); RESERVE_REPLICATED / RESERVE_ERODED / CAP_EXCEEDED_AT_POINT; income and occupation parts printed separately",
+    "claims": {
+      "W": "USEFUL_TASK_ONLY_COMPONENT iff S's task-only occupation output (or S) was a SELECTED_WITNESS (development only; no alpha)",
+      "E": "E_POINT = UG (24 utility points) and SG (4 guard points) and RG (24 REQ recipient points <= 0.010); no alpha",
+      "R": "R1 (MODEL_SELECT, by construction), R2 (DEV, 28 conditions), R3 (28 upper bounds at c_P), R4 (planning, descriptive); no alpha",
+      "P": "SUPERIOR_TO_ALL_REQUIRED = CV and E_POINT and BEN_X(s,0) for all X in REQ, s and NW_X(s,v) for all X in REQ, s, v; alpha/3",
+      "N": "NON_WORSENING_ESTABLISHED / _UNRESOLVED / _VIOLATED_AT_POINT over the 24 REQ recipient clauses; inside P",
+      "C": "OCCUPATION_COMPONENT_EFFECT_ESTABLISHED = CV and E_POINT and BEN_SUCC(s,0) both seeds and NW_SUCC(s,v) both seeds and views; alpha/3",
+      "M": "step 1 CV and E_POINT and AV_MTC and BEN_MTC(s,0) and NW_MTC(s,v); step 2 P; MECHANISM_ATTRIBUTION_ESTABLISHED / TASK_ONLY_ATTRIBUTION_ONLY / NOT_ESTABLISHED / NOT_APPLICABLE; alpha/3",
+      "T": "MATERIAL_TARGET_ESTABLISHED = P and BEN_X(s,0.020) for X in {NEURAL_RAW, H_LJ}, both seeds; TARGET_POINT_ONLY; TARGET_NOT_ESTABLISHED; nested, no alpha",
+      "O": "OCCUPATION_CONSTRAINTS_RELIEVED / OCCUPATION_IMPROVED_BUT_BINDING / OCCUPATION_WORSENED on the 16 occupation-side conditions under the R2 rule; no alpha",
+      "J": "NOT_CLAIMABLE (only occupation is optimised; coalition-aware occupation correction)",
+      "V": "NOT_CLAIMED",
+      "COMPOSITE": "COMPETITIVE_SUCCESSOR = E and R2 (RESERVE_REPLICATED, 28) and P; SUPERIOR_WITHOUT_RESERVE; NOT_COMPETITIVE",
+      "notation": "BEN_X(s,m): point - c1 x SE > m; NW_X(s,v): point + c1 x SE <= 0.010; benefit = AUC_pair(X) - AUC_pair(S); recipient = AUC_view(S) - AUC_view(X)"
+    },
+    "roles": {"S": "finalist", "REQ": "the 6 required comparators", "MTC": "matched task-only component: the finalist's own task-only occupation with the same income (declared in FINALIST_LOCK from the record; NOT_APPLICABLE if the finalist is task-only)", "CC": "SUCC, the matched-income component (same income, inherited JOINT_TREE occupation)"},
+    "endpoints_per_seed": {
+      "UTILITY|S|<task>|<ref>|<metric>": "12, no_excess vs cap",
+      "SUBGROUP|S|sex<g>": "2, no_excess vs 0.005",
+      "BEN|<X>": "pair benefit AUC_pair(X) - AUC_pair(S) > 0, X in REQ (6) and MTC (1)",
+      "NW|<X>|<view>": "AUC_view(S) - AUC_view(X) <= 0.010, X in REQ (6 x 2 views) and MTC (2)",
+      "UTILITY|H_LJ|...": "H_LJ's own DEV SEs (R2 floor; descriptive family)"
+    },
+    "K_P_per_seed": 35,
+    "K_P": 70,
+    "alpha_one_sided": 0.025,
+    "alpha_spending_claims": ["P", "C", "M"],
+    "n_claims": 3,
+    "c1_clause": 2.3949990680014097,
+    "c_P_family": 3.386702352569625,
+    "r2_factor": 1.726710845222186,
+    "no_alpha": ["E", "R", "N (inside P)", "T (nested in P)", "O", "D"],
+    "frozen_before_any_final_reader_fit": "endpoints, signs, reference choices (REQ, target references, MTC, CC), multiplicity constants, bootstrap weights seed and refit roster are copied into FINALIST_LOCK before any final reader is fitted",
+    "known_from_source_for_an_H3_anchored_finalist": {
+      "income utility on DEV_REPORT": "identical to the published H3 values: R2 income part RESERVE_ERODED (seed-1 accuracy 0.83 SE)",
+      "income-view recipient vs H_LJ, seed 1, ENHANCED": "published +0.0061, clause bound 0.0217 > 0.010 under the source's c1 2.395 (the same c1 here): NW fails, so P cannot be established under ENHANCED if the final reader protocol replicates the source's",
+      "consequence": "for an H3-anchored finalist, P and the composite COMPETITIVE are determined NOT established before any read; C, M, T legs, N for the occupation view and O remain open"
+    }
+  },
+  "separate_labels": {
+    "useful_task_only_component": "stage 1: PROMISING_WITNESS / SELECTED_WITNESS (utility only)",
+    "incremental_reader_relative_protection": "dev: stability label vs the matched component; final: claim M (vs MTC) and claim C (vs SUCC)",
+    "positive_superiority_over_all_required": "dev: STABLE_POSITIVE vs all 6; final: claim P",
+    "original_0020_criterion": "dev: material_target outcome; final: claim T (vs NEURAL_RAW and H_LJ)",
+    "joint_design_advantage": "NOT_CLAIMABLE in this campaign: only occupation is optimised; the pair term is a coalition-aware occupation correction, not a two-output joint design",
+    "algorithmic_novelty": "NOT_CLAIMED",
+    "rule": "the last three never follow from the first three; a partial pass never becomes a competitive claim"
+  }
+}

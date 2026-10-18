@@ -1,0 +1,120 @@
+{
+ "bootstrap": {
+  "B": 400,
+  "seed": 2026101806,
+  "unit": "SCORE households, readers fixed"
+ },
+ "cells": [
+  "S0R1k0",
+  "S0R1k1",
+  "S0R2k0",
+  "S0R2k1",
+  "S1R1k0",
+  "S1R1k1",
+  "S1R2k0",
+  "S1R2k1"
+ ],
+ "crossfit": {
+  "k": 5,
+  "pool": "MODEL_FIT households",
+  "tag": "OHN1_crossfit"
+ },
+ "household_overlap_between_repetitions": {
+  "R1_vs_R2_FIT": 1342,
+  "R1_vs_R2_SCORE": 468,
+  "R1_vs_R2_VALIDATION": 195
+ },
+ "learning_curve_fractions": [
+  0.25,
+  0.5,
+  1.0
+ ],
+ "pool": "MODEL_SELECT (8,001 people, 5,306 households)",
+ "reader_seeds": {
+  "S0k0": 2026101505,
+  "S0k1": 2026101506,
+  "S1k0": 2026101515,
+  "S1k1": 2026101516
+ },
+ "recipes": {
+  "new8": [
+   "ET5",
+   "ET25",
+   "HGB15",
+   "HGB31",
+   "MLP64",
+   "MLP6432",
+   "CATI01",
+   "CATI1"
+  ],
+  "source8": [
+   "OUT_LR",
+   "OUT_MLP",
+   "OUT_HGB",
+   "LOG_LR",
+   "LOG_MLP",
+   "DEC_LR",
+   "CONF_HGB",
+   "LOOKUP"
+  ]
+ },
+ "repetitions": {
+  "R1": {
+   "FIT": {
+    "household_set_sha256": "3ab89da82dca33ff2a821a7f73f45676d13e46d6d6ec609799d3a7dda9574b35",
+    "households": 2655,
+    "people": 3952
+   },
+   "SCORE": {
+    "household_set_sha256": "6156dc346f23840d54002e3696c072376673a4c46f02e27a8c20f914b767a4fd",
+    "households": 1590,
+    "people": 2423
+   },
+   "VALIDATION": {
+    "household_set_sha256": "ad18b2d30bb24eca8ca51efd65b30e99e8ac1ef812296966a22d27a075d70a54",
+    "households": 1061,
+    "people": 1626
+   },
+   "disjoint": true,
+   "learning_curve_fit_people": {
+    "0.25": 1009,
+    "0.5": 1973,
+    "1.0": 3952
+   }
+  },
+  "R2": {
+   "FIT": {
+    "household_set_sha256": "6022bde2ccfa4b3d0bc4fe6d15e0892324dec82a9c52932357087117ba90ab2b",
+    "households": 2655,
+    "people": 4030
+   },
+   "SCORE": {
+    "household_set_sha256": "6e8f4ca4d1322371314e9039d9ed44e70260c72e851f092cbf9fd34a6a7f14fd",
+    "households": 1590,
+    "people": 2403
+   },
+   "VALIDATION": {
+    "household_set_sha256": "15955679dac9ae8975d5102990c89fc18f37e70a515fc9def60a69ca816da166",
+    "households": 1061,
+    "people": 1568
+   },
+   "disjoint": true,
+   "learning_curve_fit_people": {
+    "0.25": 1043,
+    "0.5": 2064,
+    "1.0": 4030
+   }
+  }
+ },
+ "schema": "OHN1-devgrid-v1",
+ "selection": "max oriented VALIDATION AUC; exact ties to the earlier candidate (source first, pair then ignore-occupation then ignore-income); near tie < 0.010 flagged; SCORE never used for selection",
+ "tags": {
+  "learning_curve": "OHN1_devgrid_LC",
+  "repetition": "OHN1_devgrid_<R>"
+ },
+ "versions_at_manifest": {
+  "numpy": "2.4.2",
+  "scipy": "1.17.1",
+  "sklearn": "1.8.0"
+ }
+}
