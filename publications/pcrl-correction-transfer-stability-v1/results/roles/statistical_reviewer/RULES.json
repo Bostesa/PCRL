@@ -1,0 +1,296 @@
+{
+  "schema": "CTS1-rules-v1",
+  "campaign": "pcrl_correction_transfer_stability_v1",
+  "author_role": "statistical reviewer",
+  "written_before_outcomes": "written 2026-10-18 (about 19:00-20:00Z), before any fit, label read or candidate outcome of this campaign; inputs: the coordinator DESIGN_BRIEF.md, the source campaign's published rules (OHN1-rules-v1), its code (ohn/rules.py, ohn/protect.py, ihs/evaluate.py) and its published RESEARCH_DECISION.md and reader_robustness/RR_FINAL__INCOME_NOISE.json aggregates. No real data was read and no real-data computation was run.",
+  "human_readable": "RULES.md (same directory)",
+  "implementation": "cts/rules.py (pure numpy/scipy; load_rules() refuses a rule file whose constants disagree with the module); invented-data tests: python3 -m cts.test_rules",
+  "status_of_every_rule": "development rules on previously used records; asymptotic and model-based where they use uncertainty; no rule changes a cap and none is a population or finite-sample guarantee",
+  "original_limits": {
+    "caps": {
+      "accuracy_loss": 0.01,
+      "nll_excess": 0.01,
+      "brier_excess": 0.005
+    },
+    "within_sex_guard_cap": 0.005,
+    "recipient_allowance_auc": 0.01,
+    "material_target_auc": 0.02,
+    "utility_clauses": 24,
+    "utility_clause_index": "2 tasks (income, occupation) x 2 references (U0, Ucal) x 3 metrics (accuracy_loss, nll_excess, brier_excess) x 2 source seeds",
+    "subgroup_guards": 4,
+    "subgroup_guard_index": "within-SEX occupation summed-Brier excess against U0, men (sex0, SEX code 1) and women (sex1, SEX code 2) x 2 source seeds",
+    "unchanged": true,
+    "target_is_separate": "the 0.020 material-benefit target is reported separately from positive superiority and from every gate"
+  },
+  "metrics": {
+    "definitions": "unchanged from scm_bench.common.task_vectors: per person accuracy = 1[argmax p = y]; NLL = -log(max(p_y, 1e-12)); summed multiclass Brier = sum_k (p_k - 1[y = k])^2",
+    "nll_probability_floor": 1e-12,
+    "nll_floor_disclosure": "the NLL keeps the existing 1e-12 probability floor (a person whose probability for the true class is below 1e-12 contributes at most 27.63 nats); no new loss is introduced",
+    "probabilities": "occupation probabilities = softmax of centred logits (acs_replication.trees.probabilities('occupation', z)); logits of a probability vector = centred log(max(p, 1e-300))",
+    "incremental_cost": "corrected minus uncorrected release on the same people: men_brier and women_brier = mean summed-Brier increase within SEX group; brier = mean summed-Brier increase; nll = mean NLL increase; acc_loss = uncorrected accuracy minus corrected accuracy",
+    "stats": [
+      "men_brier",
+      "women_brier",
+      "brier",
+      "nll",
+      "acc_loss"
+    ],
+    "slack_of": {
+      "men_brier": [
+        "guard|sex0"
+      ],
+      "women_brier": [
+        "guard|sex1"
+      ],
+      "brier": [
+        "occupation|U0|brier_excess",
+        "occupation|Ucal|brier_excess"
+      ],
+      "nll": [
+        "occupation|U0|nll_excess",
+        "occupation|Ucal|nll_excess"
+      ],
+      "acc_loss": [
+        "occupation|U0|accuracy_loss",
+        "occupation|Ucal|accuracy_loss"
+      ]
+    },
+    "slack_of_source": "identical to ohn.protect.SLACK_OF",
+    "standard_errors": "household-clustered SE of a mean (ihs.evaluate.cluster_se: cluster sums of centred values, G/(G-1) correction); SEX-group means use the linearized household-clustered SE of a ratio of means computed on the whole set with the group mask (ihs.evaluate.subgroup_se)"
+  },
+  "conditions": {
+    "occupation_side": [
+      "occupation|U0|accuracy_loss",
+      "occupation|U0|nll_excess",
+      "occupation|U0|brier_excess",
+      "occupation|Ucal|accuracy_loss",
+      "occupation|Ucal|nll_excess",
+      "occupation|Ucal|brier_excess",
+      "guard|sex0",
+      "guard|sex1"
+    ],
+    "per_partition": "the 8 occupation-side conditions of the partition's witness on MODEL_SELECT against the references of the associated source seed (D0, R0 -> seed 0; D1, R1 -> seed 1)"
+  },
+  "reserve": {
+    "role": "MODEL_SELECT (8,001 people / 5,306 households)",
+    "rule": "reserve slack rho_c = margin_c - k x se_used_c; margin_c = cap_c - value_c of the witness; se_used_c = max(own SE, floor SE)",
+    "multiplier_k": 2.0,
+    "floor": "H_LJ's MODEL_SELECT SE of the same condition and seed, copied unchanged from OHN1-rules-v1 (itself copied from the income-headroom successor's RESERVE_RULE.json), rescaled by sqrt(5306 / households)",
+    "floor_households": 5306,
+    "floor_se": {
+      "0": {
+        "guard|sex0": 0.0018137835315699534,
+        "guard|sex1": 0.0016982056785958925,
+        "occupation|U0|accuracy_loss": 0.003508552063819701,
+        "occupation|U0|brier_excess": 0.0012445265056945948,
+        "occupation|U0|nll_excess": 0.003008418813347219,
+        "occupation|Ucal|accuracy_loss": 0.003508552063819701,
+        "occupation|Ucal|brier_excess": 0.0011955902448131499,
+        "occupation|Ucal|nll_excess": 0.002870624896810981
+      },
+      "1": {
+        "guard|sex0": 0.001696534070467857,
+        "guard|sex1": 0.0017104809247479097,
+        "occupation|U0|accuracy_loss": 0.003543392635156161,
+        "occupation|U0|brier_excess": 0.0012007928697899864,
+        "occupation|U0|nll_excess": 0.0027647937601303968,
+        "occupation|Ucal|accuracy_loss": 0.003543392635156161,
+        "occupation|Ucal|brier_excess": 0.001188638633934499,
+        "occupation|Ucal|nll_excess": 0.0027348115634206176
+      }
+    },
+    "zero_or_tiny_se": "own SE = 0 or below the floor: se_used = floor (> 0), recorded se_source 'floor'; a floor that is missing, non-finite or <= 0 is refused (error); a negative own SE is refused (error); a non-finite value, margin or own SE gives slack -inf (the condition admits no correction)",
+    "meaning": "a development robustness objective (the frozen source reserve rule), not a guarantee; the baseline slack and the incremental cost are reported separately"
+  },
+  "ladder": {
+    "strengths": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "definition": "s_j = j / 10, j = 0..10; s = 0 is the uncorrected witness (identity), always admissible, never tested",
+    "release": "r_s(x) = softmax(log p_W(x) + s x Delta_full(x)); deployed-ensemble e_s(x) = mean_k softmax(log p_Wk(x) + s x Delta_k(x))"
+  },
+  "rules": {
+    "OLD": {
+      "definition": "the source end projection reproduced: costs out of fold within FIT (fold pipeline k on fold k, cross-fitted witness base); budget_stat = f x min over the stat's mapped conditions of rho_c; largest s on the grid 0, 1/100, ..., 1 such that every grid point up to s is feasible, refined by 30 bisection steps toward the first infeasible grid point",
+      "levels": {
+        "B80": 0.8,
+        "B50": 0.5
+      },
+      "primary": "B80",
+      "secondary": "B50",
+      "grid_points": 101,
+      "bisection_steps": 30,
+      "implementation": "re-implemented identically in cts.rules.project (same floating-point operations); the test t_old_equals_ohn_project checks bitwise equality of the chosen scale and costs with ohn.protect.project on invented arrays",
+      "known_quirk_kept": "a non-positive slack gives a budget f x rho >= rho (looser than the slack); kept for exact reproduction and flagged OLD_NONPOSITIVE_SLACK"
+    },
+    "SIMPLE": {
+      "definition": "accept s iff for every one of the 8 conditions c: Delta_GUARD,stat(c)(s) <= b_c, with b_c = gamma x rho_c if rho_c > 0 else rho_c; ascending fixed sequence over the ladder; select the last accepted strength (identity if the first nonzero strength fails)",
+      "gamma": 0.5,
+      "gamma_rationale": "equal to the source B50 level (the only source budget level that kept the reserve on both seeds for the PAIR arms), so OLD-B50 and SIMPLE differ only in where cost is measured (OOF within FIT vs the deployed release on GUARD) and in the strength set; a buffer of 1 - gamma = 50% of the slack absorbs transfer errors of the size the source projection made on seed 0 (30-54% of the men's slack) except its largest; not tuned to any outcome of this campaign"
+    },
+    "UNCERTAINTY": {
+      "definition": "accept s iff for every condition c (stat k = stat(c)) both U1 and U2 hold; ascending fixed sequence over the ladder; select the last accepted strength (identity if the first nonzero strength fails)",
+      "U1_transfer_to_benchmark_role": "Delta_k(s) + z x tau_k(s) <= rho_c, tau_k(s) = max(SE_k(s), phi_k) x sqrt(1 + n_GUARD,k / n_MS,k)",
+      "U2_population_cap": "Delta_k(s) + z x sqrt(max(SE_k(s), phi_k)^2 + se_used_c^2) <= margin_c (implied by U1 when z <= k; checked explicitly)",
+      "alpha_one_sided": 0.05,
+      "z": 1.644853626951472,
+      "n_definition": "people counts of the stat's population: all people for brier, nll and acc_loss; men for men_brier; women for women_brier; n_MS from the witness's MODEL_SELECT evaluation",
+      "se_definition": "SE_k(s): household-clustered SE on GUARD (cluster_se); for men_brier / women_brier the linearized household-clustered SE within the SEX group (subgroup_se on the whole GUARD set)",
+      "increment_se_floor": {
+        "acc_loss": "1 / n_GUARD (one changed decision)",
+        "men_brier": 0.0,
+        "women_brier": 0.0,
+        "brier": 0.0,
+        "nll": 0.0
+      },
+      "multiplicity": "intersection-union over the 8 conditions and both U1 / U2 parts (no Bonferroni); fixed-sequence over the ascending ladder (no adjustment); see RULES.md section 5",
+      "status": "asymptotic, model-based development rule; a normal or bootstrap upper bound is not a distribution-free finite-sample certificate; no finite-sample guarantee is claimed"
+    },
+    "identity": "always a valid outcome; earns no protection-component claim",
+    "deployments": "every rule is applied to the deployed full release and, separately, to the deployed-ensemble release; the two are never mixed"
+  },
+  "diagnostics_recorded_never_gating": [
+    "per strength and stat: GUARD estimate and SE; realized CHECK and MODEL_SELECT increments and SEs; OOF increment",
+    "signed transfer error = realized - predicted (positive = cost under-predicted), absolute error, error / stat slack (stat slack = min over mapped conditions of rho_c; undefined if <= 0)",
+    "constraint crossings: realized cost > rho_c (reserve crossing) and realized cost > margin_c (point-cap crossing) at a strength the rule accepted",
+    "identity selections (rule, partition, deployment)",
+    "correction magnitude: mean over people and classes of |s x centred Delta|, decision flip rate against the witness (label-free)",
+    "realized MODEL_SELECT reserve of the corrected release with its own se_used (it can differ from the witness's)"
+  ],
+  "rule_evaluation": {
+    "per_rule_partition": [
+      "selected strength",
+      "realized slack use on CHECK and on MODEL_SELECT (max over the 8 conditions of realized cost / rho_c, and per condition)",
+      "reserve crossing indicator (any realized cost > rho_c)",
+      "point-cap crossing indicator (any realized cost > margin_c)",
+      "realized protection from the reader grid (computed by the reader investigator)"
+    ],
+    "prediction_comparison": {
+      "question": "A: improved correction-cost prediction on excluded households",
+      "errors": "e_X(s, k) = Delta_CHECK,k(s) - Delta_X,k(s), X in {GUARD, OOF}, s in the 10 nonzero ladder strengths, k in the 5 stats",
+      "score": "MAE_rel(X) = mean over (s, k) with stat slack > 0 of |e_X(s, k)| / stat slack_k",
+      "difference": "D = MAE_rel(OOF) - MAE_rel(GUARD) (positive favours GUARD)",
+      "uncertainty": "paired household bootstrap, conditional on the fitted pipelines: households resampled independently within FIT (OOF people), GUARD and CHECK; B replicates; D recomputed on each",
+      "bootstrap_B": 2000,
+      "bootstrap_seed_tag": "CTS1_transfer_boot",
+      "lower_quantile": 0.05,
+      "label_rule": "PREDICTION_IMPROVED on a partition iff D > 0 and the 5% bootstrap quantile of D > 0; also reported: sign count of |e_GUARD| < |e_OOF| over the 50 (s, k) cells, mean signed errors (bias) per stat",
+      "language": "descriptive across partitions (only 2 diagnostic and 2 repair partitions, overlapping training sets): 'on both diagnostic partitions', never a population rate"
+    }
+  },
+  "claim_ladder": {
+    "rungs": [
+      "1 IMPROVED_COST_PREDICTION",
+      "2 UTILITY_RETAINED_AT_NONZERO_CORRECTION",
+      "3 INCREMENTAL_PROTECTION_BEYOND_MATCHED_CONTROLS",
+      "4 STABLE_FRONTIER_IMPROVEMENT",
+      "5 ORIGINAL_BENCHMARK_COMPETITIVENESS (with the 0.020 target labelled separately)",
+      "6 JOINT_DESIGN_ADVANTAGE: NOT_CLAIMABLE (Track F optimizes occupation only: coalition-aware occupation correction); NOVELTY: NOT_CLAIMED (assessed separately)"
+    ],
+    "order": "rungs 1-5 are evaluated in order; a rung is claimable only if every lower rung holds; higher rungs are still computed and reported descriptively with NOT_CLAIMABLE_LOWER_RUNG_UNMET",
+    "evidence": "RULES.md section 7"
+  },
+  "recipe_selection": {
+    "max_recipes": 1,
+    "recipe": "(routing, direction arm, deployment, rule); arms PAIR or LOC (CONT is a control, never a recipe)",
+    "when": "after the D0 / D1 diagnosis and before any repair CHECK panel (C0, C1) label is opened (before REPAIR_FREEZE)",
+    "gates_on_both_D_partitions": [
+      "G1 nonzero selected strength",
+      "G2 no realized reserve crossing on D CHECK and on MODEL_SELECT at the selected strength",
+      "G3 complete release (H3 income) passes all 12 utility clauses and 2 guards of the associated seed at the point on MODEL_SELECT",
+      "G4 a development reader-grid entry against the matched CONT control exists"
+    ],
+    "score": "min over the two D partitions of (d_P - 2 x sd_total) of the pair benefit against the matched CONT control (source stability spread over the partition's 4 cells)",
+    "near_tie_width": 0.005,
+    "tie_breaks": [
+      "larger minimum realized MODEL_SELECT reserve ratio (rho_c - realized cost_c) / se_used_c over both D partitions and 8 conditions (leximin)",
+      "routing REFIT before FROZEN",
+      "deployment full before ensemble",
+      "rule order SIMPLE, UNCERTAINTY, OLD-B50, OLD-B80",
+      "arm LOC before PAIR",
+      "earliest ledger entry"
+    ],
+    "no_switch": "every frozen rule is still evaluated on the repair CHECK panels; the selected recipe is never switched to the winner there"
+  },
+  "repair_comparison": {
+    "pairs": {
+      "R0": "CHECK panel C0, source seed 0",
+      "R1": "CHECK panel C1, source seed 1"
+    },
+    "stability_z": 2.0,
+    "near_tie_width": 0.005,
+    "evidence": "RULES.md section 9"
+  },
+  "screens": {
+    "old_per_cell_gate": "every one of the 8 registered cells: candidate single-output SCORE AUC minus comparator's <= +0.010 (inclusive), income and occupation views, every required comparator",
+    "aggregate_paired_rule": {
+      "name": "AGG1",
+      "estimate": "dbar = mean of the cells (both seeds, all repetitions and reader seeds)",
+      "repetition_means": "y_R = mean over seeds and reader seeds of the cells of repetition R; se_R = mean over the same cells of the bootstrap SEs",
+      "sampling_variance": "v_samp = sum_R se_R^2 / n_R^2",
+      "empirical_dispersion": "phi_emp = [sum_R (y_R - dbar)^2 / (n_R - 1)] / [mean_R se_R^2]",
+      "dispersion": "phi = max(1, phi_prior(view), phi_emp)",
+      "upper_bound": "U = dbar + z x sqrt(phi x v_samp)",
+      "pass": "U <= 0.010 for this (candidate, comparator, view); the configuration passes the screen iff every required comparator and both views pass (intersection-union)",
+      "alpha_one_sided": 0.05,
+      "z": 1.644853626951472,
+      "exact_alias": "candidate view wire bitwise equal to the comparator's on both seeds: the difference is exactly 0 by construction; label EXACT_ALIAS, pass; an alias whose cached cells are not all 0 is an error",
+      "phi_prior": {
+        "income": 5.636511599640258,
+        "occupation": 0.7781545862915747,
+        "pair": 1.0867113014695036
+      },
+      "phi_prior_formula": "GROSS construction, one for all three views: phi_prior(view) = [mean over the distinct-wire pairs of the frozen source grid of sd_split_gross^2] / [mean over the same pairs of rms_cell_se^2], sd_split_gross^2 = mean over seeds of (x_{s,R1} - x_{s,R2})^2 / 2, x_{s,R} = mean over reader seeds of the cells of seed s and repetition R (so it INCLUDES the reader-seed share var_k / 2). Rationale: AGG1's variance is that of a mean of repetition means which contain reader-seed noise, and phi_emp is computed on that same gross scale. Equivalently sd_split_gross^2 = sd_split_net^2 + var_k / 2; the source's rr_analysis.income_noise reported the NET value (income: net sd_split 0.02123682861190588, reader-seed SD 0.0018486366498115536, rms_cell_se 0.008962013990683278 -> gross phi 5.636511599640259).",
+      "recorded_never_gating": [
+        "per-seed upper bounds U_s = dbar_s + z x sqrt(phi x sum_R se_{s,R}^2 / n_R^2) and flag AGG_SEED_EDGE when some U_s > 0.010",
+        "phi_emp",
+        "per-cell gate result beside it"
+      ],
+      "meaning": "a pass is permission for further development, not evidence of protection; the old gate is always reported beside it; the source campaign's labels are never rewritten",
+      "phi_prior_provenance": "computed label-free by the reader investigator from the frozen source grid (13 banks, GRID.json + BOOT.npz) before any new outcome; relayed by the coordinator 2026-10-18 about 19:05Z; wire groups / pairs: income 9 / 36, occupation 19 / 171, pair 26 / 325",
+      "phi_prior_net_not_used": {
+        "income": 5.615236975954614,
+        "occupation": 0.6957704666485757,
+        "pair": 0.8285774801657365,
+        "note": "net construction (reader-seed share removed); recorded for transparency only; not used"
+      },
+      "effective_floor_note": "with phi = max(1, phi_prior, phi_emp) the prior binds above 1 only for the income view (5.637) and the pair view (1.087); for the occupation view the floor 1 binds"
+    },
+    "operating_characteristics": "RULES.md section 10 (laws L0a, L0b, L1, L2); simulated rejection rates under those laws only"
+  },
+  "reserve_qualified_frontier": {
+    "reserve": "the source whole-release reserve (all 28 conditions, k = 2, H_LJ floor) applied identically to candidates and every reference",
+    "historical_references": "every original point-eligible reference is shown with its reserve status (from the source: SUCC, H_LJ, B2TWIN, TWJ min ratios 0.321 / 0.624; RETIRED_B3CTL 0.321 / 0.349; NEURAL_RAW 1.947 / 1.558: all fail)",
+    "statement": "a positive reserve-qualified result is not superiority over every original reference"
+  },
+  "comparators": {
+    "required": [
+      "NEURAL_RAW",
+      "H_LJ",
+      "B2TWIN",
+      "RETIRED_B3CTL",
+      "SUCC",
+      "TWJ"
+    ],
+    "target_references": [
+      "NEURAL_RAW",
+      "H_LJ"
+    ],
+    "matched_controls": [
+      "CONT (critic weight zero, same pipeline and rule)",
+      "LOC (occupation-wire critic, same rule)",
+      "COMP (label-free compression code at matched realized cost)",
+      "W (the unchanged witness)"
+    ]
+  }
+}

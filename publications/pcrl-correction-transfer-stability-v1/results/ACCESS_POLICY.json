@@ -1,0 +1,230 @@
+{
+ "closed_label_roles": [
+  "ATTACK_FIT",
+  "ATTACK_VALIDATION",
+  "DEV_REPORT"
+ ],
+ "definition": "role x field x operation x purpose; authorized entry points per operation (module names, or repository-relative script paths for the independent verifier); additions only by dated, committed ACCESS_AMENDMENTS.json entries made before their first use",
+ "enforced_by": "cts.common.load (single logged label-access layer)",
+ "entry_points": {
+  "benchmark": [
+   "cts.evaluate",
+   "cts.trackf",
+   "cts.select",
+   "cts.compression",
+   "cts.redesign"
+  ],
+  "calibrate": [
+   "cts.trackf",
+   "cts.track_r",
+   "cts.sensitivity"
+  ],
+  "check_diag": [
+   "cts.trackf",
+   "cts.select",
+   "cts.compression",
+   "cts.redesign"
+  ],
+  "check_repair": [
+   "cts.trackf",
+   "cts.select",
+   "cts.compression",
+   "cts.redesign"
+  ],
+  "fit": [
+   "cts.trackf",
+   "cts.nested",
+   "cts.select",
+   "cts.track_r",
+   "cts.sensitivity",
+   "cts.redesign",
+   "cts.compression"
+  ],
+  "readers": [
+   "cts.devreaders"
+  ],
+  "screen_study": [
+   "cts.screen_study"
+  ],
+  "select": [
+   "cts.trackf",
+   "cts.select",
+   "cts.compression",
+   "cts.redesign"
+  ],
+  "source_replay": [
+   "cts.preflight",
+   "cts.trackf"
+  ],
+  "support_count": [
+   "cts.partitions"
+  ],
+  "verify": [
+   "results/pcrl_correction_transfer_stability_v1/roles/verifier/code/"
+  ]
+ },
+ "log": "one JSON line per label read in .private/<campaign>/access/LABEL_ACCESS.jsonl: utc, unit id, entry point, role, fields, operation, purpose, partition, partition role, people, households, rows sha256, touches_repair_panel",
+ "model_fit_rows": "labels returned only for the rows of the requested partition role, except the whole-role operations source_replay and support_count",
+ "operations": {
+  "benchmark": {
+   "fields": [
+    "income",
+    "occupation",
+    "sex"
+   ],
+   "roles": [
+    "MODEL_SELECT"
+   ],
+   "rows": "ALL",
+   "what": "original-benchmark utility (24 clauses + 4 guards) and witness baseline slack (logged design input)"
+  },
+  "calibrate": {
+   "fields": [
+    "occupation",
+    "income"
+   ],
+   "roles": [
+    "CALIBRATION"
+   ],
+   "rows": "ALL",
+   "what": "permitted task calibration / Track R CALIBRATION stack, beta budget and Platt map"
+  },
+  "check_diag": {
+   "fields": [
+    "occupation",
+    "sex"
+   ],
+   "partitions": [
+    "D0",
+    "D1",
+    "D0B"
+   ],
+   "roles": [
+    "MODEL_FIT"
+   ],
+   "rows": [
+    "CHECK"
+   ],
+   "what": "diagnostic CHECK realized costs (D partitions only)"
+  },
+  "check_repair": {
+   "fields": [
+    "occupation",
+    "sex"
+   ],
+   "partitions": [
+    "R0",
+    "R1",
+    "C0",
+    "C1"
+   ],
+   "requires_freeze": true,
+   "roles": [
+    "MODEL_FIT"
+   ],
+   "rows": [
+    "CHECK"
+   ],
+   "what": "repair CHECK realized costs, after the committed REPAIR_FREEZE"
+  },
+  "fit": {
+   "fields": [
+    "occupation",
+    "sex",
+    "income"
+   ],
+   "roles": [
+    "MODEL_FIT"
+   ],
+   "rows": [
+    "FIT"
+   ],
+   "what": "task learning, routing, correction directions, training critics, cross-fitting, Track R income lineage"
+  },
+  "readers": {
+   "fields": [
+    "sex"
+   ],
+   "roles": [
+    "MODEL_SELECT"
+   ],
+   "rows": "ALL",
+   "what": "development reader grid (FIT / VALIDATION / SCORE reader roles inside MODEL_SELECT)"
+  },
+  "screen_study": {
+   "fields": [
+    "sex"
+   ],
+   "roles": [
+    "MODEL_SELECT"
+   ],
+   "rows": "ALL",
+   "what": "operating characteristics of recipient screens on frozen source releases and aliases"
+  },
+  "select": {
+   "fields": [
+    "occupation",
+    "sex"
+   ],
+   "roles": [
+    "MODEL_FIT"
+   ],
+   "rows": [
+    "GUARD"
+   ],
+   "what": "GUARD incremental costs for choosing a strength from the fixed ladder"
+  },
+  "source_replay": {
+   "fields": [
+    "occupation",
+    "sex",
+    "income"
+   ],
+   "roles": [
+    "MODEL_FIT",
+    "MODEL_SELECT"
+   ],
+   "rows": "ALL",
+   "what": "recompute source records (cost curve, projection decision, routing reproduction) on the rows the source used; no new release is evaluated on a repair panel"
+  },
+  "support_count": {
+   "fields": [
+    "occupation",
+    "sex"
+   ],
+   "roles": [
+    "MODEL_FIT"
+   ],
+   "rows": "ALL",
+   "what": "class x SEX counts per partition role before any fit (no outcome)"
+  },
+  "verify": {
+   "fields": [
+    "income",
+    "occupation",
+    "sex"
+   ],
+   "panels_require_freeze": true,
+   "roles": [
+    "MODEL_FIT",
+    "CALIBRATION",
+    "MODEL_SELECT"
+   ],
+   "rows": [
+    "FIT",
+    "GUARD",
+    "CHECK",
+    "ALL"
+   ],
+   "what": "independent verifier replay with separate metric and selection code"
+  }
+ },
+ "registration_gate": "no label read before the committed registration files and their verified public receipt (cts.receipt)",
+ "repair_panels": {
+  "C0": "blocks 0-2 of CTS1_blocks",
+  "C1": "blocks 3-5 of CTS1_blocks",
+  "rule": "labels refused for every operation except source_replay and support_count (whole-role reads; no new release is evaluated on a panel) and, after the committed REPAIR_FREEZE.json, check_repair and verify"
+ },
+ "schema": "CTS1-access-policy-v1",
+ "sealed_and_capped_out": "refused by every loader"
+}
