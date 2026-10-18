@@ -25,6 +25,7 @@ import numpy as np
 from amd.report import crit, endpoint
 from task_headroom.inference import group_weights
 from task_conditioned_representation.inference import auc, bootstrap_auc
+from . import claims as CL
 from . import common as C
 from . import final_readers as FR
 
@@ -35,60 +36,6 @@ SCORECARDS = ('ENHANCED', 'ORIGINAL')
 def _scores(path):
     with np.load(path) as z:
         return {k: z[k].copy() for k in z.files}
-
-
-def claims_engine(lock_claims, eps, CV):
-    """Generic conjunction engine: a claim holds when every listed condition holds; 'sequence' claims stop at the first
-    failing step; conditions may reference earlier claims. Tests: clause (registered clause bound), point_le (point <= margin),
-    clause_at_0020 (clause lower bound > 0.020), cv (controls inside their bands)."""
-    def ev(c, done):
-        if 'claim_ref' in c:
-            ok = bool(done[c['claim_ref']]['holds'])
-            return {'condition': f"claim {c['claim_ref']}", 'holds': ok, 'category': 'PASS' if ok else 'POINT_FAILURE'}
-        if c['test'] == 'cv':
-            return {'condition': 'CV (planted and shuffled controls inside their bands, every view and seed)', 'holds': CV,
-                    'category': 'PASS' if CV else 'CONTROL_FAILURE'}
-        ep = eps[c['endpoint']]
-        if c['test'] == 'point_le':
-            ok = bool(ep['point'] <= ep['margin'])
-        elif c['test'] == 'clause':
-            ok = bool(ep['clause_pass'])
-        elif c['test'] == 'clause_at_0020':
-            ok = ep['clause_L1'] is not None and bool(ep['clause_L1'] > 0.020)
-        else:
-            raise ValueError('unregistered condition test')
-        return {'condition': c['endpoint'], 'test': c['test'], 'gate': c.get('gate'), 'holds': ok, 'category': 'PASS' if ok else ep['category'],
-                'point': ep['point'], 'se': ep['se'], 'clause_L1': ep.get('clause_L1'), 'clause_U1': ep.get('clause_U1'),
-                'family': [ep.get('family_lower'), ep.get('family_upper')]}
-
-    done = {}
-    for cl in lock_claims:
-        name = cl['name']
-        if cl['kind'] in ('not_claimed', 'descriptive'):
-            done[name] = {'label': cl['label'], 'holds': None}
-            continue
-        if cl['kind'] == 'sequence':
-            steps, stop = [], False
-            for st in cl['steps']:
-                if stop:
-                    steps.append({'name': st['name'], 'status': 'NOT_TESTED_SEQUENCE_STOPPED', 'holds': False}); continue
-                conds = [ev(c, done) for c in st['conditions']]
-                ok = all(c['holds'] for c in conds)
-                steps.append({'name': st['name'], 'holds': ok, 'conditions': conds, 'first_failing': next((c for c in conds if not c['holds']), None)})
-                stop = not ok
-            n_ok = sum(1 for s_ in steps if s_['holds'])
-            done[name] = {'label': cl['labels'][str(n_ok)], 'holds': n_ok == len(steps), 'steps': steps}
-            continue
-        conds = [ev(c, done) for c in cl['conditions']]
-        ok = all(c['holds'] for c in conds)
-        failed = [c for c in conds if not c['holds']]
-        lab = cl['success_label'] if ok else cl['failure_label']
-        if not ok and cl.get('failure_labels_by_gate'):
-            order = cl.get('failure_order', [])
-            failed.sort(key=lambda c: order.index(c.get('gate')) if c.get('gate') in order else len(order))
-            lab = cl['failure_labels_by_gate'].get(failed[0].get('gate'), lab)
-        done[name] = {'label': lab, 'holds': ok, 'conditions': conds, 'failed_in_order': [c['condition'] for c in failed]}
-    return done
 
 
 def run(out_dir, truth=None, priv_dir=None, event_name='DEV_REPORT_TRUTH_REREAD_BY_IHS_COORDINATOR', purpose=None):
@@ -103,6 +50,13 @@ def run(out_dir, truth=None, priv_dir=None, event_name='DEV_REPORT_TRUTH_REREAD_
     lock = json.loads((C.RESULTS / 'ANALYSIS_LOCK.json').read_text())
     rlock = json.loads((C.RESULTS / 'REPORTING_LOCK.json').read_text()) if truth is None else None
     man = json.loads((C.RESULTS / 'SERVICE_BANK_MANIFEST.json').read_text())
+    if C.sha(C.ROOT / 'ihs' / 'claims.py') != lock['claims_code_sha256'] or C.sha(C.ROOT / 'ihs' / 'report.py') != lock['report_code_sha256']:
+        raise PermissionError('claims or report code differs from ANALYSIS_LOCK')                       # reviewer C5
+    if rlock is not None:
+        for n, h in rlock['locks_sha256'].items():
+            if C.sha(C.RESULTS / n) != h:
+                raise PermissionError(f'{n} differs from the hash recorded in REPORTING_LOCK')
+    svc_of = {s: {al: kept for kept, als in man['per_seed'][f'S{s}']['aliases'].items() for al in als} for s in C.SEEDS}   # reviewer C4
     inf = lock['inference']
     T = truth if truth is not None else C.dev_report_truth(purpose or
         'income-headroom successor campaign: the one coordinator evaluation of the frozen successor, bank and readers', event_name)
@@ -177,9 +131,13 @@ def run(out_dir, truth=None, priv_dir=None, event_name='DEV_REPORT_TRUTH_REREAD_
                 pl = np.where(sex == 1, scores[f'{key}__PLANTED_1'], scores[f'{key}__PLANTED_0'])
                 sh, pa = auc(sex, scores[f'{key}__SHUFFLED']), auc(sex, pl)
                 band = lock['controls_bands']
-                ok = band['shuffled'][0] <= sh <= band['shuffled'][1] and pa >= band['planted_min']
+                ok_dev = band['shuffled'][0] <= sh <= band['shuffled'][1] and pa >= band['planted_min']
+                ok_av = (band['shuffled'][0] <= c['shuffled_attack_validation_auc'] <= band['shuffled'][1]
+                         and c['planted_attack_validation_auc'] >= band['planted_min'])                                    # reviewer C3
+                ok = ok_dev and ok_av
                 CV_ok = CV_ok and ok
                 crec[name] = {'wire': c['wire'], 'shuffled_null_auc': sh, 'planted_bit_auc': pa, 'inside_bands': ok,
+                              'inside_bands_DEV_REPORT': ok_dev, 'inside_bands_ATTACK_VALIDATION': ok_av,
                               'shuffled_attack_validation_auc': c['shuffled_attack_validation_auc'], 'planted_attack_validation_auc': c['planted_attack_validation_auc']}
             srec['controls'][view] = crec
         srec['refit_roster'] = {svc: {'variation': {j: auc(sex, scores[f'VAR__{svc}__{j}']) for j in rr['variation'][svc]['refits']},
@@ -197,16 +155,16 @@ def run(out_dir, truth=None, priv_dir=None, event_name='DEV_REPORT_TRUTH_REREAD_
         for e in lock['endpoints']:
             s = e['seed']; fam = e['family']; identical = False
             if e['type'] == 'auc':
-                a, b = e['a'], e['b']
+                a, b = svc_of[s].get(e['a'], e['a']), svc_of[s].get(e['b'], e['b'])
                 point = auc_pt[(a, s, sc_name, e['view'])] - auc_pt[(b, s, sc_name, e['view'])]
                 draws = auc_dr[(a, s, sc_name, e['view'])] - auc_dr[(b, s, sc_name, e['view'])]
                 identical = a == b or (e['view'] in C.TASKS and wires[s][a][e['view']] == wires[s][b][e['view']])
             elif e['type'] == 'utility':
-                point, draws, _ = util[(e['service'], s, e['task'], e['ref'], e['metric'])]
+                point, draws, _ = util[(svc_of[s].get(e['service'], e['service']), s, e['task'], e['ref'], e['metric'])]
             elif e['type'] == 'guard':
-                point, draws, _ = util[(e['service'], s, 'guard', e['group'])]
+                point, draws, _ = util[(svc_of[s].get(e['service'], e['service']), s, 'guard', e['group'])]
             elif e['type'] == 'loss_diff':
-                a, b = e['a'], e['b']
+                a, b = svc_of[s].get(e['a'], e['a']), svc_of[s].get(e['b'], e['b'])
                 d = per_vec[(a, s, e['task'])][e['metric']] - per_vec[(b, s, e['task'])][e['metric']]
                 point, draws = float(d.mean()), (W * d[None, :]).sum(1) / Wsum
                 identical = wires[s][a][e['task']] == wires[s][b][e['task']]
@@ -219,13 +177,38 @@ def run(out_dir, truth=None, priv_dir=None, event_name='DEV_REPORT_TRUTH_REREAD_
             else:
                 rec = endpoint(point, draws, e['kind'], e['margin'], c1, cK[fam], e.get('refs', ()))
                 draws_out[f'{sc_name}|{e["key"]}'] = np.asarray(draws, dtype=np.float64)
-            rec.update({'family': fam, 'claim': e.get('claim'), 'flags': (['IDENTICAL_RELEASE'] if identical else []), 'spec': e})
+            rec.update({'family': fam, 'claim': e.get('claim'), 'flags': (['IDENTICAL_RELEASE'] if identical else []), 'spec': e,
+                        'marginal95': [rec['point'] - cm * rec['se'], rec['point'] + cm * rec['se']]})            # reviewer C6
             eps[e['key']] = rec
             rows.append({'scorecard': sc_name, 'key': e['key'], 'family': fam, 'claim': e.get('claim', ''), 'seed': s, 'kind': e['kind'],
                          'margin': e['margin'], 'point': rec['point'], 'se': rec['se'], 'clause_L1': rec.get('clause_L1'), 'clause_U1': rec.get('clause_U1'),
                          'family_lower': rec['family_lower'], 'family_upper': rec['family_upper'], 'category': rec['category'], 'status': rec['status'],
                          'flags': ';'.join(rec['flags'])})
-        res['scorecards'][sc_name] = {'endpoints': eps, 'claims': claims_engine(lock['claims'], eps, CV_ok)}
+        res['scorecards'][sc_name] = {'endpoints': eps, 'claims': CL.evaluate(eps, CV_ok, lock['declared'])}
+    # reviewer C2: key-by-key bank comparison with the side of each change (which release's winning reader read differently)
+    sides = {}
+    for e in lock['endpoints']:
+        if e['type'] != 'auc' or e['family'] != 'P':
+            continue
+        s = e['seed']; a, b = svc_of[s].get(e['a'], e['a']), svc_of[s].get(e['b'], e['b'])
+        succ = 'SUCCESSOR'; other = b if a == succ else a
+        dS = auc_pt[(succ, s, 'ENHANCED', e['view'])] - auc_pt[(succ, s, 'ORIGINAL', e['view'])]
+        dX = auc_pt[(other, s, 'ENHANCED', e['view'])] - auc_pt[(other, s, 'ORIGINAL', e['view'])]
+        side = ('SUCCESSOR_READ_HIGHER' if dS > 0 and dX >= 0 else 'COMPARATOR_READ_LOWER' if dX < 0 and dS <= 0 else
+                'BOTH' if dS > 0 and dX < 0 else 'NEITHER_OR_OPPOSITE')
+        k = e['key'].replace('BEN|', 'BEN_').replace('NW|', 'NW_').replace('|s', '|s')
+        sides[f"BEN_{e['key'][4:]}" if e['key'].startswith('BEN|') else f"NW_{e['key'][3:]}"] = {
+            'side': side, 'successor_auc_change_enh_minus_orig': dS, 'comparator_auc_change_enh_minus_orig': dX}
+        if e['key'].startswith('BEN|') and e['a'] in ('TW', 'CC'):
+            sides[f"{'M' if e['a'] == 'TW' else 'C'}:{e['key']}"] = sides[f"BEN_{e['key'][4:]}"]
+    rs = CL.reader_sensitive(res['scorecards']['ENHANCED']['claims'], res['scorecards']['ORIGINAL']['claims'],
+                             {k: v['side'] for k, v in sides.items()})
+    res['reader_sensitive'] = rs; res['bank_change_sides'] = sides
+    for name in rs['affected_claims']:
+        res['scorecards']['ENHANCED']['claims'][name]['label'] += ' [READER_SENSITIVE]'
+    res['labels'] = {sc: {k: v['label'] for k, v in res['scorecards'][sc]['claims'].items()} for sc in SCORECARDS}
+    res['decided_on'] = 'ENHANCED (the final standard); ORIGINAL reported beside it; READER_SENSITIVE if any conjunction key differs'
+    res['CV_note'] = 'one CV for both scorecards: every control inside its band on ATTACK_VALIDATION and on DEV_REPORT (stricter than the validation, whose ORIGINAL controls were the source-definition OUT_HGB controls)'
     out.mkdir(parents=True, exist_ok=True); priv.mkdir(parents=True, exist_ok=True)
     C.write_json_x(out / 'DEV_REPORT_RESULTS.json', res)
     with open(out / 'PRIMARY_ENDPOINTS.csv', 'w', newline='') as f:
@@ -248,4 +231,4 @@ if __name__ == '__main__':
     a = ap.parse_args()
     ev = 'DEV_REPORT_TRUTH_REREAD_BY_IHS_INDEPENDENT_VERIFIER' if a.replay else 'DEV_REPORT_TRUTH_REREAD_BY_IHS_COORDINATOR'
     r = run(a.out, priv_dir=a.priv, event_name=ev)
-    print(json.dumps({sc: {k: v['label'] for k, v in r['scorecards'][sc]['claims'].items()} for sc in r['scorecards']}, indent=1))
+    print(json.dumps({'labels': r['labels'], 'reader_sensitive_keys': r['reader_sensitive_keys'], 'CV': r['CV']}, indent=1))

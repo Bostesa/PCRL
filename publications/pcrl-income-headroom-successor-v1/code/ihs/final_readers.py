@@ -107,7 +107,7 @@ def run(seed, out_dir, invented=False):
     rec = {'schema': 'IHS1-final-readers-v1', 'seed': seed, 'invented': invented, 'reader_model_seed': seed_model, 'versions': versions(),
            'roles': {'fit': 'ATTACK_FIT', 'select_and_orient': 'ATTACK_VALIDATION', 'score': 'DEV_REPORT (released outputs only; no label)'},
            'roster': roster, 'source_slate': list(SRC8), 'new_recipes': list(NEW8), 'marginal_banks': {}, 'pairs': {}, 'winners': {},
-           'controls': {}, 'variation': {}, 'aux_sample_variation': {}, 'accounting': []}
+           'controls': {}, 'variation': {}, 'aux_sample_variation': {}, 'accounting': [], 'designs': {}}
     av, dev, models = {}, {}, {}
 
     def views3(svc):
@@ -142,6 +142,8 @@ def run(seed, out_dir, invented=False):
         t0 = time.process_time(); rows = np.arange(len(yA)) if rows is None else rows
         tf, desc, dobj = design_for(name, view, trip[0][0][rows], trip[0][1][rows])
         X3 = [tf(i, o) for i, o in trip]
+        if name.startswith('CATI'):                                   # reviewer F2: keep the fitted (label-free) design for the verifier
+            rec['designs'][rid] = {**desc, 'n_columns': int(X3[0].shape[1])}
         m, conv = fit_new(name, X3[0][rows], yA[rows], seed_model if seed_used is None else seed_used)
         raw_v = predict_new(m, X3[1]); sign = orientation(yV, raw_v)
         sv, sd = orient(raw_v, sign), orient(predict_new(m, X3[2]), sign)
@@ -193,7 +195,10 @@ def run(seed, out_dir, invented=False):
             new_c += [(f'IGNORE_{drop}__{n}', ig[keep][n]['attack_validation_auc'], f"MARG__{wire_of[(svc, keep)]}__{n}", 'new') for n in NEW8]
         w['original']['pair'] = pick(src_c); w['enhanced']['pair'] = pick(src_c + new_c)
         for view in VIEWS:
-            w['enhanced'][view]['same_as_original'] = w['enhanced'][view]['reader_key'] == w['original'][view]['reader_key']
+            e, o = w['enhanced'][view], w['original'][view]
+            e['same_as_original'] = e['reader_key'] == o['reader_key']
+            e['gap_to_original_winner'] = float(e['attack_validation_auc'] - o['attack_validation_auc'])        # reviewer F1 (validation O4)
+            e['AV_NEAR_TIE_TO_ORIGINAL'] = bool((not e['same_as_original']) and e['gap_to_original_winner'] < 0.010)
         rec['winners'][svc] = w
 
     # ---- real-data controls on the SUCCESSOR wires
