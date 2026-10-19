@@ -228,14 +228,43 @@ def _loss_change(a, b, unit):
             'men_brier': d['men_brier'], 'women_brier': d['women_brier']}
 
 
+def _size_cells():
+    """Label-free completeness of the registered size design: (cells recorded missing by SUPPORT_FAILURE.json, cells neither fitted
+    nor recorded missing). A missing cell is reported and its labels are INCOMPLETE (RULES 2); it is never silently dropped."""
+    from . import control as CT
+    missing, not_ready = [], []
+    for recipe in ('A1', 'A1_ADM'):
+        for fid in fit_ids(recipe).values():
+            d = C.RUNS / 'SIZE' / fid
+            if not (d / 'FIT.json').is_file():
+                (missing if (d / 'SUPPORT_FAILURE.json').is_file() else not_ready).append(fid)
+    for sid in C.subset_ids():
+        for v in C.VERSIONS:
+            d = CT.cell_dir(sid, v)
+            for stage, rec in (('TT', d / 'TEACHERS' / 'TEACHERS.json'), ('TR', d / 'STAGE_B' / 'STAGE_B.json')):
+                if not rec.is_file():
+                    not_ready.append(f'{stage}:{sid}__V{v}')
+    return missing, not_ready
+
+
+def _nan_cell(vals, o):
+    for m in vals:                                               # missing cell -> non-finite -> INCOMPLETE (RULES 2, 3.3)
+        vals[m]['values'][o] = float('nan'); vals[m]['se'][o] = float('nan')
+
+
 def size_cmd():
     """Every size fit and control on MODEL_SELECT: SIZE_TABLE, occupation-side reserve, paired contrasts with labels, control
     comparison, reproduction and encoding sensitivity (RULES.md sections 2-6)."""
     from . import rules as R
+    from . import sizefit as SF
     t0 = time.process_time()
     OUT.mkdir(parents=True, exist_ok=True)
     if (OUT / 'SIZE_RESULTS.json').exists():
         raise PermissionError('SIZE_RESULTS.json exists (write-once)')
+    missing_cells, not_ready = _size_cells()
+    if not_ready:
+        raise PermissionError('SIZE_RESULTS.json is write-once: every registered cell must be fitted or recorded missing '
+                              f'(SUPPORT_FAILURE.json) before MODEL_SELECT is read; not ready: {not_ready}')
     S = ms('benchmark: training-size table on MODEL_SELECT: every A1_PO_16 size fit, the encoding-sensitivity fits and the '
            'equally exposed TASK_REFIT / T_TREE controls with the frozen H3 income (24 clauses + 4 guards, reserve, paired contrasts)')
     y, sex, unit = S['occupation'], S['sex'], S['unit']
@@ -264,6 +293,9 @@ def size_cmd():
         for f_ in ('n_people', 'n_households', 'T_star', 'min_class_count'):
             if f_ in rr:
                 row[f_] = rr[f_]
+        if 'class_support' in rr:                                  # A1_PO_16 FIT.json (RULES 2 item 5)
+            row['min_class_count'] = rr['class_support']['subset_min_class_count']
+            row['inner_training_min_class_count'] = rr['class_support']['inner_training_min_class_count']
         table.append(row)
     # 2. paired size contrasts per recipe (loss orientation), summarized by the rules
     def changes_for(recipe):
@@ -276,6 +308,7 @@ def size_cmd():
                     ka = (recipe, 'S100' if fa == 100 else f'S{fa}_{o}', v)
                     kb = (recipe, 'S100' if fb == 100 else f'S{fb}_{o}', v)
                     if ka not in vec or kb not in vec:
+                        _nan_cell(vals, o)
                         continue
                     d = _loss_change(vec[ka], vec[kb], unit)
                     for m in R.METRICS:
@@ -297,6 +330,7 @@ def size_cmd():
                     sid = 'S100' if f == 100 else f'S{f}_{o}'
                     ka, kc = ('A1', sid, v), (ctl, sid, v)
                     if ka not in vec or kc not in vec:
+                        _nan_cell(vals, o)
                         continue
                     d = _loss_change(vec[kc], vec[ka], unit)              # loss(A1) - loss(control)
                     for m in R.METRICS:
@@ -314,6 +348,7 @@ def size_cmd():
                     sb = 'S100' if fb == 100 else f'S{fb}_{o}'
                     keys = [('A1', sa, v), ('A1', sb, v), (ctl, sa, v), (ctl, sb, v)]
                     if not all(k in vec for k in keys):
+                        _nan_cell(vals, o)
                         continue
                     a1a, a1b, ca, cb = (vec[k] for k in keys)
                     dd = {'accuracy': (a1b['accuracy'] - a1a['accuracy']) - (cb['accuracy'] - ca['accuracy']),
@@ -337,7 +372,8 @@ def size_cmd():
             sidof = lambda o: 'S100' if f == 100 else f'S{f}_{o}'
             rs = {f'{o}|{v}': occres[('A1', sidof(o), v)]['met'] for o, v in cells if ('A1', sidof(o), v) in occres}
             cs = {f'{o}|{v}': occres[(ctl, sidof(o), v)]['met'] for o, v in cells if (ctl, sidof(o), v) in occres}
-            also[str(f)] = R.control_also_meets_reserve(rs, cs)
+            also[str(f)] = (R.control_also_meets_reserve(rs, cs) if len(rs) == len(cells) and len(cs) == len(cells)
+                            else 'INCOMPLETE')                    # a missing cell is never dropped (RULES 2)
         control[ctl] = {'level': lev, 'did': did, 'control_explains_50_100': explains, 'control_also_meets_reserve': also}
     # 4. margin pattern, explanation and readings (A1_PO_16)
     st = {'W100': {v: occres[('A1', 'S100', v)]['met'] for v in C.VERSIONS if ('A1', 'S100', v) in occres},
@@ -346,7 +382,7 @@ def size_cmd():
     pattern = R.margin_pattern(st)
     pat = pattern['pattern'] if isinstance(pattern, dict) else pattern
     readings = R.interpretation(pat, size['A1']['size_effect'], control['TR']['control_explains_50_100'],
-                                {int(f): ok for f, ok in control['TR']['control_also_meets_reserve'].items()})
+                                {int(f): ok is True for f, ok in control['TR']['control_also_meets_reserve'].items()})
     # 5. reproduction (W100_v vs the source A1_PO_16 S<v>, every role the source stored)
     from ohn import devrun as OD
     repro = {}
@@ -354,16 +390,17 @@ def size_cmd():
         fid = f'A1__S100__V{v}'
         if not (C.RUNS / 'SIZE' / fid / 'FIT.json').is_file():
             continue
-        d = C.RUNS / 'SIZE' / fid
-        rel = C.load_npz(d / 'RELEASE.npz'); rec = json.loads((d / 'FIT.json').read_text())
-        src, _, _ = OD.load_occupation('A', 'A1_PO_16', v)
-        src_rec = json.loads((C.ROOT / '.private' / C.OHN_CAMPAIGN / 'runs' / 'A' / 'A1_PO_16' / f'S{v}' / 'OCC.json').read_text())
+        rel, rec = SF.release(fid)                                   # RELEASE.npz hash-checked against FIT.json
+        src, src_rec, _ = OD.load_occupation('A', 'A1_PO_16', v)     # OCC.npz hash-checked against OCC.json
         recs_v = []
         for role in src:
-            if role in rel:
-                r = R.reproduction_record(rel[role], src[role], rec.get('T_star'), src_rec.get('T_star'))
-                r['role'] = role
-                recs_v.append(r)
+            if role not in rel:                                      # every role the source stored (RULES 5): a gap is a failure
+                recs_v.append({'role': role, 'missing_in_new_release': True, 'sha_equal': False, 'max_abs_diff': float('inf'),
+                               'decisions_equal': False, 'tstar_equal': rec.get('T_star') == src_rec.get('T_star')})
+                continue
+            r = R.reproduction_record(rel[role], src[role], rec.get('T_star'), src_rec.get('T_star'))
+            r['role'] = role
+            recs_v.append(r)
         repro[v] = recs_v
     reproduction = {'label': R.reproduction(repro), 'records': repro,
                     'margin': R.margin_reproduced({'status': 'OCC_RESERVE_MET_BOTH' if all(st['W100'].get(v) for v in C.VERSIONS)
@@ -376,6 +413,8 @@ def size_cmd():
             d = _loss_change(vec[ka], vec[kb], unit)                   # loss(FIT-only) - loss(admitted)
             for m in R.METRICS:
                 E[m]['values'][o] = d[m]['value']; E[m]['se'][o] = d[m]['se']
+        else:
+            _nan_cell(E, o)
     enc = R.encoding_summary(E)
     # 7. subset-to-subset variation: pairwise differences at a fixed size (A1, both versions)
     pairwise = {}
@@ -391,7 +430,7 @@ def size_cmd():
         ka, kb = ('A1', sid, 0), ('A1', sid, 1)
         if ka in vec and kb in vec:
             vdiff[sid] = _loss_change(vec[ka], vec[kb], unit)            # version 1 - version 0 (procedure repeat, shared rows)
-    res = {'schema': 'TSZ1-size-results-v1', 'utc': C.now(), 'fits_evaluated': len(table),
+    res = {'schema': 'TSZ1-size-results-v1', 'utc': C.now(), 'fits_evaluated': len(table), 'missing_cells': missing_cells,
            'size_summary': size, 'size_changes': size_changes, 'control': control, 'margin_pattern': pattern,
            'interpretation': readings, 'reproduction': reproduction, 'encoding': {'summary': enc, 'values': E},
            'subset_to_subset_pairwise': pairwise, 'version_difference_same_rows': vdiff,
@@ -399,7 +438,8 @@ def size_cmd():
            'income_conditions_H3': {str(v): occres[('A1', 'S100', v)]['income'] for v in C.VERSIONS if ('A1', 'S100', v) in occres},
            'evaluations': {f'{k[0]}|{k[1]}|V{k[2]}': _slim(e) for k, e in evals.items()},
            'records': {f'{k[0]}|{k[1]}|V{k[2]}': {f_: r.get(f_) for f_ in ('n_people', 'n_households', 'T_star', 'min_class_count',
-                                                                            'tree_counts', 'dictionary')} for k, r in recs.items()},
+                                                                            'tree_counts', 'dictionary', 'class_support', 'n',
+                                                                            'epoch_order')} for k, r in recs.items()},
            'rules_sha256': R.load_rules()['_sha256'], 'cpu_s': time.process_time() - t0,
            'note': 'development evidence on adaptively used MODEL_SELECT; orderings are nested draws from one pool; versions share rows'}
     C.write_json_x(OUT / 'SIZE_RESULTS.json', res)
@@ -416,13 +456,120 @@ def size_cmd():
     return res
 
 
+REFERENCES = ('NEURAL_RAW', 'H_LJ', 'B2TWIN', 'RETIRED_B3CTL', 'SUCC', 'TWJ')
+COND_OUT = C.RESULTS / 'conditional'
+
+
+def _selection_record(v):
+    p = COND_OUT / f'SELECTION_V{v}.json'
+    if not C.committed(p):
+        raise PermissionError(f'{p.name} must be committed before any MODEL_SELECT read of a corrected release')
+    return json.loads(p.read_text()), C.sha(p)
+
+
+def _point_and_reserve(ev, v):
+    """Point status of the complete release (12 clauses + 2 guards of version v) and the occupation-side reserve (RULES 1)."""
+    from . import rules as R
+    u = ev['utility']
+    pts = [float(c['value']) <= float(c['cap']) for c in u['clauses']] + [float(g['value']) <= float(g['cap']) for g in u['guards']]
+    occ = R.occupation_reserve({v: u})['per_version'][v]
+    return {'point_pass': bool(all(pts)) and len(pts) == 14, 'occ_reserve_met': occ['met'], 'occ_point_pass': occ['point_pass'],
+            'min_occ_ratio': occ['min_ratio'], 'binding': occ['binding'], 'failed_occ_reserve': occ['failed'],
+            'income': occ['income'], 'occ_conditions': occ['conditions']}
+
+
+def conditional_cmd():
+    """MODEL_SELECT evaluation of the conditional stage, after the committed selections (RULES.md sections 8.3 last bullet, 10,
+    11): the actual selected releases (identity included), matched continuations, the witness, LOC at PAIR's strength
+    (descriptive) and the inherited references; realized increments at every strength (recorded, never gating) and realized minus
+    the nested prediction."""
+    from . import correct as CR
+    from . import rules as R
+    from cts import trackf as TF
+    from ohn import devreaders as ODR, rules as OR
+    t0 = time.process_time()
+    out = COND_OUT / 'COND_UTILITY.json'
+    if out.exists():
+        raise PermissionError('COND_UTILITY.json exists (write-once)')
+    sels = {v: _selection_record(v) for v in C.VERSIONS}
+    S = ms('benchmark: conditional stage on MODEL_SELECT after the committed strength selections: utility, reserve and realized '
+           'costs of the selected corrected releases, matched continuations, witness and inherited references (never a selection input)')
+    y, sex, unit = S['occupation'], S['sex'], S['unit']
+    ctx = {v: refs_of(v, S) for v in C.VERSIONS}
+    res = {'releases': {}, 'realized_costs': {}, 'realized_minus_predicted': {}, 'references': {}}
+    for v in C.VERSIONS:
+        sel, sel_sha = sels[v]
+        s_loc, s_pair = float(sel['selected']['LOC']), float(sel['selected']['PAIR'])
+        W, _ = a1_release(f'A1__S100__V{v}')
+        named = {'W': ('W', 0.0), 'LOC_SEL': ('LOC', s_loc), 'PAIR_SEL': ('PAIR', s_pair), 'CONT_AT_LOC': ('CONT', s_loc),
+                 'CONT_AT_PAIR': ('CONT', s_pair), 'LOC_AT_PAIR': ('LOC', s_pair)}
+        for name, (arm, s) in named.items():
+            occ = W if (arm == 'W' or s == 0.0) else CR.load_release(v, arm, s, 'MODEL_SELECT')
+            ev = eval_version(v, occ, S, ctx)
+            rec = {'arm': arm, 'strength': s, 'identity_equals_W': bool(np.array_equal(occ, W)), **_point_and_reserve(ev, v),
+                   'evaluation': _slim(ev), 'occ_sha256': C.arr_sha(occ)}
+            res['releases'].setdefault(name, {})[str(v)] = rec
+        # realized increments at every registered strength (never gating) and realized minus the nested prediction
+        for arm in ('CONT', 'LOC', 'PAIR'):
+            nested_p = C.RUNS / 'NESTED' / f'V{v}' / f'NESTED_{arm}.json'
+            pred = json.loads(nested_p.read_text())['per_strength'] if nested_p.is_file() else None
+            rc, rmp = {}, {}
+            for s in R.STRENGTHS:
+                p = W if s == 0.0 else CR.load_release(v, arm, s, 'MODEL_SELECT')
+                cs = TF.cost_summary(p, W, y, sex, unit)
+                rc[CR.skey(s)] = cs
+                if pred is not None and CR.skey(s) in pred:
+                    rmp[CR.skey(s)] = {j: {'realized': cs['stats'][j], 'predicted': pred[CR.skey(s)]['stats'][j],
+                                           'difference': cs['stats'][j] - pred[CR.skey(s)]['stats'][j],
+                                           'realized_se': cs['se'][j], 'predicted_se': pred[CR.skey(s)]['se'][j]}
+                                       for j in ('men_brier', 'women_brier', 'brier', 'nll', 'acc_loss')}
+            res['realized_costs'].setdefault(arm, {})[str(v)] = rc
+            res['realized_minus_predicted'].setdefault(arm, {})[str(v)] = rmp
+        res.setdefault('selection_sha256', {})[str(v)] = sel_sha
+        res.setdefault('selected', {})[str(v)] = {'LOC': s_loc, 'PAIR': s_pair}
+        # inherited references (their own complete releases, own income)
+        for r in REFERENCES:
+            rel = ODR.load_member({'type': 'reference', 'name': r}, v)
+            from ohn import evaluate as OE
+            refs, others, _ = ctx[v]
+            ev = OE.complete_eval(v, rel['income'], rel['occupation'], S, refs, others)
+            whole = OR.reserve({v: ev['utility']})
+            occ = R.occupation_reserve({v: ev['utility']})['per_version'][v]
+            pts = [float(c['value']) <= float(c['cap']) for c in ev['utility']['clauses']] + \
+                  [float(g['value']) <= float(g['cap']) for g in ev['utility']['guards']]
+            res['references'].setdefault(r, {})[str(v)] = {
+                'point_pass_12_plus_2': bool(all(pts)), 'whole_release_reserve_met': whole['per_seed'][v]['status'] == OR.MET,
+                'min_whole_ratio': whole['min_ratio'], 'whole_binding': whole['binding_condition'],
+                'occ_reserve_met': occ['met'], 'min_occ_ratio': occ['min_ratio'], 'occ_binding': occ['binding'],
+                'evaluation': _slim(ev)}
+    # whole-release reserve of every candidate release (28-condition reserve per version, for the equal-reserve table)
+    for name, per in res['releases'].items():
+        for v in C.VERSIONS:
+            u = per[str(v)]['evaluation']['utility']
+            w = OR.reserve({v: u})
+            per[str(v)]['whole_release_reserve_met'] = w['per_seed'][v]['status'] == OR.MET
+            per[str(v)]['min_whole_ratio'] = w['min_ratio']
+    rec = {'schema': 'TSZ1-conditional-utility-v1', 'utc': C.now(), **res, 'rules_sha256': R.load_rules()['_sha256'],
+           'cpu_s': time.process_time() - t0, 'unit_id': __import__('os').environ.get(C.UNIT_ENV),
+           'note': 'development evidence on adaptively used MODEL_SELECT; realized costs are recorded after selection and never '
+                   'enter it; the two-SE reserve is a development heuristic reported separately from the original point limits'}
+    C.write_json_x(out, rec)
+    print(json.dumps({'selected': res['selected'],
+                      'point_and_reserve': {n: {v: (p['point_pass'], p['occ_reserve_met'], round(p['min_occ_ratio'], 2))
+                                                for v, p in per.items()} for n, per in res['releases'].items()}}, default=str))
+    return rec
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest='cmd', required=True)
     sub.add_parser('selftest')
     sub.add_parser('trigger')
     sub.add_parser('size')
+    sub.add_parser('conditional')
     a = ap.parse_args(argv)
+    if a.cmd == 'conditional':
+        conditional_cmd(); return 0
     if a.cmd == 'trigger':
         trigger_cmd(); return 0
     if a.cmd == 'size':

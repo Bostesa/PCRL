@@ -1,0 +1,155 @@
+--- a/tsz/evaluate.py
++++ b/tsz/evaluate.py
+@@ -226,16 +226,45 @@
+     d = paired_diff(a, b, unit)
+     return {'acc_loss': {'value': -d['accuracy']['value'], 'se': d['accuracy']['se']}, 'nll': d['nll'], 'brier': d['brier'],
+             'men_brier': d['men_brier'], 'women_brier': d['women_brier']}
++
++
++def _size_cells():
++    """Label-free completeness of the registered size design: (cells recorded missing by SUPPORT_FAILURE.json, cells neither fitted
++    nor recorded missing). A missing cell is reported and its labels are INCOMPLETE (RULES 2); it is never silently dropped."""
++    from . import control as CT
++    missing, not_ready = [], []
++    for recipe in ('A1', 'A1_ADM'):
++        for fid in fit_ids(recipe).values():
++            d = C.RUNS / 'SIZE' / fid
++            if not (d / 'FIT.json').is_file():
++                (missing if (d / 'SUPPORT_FAILURE.json').is_file() else not_ready).append(fid)
++    for sid in C.subset_ids():
++        for v in C.VERSIONS:
++            d = CT.cell_dir(sid, v)
++            for stage, rec in (('TT', d / 'TEACHERS' / 'TEACHERS.json'), ('TR', d / 'STAGE_B' / 'STAGE_B.json')):
++                if not rec.is_file():
++                    not_ready.append(f'{stage}:{sid}__V{v}')
++    return missing, not_ready
+ 
+ 
++def _nan_cell(vals, o):
++    for m in vals:                                               # missing cell -> non-finite -> INCOMPLETE (RULES 2, 3.3)
++        vals[m]['values'][o] = float('nan'); vals[m]['se'][o] = float('nan')
++
++
+ def size_cmd():
+     """Every size fit and control on MODEL_SELECT: SIZE_TABLE, occupation-side reserve, paired contrasts with labels, control
+     comparison, reproduction and encoding sensitivity (RULES.md sections 2-6)."""
+     from . import rules as R
++    from . import sizefit as SF
+     t0 = time.process_time()
+     OUT.mkdir(parents=True, exist_ok=True)
+     if (OUT / 'SIZE_RESULTS.json').exists():
+         raise PermissionError('SIZE_RESULTS.json exists (write-once)')
++    missing_cells, not_ready = _size_cells()
++    if not_ready:
++        raise PermissionError('SIZE_RESULTS.json is write-once: every registered cell must be fitted or recorded missing '
++                              f'(SUPPORT_FAILURE.json) before MODEL_SELECT is read; not ready: {not_ready}')
+     S = ms('benchmark: training-size table on MODEL_SELECT: every A1_PO_16 size fit, the encoding-sensitivity fits and the '
+            'equally exposed TASK_REFIT / T_TREE controls with the frozen H3 income (24 clauses + 4 guards, reserve, paired contrasts)')
+     y, sex, unit = S['occupation'], S['sex'], S['unit']
+@@ -264,6 +293,9 @@
+         for f_ in ('n_people', 'n_households', 'T_star', 'min_class_count'):
+             if f_ in rr:
+                 row[f_] = rr[f_]
++        if 'class_support' in rr:                                  # A1_PO_16 FIT.json (RULES 2 item 5)
++            row['min_class_count'] = rr['class_support']['subset_min_class_count']
++            row['inner_training_min_class_count'] = rr['class_support']['inner_training_min_class_count']
+         table.append(row)
+     # 2. paired size contrasts per recipe (loss orientation), summarized by the rules
+     def changes_for(recipe):
+@@ -276,6 +308,7 @@
+                     ka = (recipe, 'S100' if fa == 100 else f'S{fa}_{o}', v)
+                     kb = (recipe, 'S100' if fb == 100 else f'S{fb}_{o}', v)
+                     if ka not in vec or kb not in vec:
++                        _nan_cell(vals, o)
+                         continue
+                     d = _loss_change(vec[ka], vec[kb], unit)
+                     for m in R.METRICS:
+@@ -297,6 +330,7 @@
+                     sid = 'S100' if f == 100 else f'S{f}_{o}'
+                     ka, kc = ('A1', sid, v), (ctl, sid, v)
+                     if ka not in vec or kc not in vec:
++                        _nan_cell(vals, o)
+                         continue
+                     d = _loss_change(vec[kc], vec[ka], unit)              # loss(A1) - loss(control)
+                     for m in R.METRICS:
+@@ -314,6 +348,7 @@
+                     sb = 'S100' if fb == 100 else f'S{fb}_{o}'
+                     keys = [('A1', sa, v), ('A1', sb, v), (ctl, sa, v), (ctl, sb, v)]
+                     if not all(k in vec for k in keys):
++                        _nan_cell(vals, o)
+                         continue
+                     a1a, a1b, ca, cb = (vec[k] for k in keys)
+                     dd = {'accuracy': (a1b['accuracy'] - a1a['accuracy']) - (cb['accuracy'] - ca['accuracy']),
+@@ -337,7 +372,8 @@
+             sidof = lambda o: 'S100' if f == 100 else f'S{f}_{o}'
+             rs = {f'{o}|{v}': occres[('A1', sidof(o), v)]['met'] for o, v in cells if ('A1', sidof(o), v) in occres}
+             cs = {f'{o}|{v}': occres[(ctl, sidof(o), v)]['met'] for o, v in cells if (ctl, sidof(o), v) in occres}
+-            also[str(f)] = R.control_also_meets_reserve(rs, cs)
++            also[str(f)] = (R.control_also_meets_reserve(rs, cs) if len(rs) == len(cells) and len(cs) == len(cells)
++                            else 'INCOMPLETE')                    # a missing cell is never dropped (RULES 2)
+         control[ctl] = {'level': lev, 'did': did, 'control_explains_50_100': explains, 'control_also_meets_reserve': also}
+     # 4. margin pattern, explanation and readings (A1_PO_16)
+     st = {'W100': {v: occres[('A1', 'S100', v)]['met'] for v in C.VERSIONS if ('A1', 'S100', v) in occres},
+@@ -346,7 +382,7 @@
+     pattern = R.margin_pattern(st)
+     pat = pattern['pattern'] if isinstance(pattern, dict) else pattern
+     readings = R.interpretation(pat, size['A1']['size_effect'], control['TR']['control_explains_50_100'],
+-                                {int(f): ok for f, ok in control['TR']['control_also_meets_reserve'].items()})
++                                {int(f): ok is True for f, ok in control['TR']['control_also_meets_reserve'].items()})
+     # 5. reproduction (W100_v vs the source A1_PO_16 S<v>, every role the source stored)
+     from ohn import devrun as OD
+     repro = {}
+@@ -354,16 +390,17 @@
+         fid = f'A1__S100__V{v}'
+         if not (C.RUNS / 'SIZE' / fid / 'FIT.json').is_file():
+             continue
+-        d = C.RUNS / 'SIZE' / fid
+-        rel = C.load_npz(d / 'RELEASE.npz'); rec = json.loads((d / 'FIT.json').read_text())
+-        src, _, _ = OD.load_occupation('A', 'A1_PO_16', v)
+-        src_rec = json.loads((C.ROOT / '.private' / C.OHN_CAMPAIGN / 'runs' / 'A' / 'A1_PO_16' / f'S{v}' / 'OCC.json').read_text())
++        rel, rec = SF.release(fid)                                   # RELEASE.npz hash-checked against FIT.json
++        src, src_rec, _ = OD.load_occupation('A', 'A1_PO_16', v)     # OCC.npz hash-checked against OCC.json
+         recs_v = []
+         for role in src:
+-            if role in rel:
+-                r = R.reproduction_record(rel[role], src[role], rec.get('T_star'), src_rec.get('T_star'))
+-                r['role'] = role
+-                recs_v.append(r)
++            if role not in rel:                                      # every role the source stored (RULES 5): a gap is a failure
++                recs_v.append({'role': role, 'missing_in_new_release': True, 'sha_equal': False, 'max_abs_diff': float('inf'),
++                               'decisions_equal': False, 'tstar_equal': rec.get('T_star') == src_rec.get('T_star')})
++                continue
++            r = R.reproduction_record(rel[role], src[role], rec.get('T_star'), src_rec.get('T_star'))
++            r['role'] = role
++            recs_v.append(r)
+         repro[v] = recs_v
+     reproduction = {'label': R.reproduction(repro), 'records': repro,
+                     'margin': R.margin_reproduced({'status': 'OCC_RESERVE_MET_BOTH' if all(st['W100'].get(v) for v in C.VERSIONS)
+@@ -376,6 +413,8 @@
+             d = _loss_change(vec[ka], vec[kb], unit)                   # loss(FIT-only) - loss(admitted)
+             for m in R.METRICS:
+                 E[m]['values'][o] = d[m]['value']; E[m]['se'][o] = d[m]['se']
++        else:
++            _nan_cell(E, o)
+     enc = R.encoding_summary(E)
+     # 7. subset-to-subset variation: pairwise differences at a fixed size (A1, both versions)
+     pairwise = {}
+@@ -391,7 +430,7 @@
+         ka, kb = ('A1', sid, 0), ('A1', sid, 1)
+         if ka in vec and kb in vec:
+             vdiff[sid] = _loss_change(vec[ka], vec[kb], unit)            # version 1 - version 0 (procedure repeat, shared rows)
+-    res = {'schema': 'TSZ1-size-results-v1', 'utc': C.now(), 'fits_evaluated': len(table),
++    res = {'schema': 'TSZ1-size-results-v1', 'utc': C.now(), 'fits_evaluated': len(table), 'missing_cells': missing_cells,
+            'size_summary': size, 'size_changes': size_changes, 'control': control, 'margin_pattern': pattern,
+            'interpretation': readings, 'reproduction': reproduction, 'encoding': {'summary': enc, 'values': E},
+            'subset_to_subset_pairwise': pairwise, 'version_difference_same_rows': vdiff,
+@@ -399,7 +438,8 @@
+            'income_conditions_H3': {str(v): occres[('A1', 'S100', v)]['income'] for v in C.VERSIONS if ('A1', 'S100', v) in occres},
+            'evaluations': {f'{k[0]}|{k[1]}|V{k[2]}': _slim(e) for k, e in evals.items()},
+            'records': {f'{k[0]}|{k[1]}|V{k[2]}': {f_: r.get(f_) for f_ in ('n_people', 'n_households', 'T_star', 'min_class_count',
+-                                                                            'tree_counts', 'dictionary')} for k, r in recs.items()},
++                                                                            'tree_counts', 'dictionary', 'class_support', 'n',
++                                                                            'epoch_order')} for k, r in recs.items()},
+            'rules_sha256': R.load_rules()['_sha256'], 'cpu_s': time.process_time() - t0,
+            'note': 'development evidence on adaptively used MODEL_SELECT; orderings are nested draws from one pool; versions share rows'}
+     C.write_json_x(OUT / 'SIZE_RESULTS.json', res)

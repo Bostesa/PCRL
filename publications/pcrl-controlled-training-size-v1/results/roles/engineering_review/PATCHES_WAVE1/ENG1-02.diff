@@ -1,0 +1,13 @@
+--- a/tsz/correct.py
++++ b/tsz/correct.py
+@@ -601,6 +601,10 @@
+     selp = Path(dry['selection']) if dry else SEL.SEL_DIR / f'SELECTION_V{int(v)}.json'
+     if not selp.is_file():
+         raise PermissionError('realized MODEL_SELECT costs are computed only after the selection record exists')
++    if not dry and not all((SEL.SEL_DIR / f'SELECTION_V{w}.json').is_file() for w in C.VERSIONS):
++        # tsz.select refuses to run after ANY MODEL_SELECT read by tsz.correct: reading version v's corrected releases before the
++        # other version's selection would block that registered selection
++        raise PermissionError('realized MODEL_SELECT costs are read only after BOTH versions\' selection records exist')
+     sel = json.loads(selp.read_text())
+     rel = json.loads((root / 'RELEASES.json').read_text())
+     if C.sha(root / 'RELEASES.npz') != rel['npz_sha256']:

@@ -1,0 +1,2100 @@
+{
+ "schema": "TSZ1-verifier-checks-v1",
+ "campaign": "pcrl_controlled_training_size_v1",
+ "role": "independent verifier (own code under roles/verifier/code/; labels only via tsz.common.load operation verify)",
+ "rules": [
+  "append-only: a check entry is never edited or removed; every version is snapshotted to records/history/",
+  "kind NUMERICAL_REPLAY (own code recomputes a recorded number) and PROCEDURAL_COMPLIANCE (process, access and record evidence) are kept separate",
+  "an acceptance rule is never widened; a corrected check gets a new id and an entry in CHECK_CHANGES.json (before, after, cause); the earlier result is kept",
+  "statuses: PASS, FAIL, ATTENTION (no registered criterion failed, but a discrepancy or caveat the coordinator must see), NOT_RUN"
+ ],
+ "checks": [
+  {
+   "id": "V0.VLIB.SELFTEST__V1",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "verifier library invented-data self-test (folds, subsets, SEs, reserve edge conventions, ordering summaries, across-version labels, strength selection, stability, encoder, git blob)",
+   "inputs": {
+    "results/pcrl_controlled_training_size_v1/roles/verifier/code/vlib.py": "836022c78da9bd12cf7c4b462f85fa3369d87b7da02fe296a85b485cc199e6a2"
+   },
+   "expected": "all true",
+   "observed": {
+    "folds_whole_households": true,
+    "folds_balanced_households": true,
+    "subset_sizes": true,
+    "subset_nested": true,
+    "n_households_ceil": true,
+    "cluster_se_singletons": true,
+    "subgroup_se_all_equals_cluster": true,
+    "reserve_zero_se_uses_floor": true,
+    "reserve_inclusive_boundary": true,
+    "reserve_fail_just_below": true,
+    "reserve_zero_floor_refused": true,
+    "summary_positive": true,
+    "summary_sign_reversal": true,
+    "summary_single": true,
+    "across": true,
+    "select_monotone": true,
+    "select_pass_after_fail": true,
+    "select_identity": true,
+    "stability_stable": true,
+    "stability_sign_changes": true,
+    "softmax_rows": true,
+    "encode_compact": true,
+    "git_blob_empty": true
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v0_struct.py": "fdd8f47736b9e4de8000611e90d7862eab1dfa05fd4f7e9e1fa2c1e6da9c31c2",
+    "vlib.py": "836022c78da9bd12cf7c4b462f85fa3369d87b7da02fe296a85b485cc199e6a2"
+   },
+   "utc": "2026-10-19T00:21:33+00:00",
+   "unit_id": null
+  },
+  {
+   "id": "V0.SUBSETS.RECONSTRUCTION__V1",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "the 9 registered MODEL_FIT subsets (S50_O<o>, S70_O<o>, S100) reconstructed from the definition: households ranked by SHA-256(\"TSZ1_order_<o>|<household>\"), first ceil(0.5 G) / ceil(0.7 G) households, all G for S100; people, households, household-set SHA-256 and row-set SHA-256 vs SUBSETS.json; whole households; model_fit_unit_sha256",
+   "inputs": {
+    "results/pcrl_controlled_training_size_v1/SUBSETS.json": "303421b9b29033a87e2e50d201f5fac218eb0ded0e656db466c76e04ff144653"
+   },
+   "expected": {
+    "manifest": {
+     "S100": {
+      "household_set_sha256": "9dc8978850a726a0b931ddd67b52d0d0008e025148924cd3c54f22b7b5f91c8d",
+      "households": 13337,
+      "people": 20000,
+      "row_set_sha256": "7c9bb634f7bdfe3ed5ac4d8f309aca296a2142f575840e0a417b0c109e8a866a"
+     },
+     "S50_O0": {
+      "household_set_sha256": "8966ced49b6826e6c900ce69dad4d0b9656a350b538925553762ade86e513bd9",
+      "households": 6669,
+      "people": 9934,
+      "row_set_sha256": "673f447b8dedc226b341c1abe8ba3fbf78c5a0a2a8bf88691ed3ac318f47c1f4"
+     },
+     "S70_O0": {
+      "household_set_sha256": "c3fd17b9fe17dd7cdbd8787dfd0a0c446275bd00cdcf5f502fcfd7b5556b211d",
+      "households": 9336,
+      "people": 13965,
+      "row_set_sha256": "904068de6133b307decbf0552fca107856572a7ae0ae5c55c3a452d3ab71ab51"
+     },
+     "S50_O1": {
+      "household_set_sha256": "0a34577603c9d882e70acfc069e8e474b1939987e6f7f7f5e90f0782ee830261",
+      "households": 6669,
+      "people": 9957,
+      "row_set_sha256": "8906da388a9b32b04dc58ea1e4bce7ed5f270894ad77450f3907117c3a58e290"
+     },
+     "S70_O1": {
+      "household_set_sha256": "4df042efd4cfc0b428f650536c46fdf9666f242124244e934bc1ea9ed4d9c3bf",
+      "households": 9336,
+      "people": 13954,
+      "row_set_sha256": "22bf02254209c20f19339f6846b4031de691f6e758da31c6ef17389e7ea0924e"
+     },
+     "S50_O2": {
+      "household_set_sha256": "0c0f1e978b7d7468dc5378737f63cacc12d1468fd7818014d199240cc47dbbe9",
+      "households": 6669,
+      "people": 10046,
+      "row_set_sha256": "63d4572fec6a37cdfb1e14ac2d2ad8921518e2f80951880e313ecc5e62e33570"
+     },
+     "S70_O2": {
+      "household_set_sha256": "318e8f856467f239e2e9d991fb21453d30d1746730bf0b0206dbe8b950322764",
+      "households": 9336,
+      "people": 14040,
+      "row_set_sha256": "4015661534137b177acb549d6587279f58c6a482cad664a83031d569bef4f9a3"
+     },
+     "S50_O3": {
+      "household_set_sha256": "22bba79028b6a82ec49a86c530d7c228ca1d8e8d4ad429f31717cc9bf7889d92",
+      "households": 6669,
+      "people": 10014,
+      "row_set_sha256": "5f05367b0e2b85e13783a653df8851852dd3d8bc3a7b1914483a73b2e6689a00"
+     },
+     "S70_O3": {
+      "household_set_sha256": "7e5e5d29c9f84ff80a5f776373434201a17b765b409a43419c20de59bdbb166b",
+      "households": 9336,
+      "people": 14003,
+      "row_set_sha256": "6d302725253419aa2e2257f5e8e655d1d2064b79c97b1b8f09e82bb1c2eab98e"
+     }
+    },
+    "definition": {
+     "S50_households": 6669,
+     "S70_households": 9336,
+     "S100_households": 13337
+    }
+   },
+   "observed": {
+    "mine": {
+     "S100": {
+      "people": 20000,
+      "households": 13337,
+      "household_set_sha256": "9dc8978850a726a0b931ddd67b52d0d0008e025148924cd3c54f22b7b5f91c8d",
+      "row_set_sha256": "7c9bb634f7bdfe3ed5ac4d8f309aca296a2142f575840e0a417b0c109e8a866a"
+     },
+     "S50_O0": {
+      "people": 9934,
+      "households": 6669,
+      "household_set_sha256": "8966ced49b6826e6c900ce69dad4d0b9656a350b538925553762ade86e513bd9",
+      "row_set_sha256": "673f447b8dedc226b341c1abe8ba3fbf78c5a0a2a8bf88691ed3ac318f47c1f4"
+     },
+     "S70_O0": {
+      "people": 13965,
+      "households": 9336,
+      "household_set_sha256": "c3fd17b9fe17dd7cdbd8787dfd0a0c446275bd00cdcf5f502fcfd7b5556b211d",
+      "row_set_sha256": "904068de6133b307decbf0552fca107856572a7ae0ae5c55c3a452d3ab71ab51"
+     },
+     "S50_O1": {
+      "people": 9957,
+      "households": 6669,
+      "household_set_sha256": "0a34577603c9d882e70acfc069e8e474b1939987e6f7f7f5e90f0782ee830261",
+      "row_set_sha256": "8906da388a9b32b04dc58ea1e4bce7ed5f270894ad77450f3907117c3a58e290"
+     },
+     "S70_O1": {
+      "people": 13954,
+      "households": 9336,
+      "household_set_sha256": "4df042efd4cfc0b428f650536c46fdf9666f242124244e934bc1ea9ed4d9c3bf",
+      "row_set_sha256": "22bf02254209c20f19339f6846b4031de691f6e758da31c6ef17389e7ea0924e"
+     },
+     "S50_O2": {
+      "people": 10046,
+      "households": 6669,
+      "household_set_sha256": "0c0f1e978b7d7468dc5378737f63cacc12d1468fd7818014d199240cc47dbbe9",
+      "row_set_sha256": "63d4572fec6a37cdfb1e14ac2d2ad8921518e2f80951880e313ecc5e62e33570"
+     },
+     "S70_O2": {
+      "people": 14040,
+      "households": 9336,
+      "household_set_sha256": "318e8f856467f239e2e9d991fb21453d30d1746730bf0b0206dbe8b950322764",
+      "row_set_sha256": "4015661534137b177acb549d6587279f58c6a482cad664a83031d569bef4f9a3"
+     },
+     "S50_O3": {
+      "people": 10014,
+      "households": 6669,
+      "household_set_sha256": "22bba79028b6a82ec49a86c530d7c228ca1d8e8d4ad429f31717cc9bf7889d92",
+      "row_set_sha256": "5f05367b0e2b85e13783a653df8851852dd3d8bc3a7b1914483a73b2e6689a00"
+     },
+     "S70_O3": {
+      "people": 14003,
+      "households": 9336,
+      "household_set_sha256": "7e5e5d29c9f84ff80a5f776373434201a17b765b409a43419c20de59bdbb166b",
+      "row_set_sha256": "6d302725253419aa2e2257f5e8e655d1d2064b79c97b1b8f09e82bb1c2eab98e"
+     }
+    },
+    "definition": {
+     "S50_households": 6669,
+     "S70_households": 9336,
+     "S100_households": 13337
+    },
+    "G": 13337,
+    "whole_households": true,
+    "mismatches": [],
+    "equals_production_subset_mask": true
+   },
+   "status": "PASS",
+   "method": "own SHA-256 ranking (Python sorted on hex digests), integer ceil, own hashes; tsz.common.subset_mask compared only as a cross-check",
+   "code_sha256": {
+    "v0_struct.py": "fdd8f47736b9e4de8000611e90d7862eab1dfa05fd4f7e9e1fa2c1e6da9c31c2",
+    "vlib.py": "836022c78da9bd12cf7c4b462f85fa3369d87b7da02fe296a85b485cc199e6a2"
+   },
+   "utc": "2026-10-19T00:21:33+00:00",
+   "unit_id": null
+  },
+  {
+   "id": "V0.SUBSETS.NESTING_OVERLAP__V1",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "nesting S50(o) inside S70(o) inside S100 for every ordering (people added 50->70 and 70->100) and the 12 pairwise household overlaps / Jaccard indices across orderings vs SUBSETS.json",
+   "inputs": {
+    "results/pcrl_controlled_training_size_v1/SUBSETS.json": "303421b9b29033a87e2e50d201f5fac218eb0ded0e656db466c76e04ff144653"
+   },
+   "expected": {
+    "nesting": {
+     "O0": {
+      "S50_in_S70": true,
+      "S70_in_S100": true,
+      "added_50_to_70_people": 4031,
+      "added_70_to_100_people": 6035
+     },
+     "O1": {
+      "S50_in_S70": true,
+      "S70_in_S100": true,
+      "added_50_to_70_people": 3997,
+      "added_70_to_100_people": 6046
+     },
+     "O2": {
+      "S50_in_S70": true,
+      "S70_in_S100": true,
+      "added_50_to_70_people": 3994,
+      "added_70_to_100_people": 5960
+     },
+     "O3": {
+      "S50_in_S70": true,
+      "S70_in_S100": true,
+      "added_50_to_70_people": 3989,
+      "added_70_to_100_people": 5997
+     }
+    },
+    "pairwise_overlap": {
+     "S50_O0|S50_O1": {
+      "jaccard": 0.3234768803333995,
+      "shared_households": 3260
+     },
+     "S50_O0|S50_O2": {
+      "jaccard": 0.33647294589178356,
+      "shared_households": 3358
+     },
+     "S50_O0|S50_O3": {
+      "jaccard": 0.33553619705617305,
+      "shared_households": 3351
+     },
+     "S50_O1|S50_O2": {
+      "jaccard": 0.3298105682951147,
+      "shared_households": 3308
+     },
+     "S50_O1|S50_O3": {
+      "jaccard": 0.3340668133626725,
+      "shared_households": 3340
+     },
+     "S50_O2|S50_O3": {
+      "jaccard": 0.3399638336347197,
+      "shared_households": 3384
+     },
+     "S70_O0|S70_O1": {
+      "jaccard": 0.5337604731394776,
+      "shared_households": 6498
+     },
+     "S70_O0|S70_O2": {
+      "jaccard": 0.5490293678446988,
+      "shared_households": 6618
+     },
+     "S70_O0|S70_O3": {
+      "jaccard": 0.5425030978934324,
+      "shared_households": 6567
+     },
+     "S70_O1|S70_O2": {
+      "jaccard": 0.5364107627746235,
+      "shared_households": 6519
+     },
+     "S70_O1|S70_O3": {
+      "jaccard": 0.5412298803136607,
+      "shared_households": 6557
+     },
+     "S70_O2|S70_O3": {
+      "jaccard": 0.5417389150359178,
+      "shared_households": 6561
+     }
+    }
+   },
+   "observed": {
+    "nesting": {
+     "O0": {
+      "S50_in_S70": true,
+      "S70_in_S100": true,
+      "added_50_to_70_people": 4031,
+      "added_70_to_100_people": 6035
+     },
+     "O1": {
+      "S50_in_S70": true,
+      "S70_in_S100": true,
+      "added_50_to_70_people": 3997,
+      "added_70_to_100_people": 6046
+     },
+     "O2": {
+      "S50_in_S70": true,
+      "S70_in_S100": true,
+      "added_50_to_70_people": 3994,
+      "added_70_to_100_people": 5960
+     },
+     "O3": {
+      "S50_in_S70": true,
+      "S70_in_S100": true,
+      "added_50_to_70_people": 3989,
+      "added_70_to_100_people": 5997
+     }
+    },
+    "pairwise_overlap": {
+     "S50_O0|S50_O1": {
+      "shared_households": 3260,
+      "jaccard": 0.3234768803333995
+     },
+     "S50_O0|S50_O2": {
+      "shared_households": 3358,
+      "jaccard": 0.33647294589178356
+     },
+     "S50_O0|S50_O3": {
+      "shared_households": 3351,
+      "jaccard": 0.33553619705617305
+     },
+     "S50_O1|S50_O2": {
+      "shared_households": 3308,
+      "jaccard": 0.3298105682951147
+     },
+     "S50_O1|S50_O3": {
+      "shared_households": 3340,
+      "jaccard": 0.3340668133626725
+     },
+     "S50_O2|S50_O3": {
+      "shared_households": 3384,
+      "jaccard": 0.3399638336347197
+     },
+     "S70_O0|S70_O1": {
+      "shared_households": 6498,
+      "jaccard": 0.5337604731394776
+     },
+     "S70_O0|S70_O2": {
+      "shared_households": 6618,
+      "jaccard": 0.5490293678446988
+     },
+     "S70_O0|S70_O3": {
+      "shared_households": 6567,
+      "jaccard": 0.5425030978934324
+     },
+     "S70_O1|S70_O2": {
+      "shared_households": 6519,
+      "jaccard": 0.5364107627746235
+     },
+     "S70_O1|S70_O3": {
+      "shared_households": 6557,
+      "jaccard": 0.5412298803136607
+     },
+     "S70_O2|S70_O3": {
+      "shared_households": 6561,
+      "jaccard": 0.5417389150359178
+     }
+    },
+    "mean_shared_fraction_of_subset": {
+     "50": 0.49985005248163145,
+     "70": 0.7019423021993716
+    },
+    "mismatches": []
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v0_struct.py": "fdd8f47736b9e4de8000611e90d7862eab1dfa05fd4f7e9e1fa2c1e6da9c31c2",
+    "vlib.py": "836022c78da9bd12cf7c4b462f85fa3369d87b7da02fe296a85b485cc199e6a2"
+   },
+   "utc": "2026-10-19T00:21:33+00:00",
+   "unit_id": null
+  },
+  {
+   "id": "V0.FOLDS.NCV10_AND_INNER__V1",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "nested strength-selection outer folds (households ranked by SHA-256(\"TSZ1_ncv10|<household>\"), dealt round-robin into 10) and the A1_PO_16 inner folds OHN_A_cv_S<v> (5 folds over all MODEL_FIT units) restricted to each subset: people per fold, households per fold, outer training sizes, inner-fold people per subset vs SUBSETS.json",
+   "inputs": {
+    "results/pcrl_controlled_training_size_v1/SUBSETS.json": "303421b9b29033a87e2e50d201f5fac218eb0ded0e656db466c76e04ff144653"
+   },
+   "expected": {
+    "nested_selection_folds": {
+     "people_per_fold": [
+      1995,
+      2051,
+      1972,
+      1975,
+      2034,
+      1994,
+      2001,
+      1979,
+      1990,
+      2009
+     ],
+     "households_per_fold": [
+      1334,
+      1334,
+      1334,
+      1334,
+      1334,
+      1334,
+      1334,
+      1333,
+      1333,
+      1333
+     ],
+     "training_people_per_outer_fold": [
+      18005,
+      17949,
+      18028,
+      18025,
+      17966,
+      18006,
+      17999,
+      18021,
+      18010,
+      17991
+     ]
+    },
+    "a1_inner_fold_people_per_subset": {
+     "V0": {
+      "S100": [
+       4003,
+       4005,
+       3956,
+       4024,
+       4012
+      ],
+      "S50_O0": [
+       2019,
+       1991,
+       2003,
+       2060,
+       1861
+      ],
+      "S50_O1": [
+       1965,
+       1939,
+       1974,
+       2054,
+       2025
+      ],
+      "S50_O2": [
+       1938,
+       2009,
+       2034,
+       2006,
+       2059
+      ],
+      "S50_O3": [
+       1984,
+       1990,
+       2077,
+       1952,
+       2011
+      ],
+      "S70_O0": [
+       2830,
+       2813,
+       2769,
+       2822,
+       2731
+      ],
+      "S70_O1": [
+       2825,
+       2783,
+       2762,
+       2793,
+       2791
+      ],
+      "S70_O2": [
+       2779,
+       2839,
+       2757,
+       2833,
+       2832
+      ],
+      "S70_O3": [
+       2770,
+       2737,
+       2887,
+       2819,
+       2790
+      ]
+     },
+     "V1": {
+      "S100": [
+       4030,
+       3969,
+       4034,
+       3945,
+       4022
+      ],
+      "S50_O0": [
+       2070,
+       1963,
+       1983,
+       1918,
+       2000
+      ],
+      "S50_O1": [
+       1988,
+       2022,
+       2016,
+       1949,
+       1982
+      ],
+      "S50_O2": [
+       1967,
+       2041,
+       2067,
+       1978,
+       1993
+      ],
+      "S50_O3": [
+       2008,
+       1962,
+       2023,
+       1998,
+       2023
+      ],
+      "S70_O0": [
+       2882,
+       2779,
+       2766,
+       2745,
+       2793
+      ],
+      "S70_O1": [
+       2792,
+       2781,
+       2813,
+       2761,
+       2807
+      ],
+      "S70_O2": [
+       2779,
+       2785,
+       2869,
+       2816,
+       2791
+      ],
+      "S70_O3": [
+       2770,
+       2769,
+       2818,
+       2780,
+       2866
+      ]
+     }
+    }
+   },
+   "observed": {
+    "nested_selection_folds": {
+     "people_per_fold": [
+      1995,
+      2051,
+      1972,
+      1975,
+      2034,
+      1994,
+      2001,
+      1979,
+      1990,
+      2009
+     ],
+     "households_per_fold": [
+      1334,
+      1334,
+      1334,
+      1334,
+      1334,
+      1334,
+      1334,
+      1333,
+      1333,
+      1333
+     ],
+     "training_people_per_outer_fold": [
+      18005,
+      17949,
+      18028,
+      18025,
+      17966,
+      18006,
+      17999,
+      18021,
+      18010,
+      17991
+     ]
+    },
+    "a1_inner_fold_people_per_subset": {
+     "V0": {
+      "S100": [
+       4003,
+       4005,
+       3956,
+       4024,
+       4012
+      ],
+      "S50_O0": [
+       2019,
+       1991,
+       2003,
+       2060,
+       1861
+      ],
+      "S70_O0": [
+       2830,
+       2813,
+       2769,
+       2822,
+       2731
+      ],
+      "S50_O1": [
+       1965,
+       1939,
+       1974,
+       2054,
+       2025
+      ],
+      "S70_O1": [
+       2825,
+       2783,
+       2762,
+       2793,
+       2791
+      ],
+      "S50_O2": [
+       1938,
+       2009,
+       2034,
+       2006,
+       2059
+      ],
+      "S70_O2": [
+       2779,
+       2839,
+       2757,
+       2833,
+       2832
+      ],
+      "S50_O3": [
+       1984,
+       1990,
+       2077,
+       1952,
+       2011
+      ],
+      "S70_O3": [
+       2770,
+       2737,
+       2887,
+       2819,
+       2790
+      ]
+     },
+     "V1": {
+      "S100": [
+       4030,
+       3969,
+       4034,
+       3945,
+       4022
+      ],
+      "S50_O0": [
+       2070,
+       1963,
+       1983,
+       1918,
+       2000
+      ],
+      "S70_O0": [
+       2882,
+       2779,
+       2766,
+       2745,
+       2793
+      ],
+      "S50_O1": [
+       1988,
+       2022,
+       2016,
+       1949,
+       1982
+      ],
+      "S70_O1": [
+       2792,
+       2781,
+       2813,
+       2761,
+       2807
+      ],
+      "S50_O2": [
+       1967,
+       2041,
+       2067,
+       1978,
+       1993
+      ],
+      "S70_O2": [
+       2779,
+       2785,
+       2869,
+       2816,
+       2791
+      ],
+      "S50_O3": [
+       2008,
+       1962,
+       2023,
+       1998,
+       2023
+      ],
+      "S70_O3": [
+       2770,
+       2769,
+       2818,
+       2780,
+       2866
+      ]
+     }
+    },
+    "mismatches": [],
+    "equals_ohn_common_household_folds": {
+     "ncv10": true,
+     "inner": true
+    },
+    "whole_households_sample": true
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v0_struct.py": "fdd8f47736b9e4de8000611e90d7862eab1dfa05fd4f7e9e1fa2c1e6da9c31c2",
+    "vlib.py": "836022c78da9bd12cf7c4b462f85fa3369d87b7da02fe296a85b485cc199e6a2"
+   },
+   "utc": "2026-10-19T00:21:33+00:00",
+   "unit_id": null
+  },
+  {
+   "id": "V0.READER_SPLITS__V1",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "development reader splits reconstructed from the definition (MODEL_SELECT households ranked by SHA-256(\"TSZ1_devgrid_<R>|<household>\"), dealt round-robin into 10 parts; 0-4 FIT, 5-6 VALIDATION, 7-9 SCORE): people, households, household-set SHA-256, disjointness, R1/R2 overlap and overlap with the earlier OHN1 grid splits vs READER_SPLITS.json; reader seeds (MODEL_SEED_BASE 2026101205 + 500 + 10 v + k) distinct and outside the forbidden OHN1 / CTS1 range (+300 + 10 v + k, k 0..9); cells and B vs RULES.json",
+   "inputs": {
+    "results/pcrl_controlled_training_size_v1/READER_SPLITS.json": "393cc3ff9fb2ace78658f4c6538ab196ac3c207797b49a95ba93ffbf162f7b7c",
+    "results/pcrl_controlled_training_size_v1/roles/statistical_reviewer/RULES.json": "7bb2d251e951f1745e592602539656769671537e6f29a038194093e6f83e2460"
+   },
+   "expected": {
+    "repetitions": {
+     "R1": {
+      "FIT": {
+       "household_set_sha256": "1ced5b5a31ee474655759ce0c50fd04cbd64358151503085b8fafe8fac661d00",
+       "households": 2655,
+       "people": 3980
+      },
+      "SCORE": {
+       "household_set_sha256": "dbe1cce66e23c50dc0d0d385ed3a083e642c8add5ca9d123f4921ef396a1d88c",
+       "households": 1590,
+       "people": 2425
+      },
+      "VALIDATION": {
+       "household_set_sha256": "f497404a46cefd6497f7f674af942392c80aafc8a9efb4567a89100af958beb2",
+       "households": 1061,
+       "people": 1596
+      },
+      "disjoint": true,
+      "tag": "TSZ1_devgrid_R1"
+     },
+     "R2": {
+      "FIT": {
+       "household_set_sha256": "b3e1c913a06f2abf6625ea94773262b17d02e124b8fdc2202d2ff698d58bb54b",
+       "households": 2655,
+       "people": 3982
+      },
+      "SCORE": {
+       "household_set_sha256": "789d4a5311742f2867fb04f7cc700bc923ddef918f71b41aecd12bc7f82f9eb9",
+       "households": 1590,
+       "people": 2431
+      },
+      "VALIDATION": {
+       "household_set_sha256": "2297c72a4a7d391ec65fec0b1ba89c45e821fdd333c5ecb50c72cdc29b6d32f7",
+       "households": 1061,
+       "people": 1588
+      },
+      "disjoint": true,
+      "tag": "TSZ1_devgrid_R2"
+     }
+    },
+    "overlap": {
+     "R1_vs_R2_FIT": 1308,
+     "R1_vs_R2_SCORE": 476,
+     "R1_vs_R2_VALIDATION": 204
+    },
+    "earlier": {
+     "R1_FIT_vs_earlier_R1_FIT": 1352,
+     "R1_FIT_vs_earlier_R2_FIT": 1279,
+     "R1_SCORE_vs_earlier_R1_SCORE": 481,
+     "R1_SCORE_vs_earlier_R2_SCORE": 443,
+     "R1_VALIDATION_vs_earlier_R1_VALIDATION": 221,
+     "R1_VALIDATION_vs_earlier_R2_VALIDATION": 187,
+     "R2_FIT_vs_earlier_R1_FIT": 1329,
+     "R2_FIT_vs_earlier_R2_FIT": 1332,
+     "R2_SCORE_vs_earlier_R1_SCORE": 485,
+     "R2_SCORE_vs_earlier_R2_SCORE": 497,
+     "R2_VALIDATION_vs_earlier_R1_VALIDATION": 200,
+     "R2_VALIDATION_vs_earlier_R2_VALIDATION": 194
+    },
+    "reader_seeds": {
+     "V0k0": 2026101705,
+     "V0k1": 2026101706,
+     "V1k0": 2026101715,
+     "V1k1": 2026101716
+    }
+   },
+   "observed": {
+    "repetitions": {
+     "R1": {
+      "FIT": {
+       "people": 3980,
+       "households": 2655,
+       "household_set_sha256": "1ced5b5a31ee474655759ce0c50fd04cbd64358151503085b8fafe8fac661d00"
+      },
+      "VALIDATION": {
+       "people": 1596,
+       "households": 1061,
+       "household_set_sha256": "f497404a46cefd6497f7f674af942392c80aafc8a9efb4567a89100af958beb2"
+      },
+      "SCORE": {
+       "people": 2425,
+       "households": 1590,
+       "household_set_sha256": "dbe1cce66e23c50dc0d0d385ed3a083e642c8add5ca9d123f4921ef396a1d88c"
+      },
+      "disjoint": true,
+      "covers_all": true
+     },
+     "R2": {
+      "FIT": {
+       "people": 3982,
+       "households": 2655,
+       "household_set_sha256": "b3e1c913a06f2abf6625ea94773262b17d02e124b8fdc2202d2ff698d58bb54b"
+      },
+      "VALIDATION": {
+       "people": 1588,
+       "households": 1061,
+       "household_set_sha256": "2297c72a4a7d391ec65fec0b1ba89c45e821fdd333c5ecb50c72cdc29b6d32f7"
+      },
+      "SCORE": {
+       "people": 2431,
+       "households": 1590,
+       "household_set_sha256": "789d4a5311742f2867fb04f7cc700bc923ddef918f71b41aecd12bc7f82f9eb9"
+      },
+      "disjoint": true,
+      "covers_all": true
+     }
+    },
+    "overlap": {
+     "R1_vs_R2_FIT": 1308,
+     "R1_vs_R2_VALIDATION": 204,
+     "R1_vs_R2_SCORE": 476
+    },
+    "earlier": {
+     "R1_FIT_vs_earlier_R1_FIT": 1352,
+     "R1_VALIDATION_vs_earlier_R1_VALIDATION": 221,
+     "R1_SCORE_vs_earlier_R1_SCORE": 481,
+     "R1_FIT_vs_earlier_R2_FIT": 1279,
+     "R1_VALIDATION_vs_earlier_R2_VALIDATION": 187,
+     "R1_SCORE_vs_earlier_R2_SCORE": 443,
+     "R2_FIT_vs_earlier_R1_FIT": 1329,
+     "R2_VALIDATION_vs_earlier_R1_VALIDATION": 200,
+     "R2_SCORE_vs_earlier_R1_SCORE": 485,
+     "R2_FIT_vs_earlier_R2_FIT": 1332,
+     "R2_VALIDATION_vs_earlier_R2_VALIDATION": 194,
+     "R2_SCORE_vs_earlier_R2_SCORE": 497
+    },
+    "reader_seeds": {
+     "V0k0": 2026101705,
+     "V0k1": 2026101706,
+     "V1k0": 2026101715,
+     "V1k1": 2026101716
+    },
+    "seeds_distinct_and_new": true,
+    "cells_match_rules": true,
+    "bootstrap_B_match": true,
+    "mismatches": []
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v0_struct.py": "fdd8f47736b9e4de8000611e90d7862eab1dfa05fd4f7e9e1fa2c1e6da9c31c2",
+    "vlib.py": "836022c78da9bd12cf7c4b462f85fa3369d87b7da02fe296a85b485cc199e6a2"
+   },
+   "utc": "2026-10-19T00:21:33+00:00",
+   "unit_id": null
+  },
+  {
+   "id": "V0.PINS.PUBLICATION_TREE__V1",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "source pins: the four pinned commits exist; the research tip 507024649 is an ancestor of HEAD (branch base); every file of the pinned correction-transfer publication tree e32a185b4 (publications/pcrl-correction-transfer-stability-v1/) equals the local file by the verifier's own git blob id (SHA-1 of \"blob <len>\\0\" + bytes), or after the source's own sanitiser; counts vs SOURCE_ADMISSION.json",
+   "inputs": {
+    "results/pcrl_controlled_training_size_v1/SOURCE_ADMISSION.json": "1c6213a0cc01953710503a000b5e5ade48726d6cabda2a4a3dae63fab26d506a"
+   },
+   "expected": {
+    "code": [
+     36,
+     35,
+     1
+    ],
+    "results": [
+     342,
+     319,
+     23
+    ]
+   },
+   "observed": {
+    "code": [
+     36,
+     35,
+     1
+    ],
+    "results": [
+     342,
+     319,
+     2
+    ],
+    "objects": {
+     "cts_publication": "commit",
+     "cts_research_tip": "commit",
+     "ohn_publication": "commit",
+     "ihs_publication": "commit"
+    },
+    "tip_is_ancestor_of_HEAD": true,
+    "HEAD": "0e44696dc35f53aac0e84c3b98dad5560c19f755",
+    "differ": [
+     "results/EXPERIMENT_LEDGER.csv",
+     "results/diagnosis/COST_TRANSFER.csv",
+     "results/diagnosis/QUESTION_A_LABELS.csv",
+     "results/diagnosis/RULE_OUTCOMES.csv",
+     "results/figures/COST_TRANSFER_D_REFIT_CONT.csv",
+     "results/figures/COST_TRANSFER_D_REFIT_PAIR.csv",
+     "results/figures/COST_TRANSFER_R_REFIT_PAIR.csv",
+     "results/figures/FRONTIER_D.csv",
+     "results/figures/FRONTIER_R.csv",
+     "results/repair/FRONTIER_DRIVERS.csv",
+     "results/repair/MATCHED_CONTROLS.csv",
+     "results/repair/ORIGINAL_BENCHMARK.csv",
+     "results/repair/RESERVE_QUALIFIED_FRONTIER.csv",
+     "results/repair/RULE_OUTCOMES_REPAIR.csv",
+     "results/screen/SCREEN_OC.csv",
+     "results/screen/SCREEN_TABLE.csv",
+     "results/tables/READER_STABILITY_D_FRONTIER.csv",
+     "results/tables/READER_STABILITY_D_FRONTIER_KEY.csv",
+     "results/tables/READER_STABILITY_R_COMP0.csv",
+     "results/tables/READER_STABILITY_R_FRONTIER.csv",
+     "results/tables/READER_STABILITY_R_TRACKR.csv"
+    ],
+    "missing_locally": [],
+    "identical_after_sanitiser_files": [
+     "code/cts/common.py",
+     "results/preflight/ROUTING_REPRO_S0.json",
+     "results/roles/reader_investigator/code/pre_outcome_h3_income.py"
+    ]
+   },
+   "status": "FAIL",
+   "code_sha256": {
+    "v0_struct.py": "fdd8f47736b9e4de8000611e90d7862eab1dfa05fd4f7e9e1fa2c1e6da9c31c2",
+    "vlib.py": "836022c78da9bd12cf7c4b462f85fa3369d87b7da02fe296a85b485cc199e6a2"
+   },
+   "utc": "2026-10-19T00:21:33+00:00",
+   "unit_id": null
+  },
+  {
+   "id": "V0.PINS.SOURCE_ARTIFACT_HASHES__V1",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "spot checks of the pinned source artifacts the campaign uses: A1_PO_16 S0/S1 OCC.npz, frozen bank S0/S1, H3 income RELEASE.npz S0/S1, T_TREE income / occupation teachers S0/S1 (file SHA-256) and the source T* vs SOURCE_ADMISSION.json",
+   "inputs": {
+    "results/pcrl_controlled_training_size_v1/SOURCE_ADMISSION.json": "1c6213a0cc01953710503a000b5e5ade48726d6cabda2a4a3dae63fab26d506a"
+   },
+   "expected": {
+    "A/A1_PO_16/S0": "5681620d893be0191a54ff93560037fe33f020fba42c3b8fc37f8de7f53a23ed",
+    "FROZEN_BANK/S0": "ce3c713036eb4f37f7481ac64675e536b4014a9b162cba9883e6aff5bbc784a6",
+    "H/H3_STRONG_LJDIR_PB/S0": "4f765163c4404a84cb8baee2a851b644dda77d8c354313e739bec6afb801887d",
+    "T_TREE/income/S0": "60f75c85c9c414b9f9f06bbf70f9ba69ad472a8592c3ef00565fa02930ea60bc",
+    "T_TREE/occupation/S0": "96f3b6459ce295f80c233842052239b622067303d8ec41f5bdac8a5305e24697",
+    "A/A1_PO_16/S1": "2dee6e4bb26a9a03985520a1637eb17772de801c9cd56f8f4bfaf1c24a2bf0e0",
+    "FROZEN_BANK/S1": "f98a7360a0f1b93d299709c6f2d0501bbd1f2b40f399c74431450a58620c76b9",
+    "H/H3_STRONG_LJDIR_PB/S1": "5c58ed89cf77b02780f87eedf77be5208025f455f137ffcf177647bc153b3b7c",
+    "T_TREE/income/S1": "ede9975c5a0b5dc386ad92efb0eef00df6100d38e1c674b4eff6facdc722aca1",
+    "T_TREE/occupation/S1": "381f10e52081af0b603cbe970b8944aa5af336174b3233a0f8158a200cd76dfd"
+   },
+   "observed": {
+    "sha256": {
+     "A/A1_PO_16/S0": "5681620d893be0191a54ff93560037fe33f020fba42c3b8fc37f8de7f53a23ed",
+     "FROZEN_BANK/S0": "ce3c713036eb4f37f7481ac64675e536b4014a9b162cba9883e6aff5bbc784a6",
+     "H/H3_STRONG_LJDIR_PB/S0": "4f765163c4404a84cb8baee2a851b644dda77d8c354313e739bec6afb801887d",
+     "T_TREE/income/S0": "60f75c85c9c414b9f9f06bbf70f9ba69ad472a8592c3ef00565fa02930ea60bc",
+     "T_TREE/occupation/S0": "96f3b6459ce295f80c233842052239b622067303d8ec41f5bdac8a5305e24697",
+     "A/A1_PO_16/S1": "2dee6e4bb26a9a03985520a1637eb17772de801c9cd56f8f4bfaf1c24a2bf0e0",
+     "FROZEN_BANK/S1": "f98a7360a0f1b93d299709c6f2d0501bbd1f2b40f399c74431450a58620c76b9",
+     "H/H3_STRONG_LJDIR_PB/S1": "5c58ed89cf77b02780f87eedf77be5208025f455f137ffcf177647bc153b3b7c",
+     "T_TREE/income/S1": "ede9975c5a0b5dc386ad92efb0eef00df6100d38e1c674b4eff6facdc722aca1",
+     "T_TREE/occupation/S1": "381f10e52081af0b603cbe970b8944aa5af336174b3233a0f8158a200cd76dfd"
+    },
+    "T_star": {
+     "0": {
+      "OCC.json": 168,
+      "SOURCE_ADMISSION": 168
+     },
+     "1": {
+      "OCC.json": 154,
+      "SOURCE_ADMISSION": 154
+     }
+    }
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v0_struct.py": "fdd8f47736b9e4de8000611e90d7862eab1dfa05fd4f7e9e1fa2c1e6da9c31c2",
+    "vlib.py": "836022c78da9bd12cf7c4b462f85fa3369d87b7da02fe296a85b485cc199e6a2"
+   },
+   "utc": "2026-10-19T00:21:33+00:00",
+   "unit_id": null
+  },
+  {
+   "id": "V0.RULES.CONSTANTS__V1",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "registered constants: OHN1 RULES.json SHA-256 (e18f1c68...), the 16 occupation-side floor SEs copied unchanged, the allowance table = lambda (1.0) x min mapped floor per statistic and version (recomputed), the slack mapping, k = 2, 5306 floor households, original caps, strength set, z values, reproduction tolerance, trigger record fields, primary endpoint, nested CV folds",
+   "inputs": {
+    "results/pcrl_controlled_training_size_v1/roles/statistical_reviewer/RULES.json": "7bb2d251e951f1745e592602539656769671537e6f29a038194093e6f83e2460",
+    "results/pcrl_occupation_headroom_overnight_v1/roles/statistical_reviewer/RULES.json": "e18f1c68f4646ce9d1395960ab1a364a80c12541b815a55e0ba06b65074cbbb3"
+   },
+   "expected": {
+    "ohn1_rules_sha256": "e18f1c68f4646ce9d1395960ab1a364a80c12541b815a55e0ba06b65074cbbb3"
+   },
+   "observed": {
+    "allowance_recomputed": {
+     "0": {
+      "men_brier": 0.0018137835315699534,
+      "women_brier": 0.0016982056785958925,
+      "brier": 0.0011955902448131499,
+      "nll": 0.002870624896810981,
+      "acc_loss": 0.003508552063819701
+     },
+     "1": {
+      "men_brier": 0.001696534070467857,
+      "women_brier": 0.0017104809247479097,
+      "brier": 0.001188638633934499,
+      "nll": 0.0027348115634206176,
+      "acc_loss": 0.003543392635156161
+     }
+    },
+    "fixed_constants": {
+     "k": true,
+     "floor_households": true,
+     "caps": true,
+     "guard_cap": true,
+     "strengths": true,
+     "selection_z": true,
+     "size_z": true,
+     "reproduction_tol": true,
+     "occ_side_list": true,
+     "trigger_fields": true,
+     "primary_endpoint": true,
+     "ncv": true,
+     "ohn1_k_and_hh": true
+    },
+    "mismatches": []
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v0_struct.py": "fdd8f47736b9e4de8000611e90d7862eab1dfa05fd4f7e9e1fa2c1e6da9c31c2",
+    "vlib.py": "836022c78da9bd12cf7c4b462f85fa3369d87b7da02fe296a85b485cc199e6a2"
+   },
+   "utc": "2026-10-19T00:21:33+00:00",
+   "unit_id": null
+  },
+  {
+   "id": "V0.REGISTRATION.FILES_AT_V0__V1",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "snapshot (no verdict) of the registration files at verifier stage V0: SHA-256 of each and whether they are tracked by git; the registration receipt is checked later against these hashes",
+   "inputs": {
+    "results/pcrl_controlled_training_size_v1/PROTOCOL.md": "6073adab8cddd40363d341ef50cbd218060f3d588a4f31c6b194fd935ded43ae",
+    "results/pcrl_controlled_training_size_v1/SUBSETS.json": "303421b9b29033a87e2e50d201f5fac218eb0ded0e656db466c76e04ff144653",
+    "results/pcrl_controlled_training_size_v1/EXPOSURE_MAP.md": "e27856f624526bbf1c274d72f03acf785cca9aaeab0da607335065a3c28da2a4",
+    "results/pcrl_controlled_training_size_v1/ACCESS_POLICY.json": "03e5fc6ab6d1379ec01b2cdd95728ac4f3ec004077a1baff29765148a21f21b9",
+    "results/pcrl_controlled_training_size_v1/SOURCE_ADMISSION.json": "1c6213a0cc01953710503a000b5e5ade48726d6cabda2a4a3dae63fab26d506a",
+    "results/pcrl_controlled_training_size_v1/READER_SPLITS.json": "393cc3ff9fb2ace78658f4c6538ab196ac3c207797b49a95ba93ffbf162f7b7c",
+    "results/pcrl_controlled_training_size_v1/DEVGRID_CODE_LOCK.json": "cc0bbc4fe7cfd7add95bc18482a91d9e39e894249482b3a0fe5e7cb20e0c0a3e",
+    "results/pcrl_controlled_training_size_v1/roles/statistical_reviewer/RULES.md": "d3e935a616b94414fd76f6e018b728e5fe194c0b5e76b0eb8b83a3a92632e6d0",
+    "results/pcrl_controlled_training_size_v1/roles/statistical_reviewer/RULES.json": "7bb2d251e951f1745e592602539656769671537e6f29a038194093e6f83e2460"
+   },
+   "expected": "informational snapshot",
+   "observed": {
+    "tracked_by_git": true,
+    "receipt_exists": true
+   },
+   "status": "PASS",
+   "note": "informational: the coordinator commits the registration after V0; any later change of these files is checked against the receipt in V4",
+   "code_sha256": {
+    "v0_struct.py": "fdd8f47736b9e4de8000611e90d7862eab1dfa05fd4f7e9e1fa2c1e6da9c31c2",
+    "vlib.py": "836022c78da9bd12cf7c4b462f85fa3369d87b7da02fe296a85b485cc199e6a2"
+   },
+   "utc": "2026-10-19T00:21:33+00:00",
+   "unit_id": null
+  },
+  {
+   "id": "V0.PINS.PUBLICATION_TREE__V2",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "source pins: the four pinned commits exist; the research tip 507024649 is an ancestor of HEAD (branch base); every file of the pinned correction-transfer publication tree e32a185b4 (publications/pcrl-correction-transfer-stability-v1/) equals the local file by the verifier's own git blob id (SHA-1 of \"blob <len>\\0\" + bytes), or after the source's own sanitiser; counts vs SOURCE_ADMISSION.json",
+   "inputs": {
+    "results/pcrl_controlled_training_size_v1/SOURCE_ADMISSION.json": "1c6213a0cc01953710503a000b5e5ade48726d6cabda2a4a3dae63fab26d506a"
+   },
+   "expected": {
+    "code": [
+     36,
+     35,
+     1
+    ],
+    "results": [
+     342,
+     319,
+     23
+    ]
+   },
+   "observed": {
+    "code": [
+     36,
+     35,
+     1
+    ],
+    "results": [
+     342,
+     319,
+     23
+    ],
+    "objects": {
+     "cts_publication": "commit",
+     "cts_research_tip": "commit",
+     "ohn_publication": "commit",
+     "ihs_publication": "commit"
+    },
+    "tip_is_ancestor_of_HEAD": true,
+    "HEAD": "0e44696dc35f53aac0e84c3b98dad5560c19f755",
+    "differ": [],
+    "missing_locally": [],
+    "identical_after_sanitiser_files": [
+     "code/cts/common.py",
+     "results/EXPERIMENT_LEDGER.csv",
+     "results/diagnosis/COST_TRANSFER.csv",
+     "results/diagnosis/QUESTION_A_LABELS.csv",
+     "results/diagnosis/RULE_OUTCOMES.csv",
+     "results/figures/COST_TRANSFER_D_REFIT_CONT.csv",
+     "results/figures/COST_TRANSFER_D_REFIT_PAIR.csv",
+     "results/figures/COST_TRANSFER_R_REFIT_PAIR.csv",
+     "results/figures/FRONTIER_D.csv",
+     "results/figures/FRONTIER_R.csv",
+     "results/preflight/ROUTING_REPRO_S0.json",
+     "results/repair/FRONTIER_DRIVERS.csv",
+     "results/repair/MATCHED_CONTROLS.csv",
+     "results/repair/ORIGINAL_BENCHMARK.csv",
+     "results/repair/RESERVE_QUALIFIED_FRONTIER.csv",
+     "results/repair/RULE_OUTCOMES_REPAIR.csv",
+     "results/roles/reader_investigator/code/pre_outcome_h3_income.py",
+     "results/screen/SCREEN_OC.csv",
+     "results/screen/SCREEN_TABLE.csv",
+     "results/tables/READER_STABILITY_D_FRONTIER.csv",
+     "results/tables/READER_STABILITY_D_FRONTIER_KEY.csv",
+     "results/tables/READER_STABILITY_R_COMP0.csv",
+     "results/tables/READER_STABILITY_R_FRONTIER.csv",
+     "results/tables/READER_STABILITY_R_TRACKR.csv"
+    ]
+   },
+   "status": "PASS",
+   "method": "text files are compared as the source build writes them: Path.read_text() (universal newlines) then sanitise()",
+   "code_sha256": {
+    "v0_struct.py": "3860502483ebdd2ccecb7405ae18beeb4efbbae9ceb9bdb0ec971b0b7db4586b",
+    "vlib.py": "836022c78da9bd12cf7c4b462f85fa3369d87b7da02fe296a85b485cc199e6a2"
+   },
+   "utc": "2026-10-19T00:22:21+00:00",
+   "unit_id": null
+  },
+  {
+   "id": "V1.DEPLOY.W100_V0_B2__V1",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "deployment of package W100_V0_B2 (A1:A1__S100__V0, version 0) from the six raw fields: dependency hashes, own encoder == admitted encoding, stored wire == evaluated release, wrapper api / csv and underlying outputs == stored wire bitwise on all six roles, income == admitted H3 wire, exported keys, own pipeline replay, and every registered refusal at the wrapper (api, csv) and the underlying function",
+   "inputs": {
+    ".private/pcrl_controlled_training_size_v1/deploy/W100_V0_B2/PACKAGE.json": "7e7052c5174b0cc8a22453ba4d0593edecbbdc8fcb2e8d0b94e0a84858c7838e",
+    ".private/pcrl_controlled_training_size_v1/runs/STORED/A1__A1__S100__V0__V0.npz": "2160987182ffed710fe8cd904e08021ccff355fe2b6d8c8161d5719e38566126",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V0/RELEASE.npz": "eb2eadc4d96183ff54290b5e219c71da5454478d0f2bb14be426ae2c35ffe41a",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V0/FIT.json": "23ddab5f2bd725bc67cfb7b3efb9b64365d51b57d151521003b79b39c28f1ff4"
+   },
+   "expected": "bitwise true, refusals_all_pass true, no dependency problem, encoder parity, only probability and decision exported",
+   "observed": {
+    "bitwise": true,
+    "refusals_all_pass": true,
+    "income_all_bitwise": true,
+    "own_pipeline_all_bitwise": true,
+    "dependencies": {
+     "n": 37,
+     "problems": []
+    },
+    "own_encoder_equals_admitted_encoding": {
+     "DEV_REPORT": true,
+     "MODEL_FIT": true
+    }
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v_deploy.py": "432a92acb34501a8eec0a59f9e2724fcc2a127e93a33e4ed1f7c7df64e56954c",
+    "vlib.py": "836022c78da9bd12cf7c4b462f85fa3369d87b7da02fe296a85b485cc199e6a2",
+    "tsz/deploy.py": "73b77ac13e32668fae8e0d773f02db10668e8e726333e42508e46f76a0373b68",
+    "tsz/sizefit.py": "de5d9cb46b2e3a9db1657617ed7221a2c11610df87b65fef0c3bc0933449afa5"
+   },
+   "labels_read": false,
+   "utc": "2026-10-19T00:26:20+00:00",
+   "unit_id": "VER_DEPLOY_W100_V1"
+  },
+  {
+   "id": "V1.DEPLOY.W100_V1_B2__V1",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "deployment of package W100_V1_B2 (A1:A1__S100__V1, version 1) from the six raw fields: dependency hashes, own encoder == admitted encoding, stored wire == evaluated release, wrapper api / csv and underlying outputs == stored wire bitwise on all six roles, income == admitted H3 wire, exported keys, own pipeline replay, and every registered refusal at the wrapper (api, csv) and the underlying function",
+   "inputs": {
+    ".private/pcrl_controlled_training_size_v1/deploy/W100_V1_B2/PACKAGE.json": "d0ee866a81a1e08865e8971050e382b143d5b1b12a76a16bce7e4766ab89f476",
+    ".private/pcrl_controlled_training_size_v1/runs/STORED/A1__A1__S100__V1__V1.npz": "f5406d2034e566e5d43c0640b0508da11478c76ec70ecf7f276d0d9cddefd8bd",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V1/RELEASE.npz": "c031a0b9b20e496e8effbbd176f7181f24bd1c13ff86654ca84199933edd2134",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V1/FIT.json": "75f2d92fa304ae903c58482eec3f0873e3ebfa6d2c14796a74207fb03f0ef6bd"
+   },
+   "expected": "bitwise true, refusals_all_pass true, no dependency problem, encoder parity, only probability and decision exported",
+   "observed": {
+    "bitwise": true,
+    "refusals_all_pass": true,
+    "income_all_bitwise": true,
+    "own_pipeline_all_bitwise": true,
+    "dependencies": {
+     "n": 37,
+     "problems": []
+    },
+    "own_encoder_equals_admitted_encoding": {
+     "DEV_REPORT": true,
+     "MODEL_FIT": true
+    }
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v_deploy.py": "432a92acb34501a8eec0a59f9e2724fcc2a127e93a33e4ed1f7c7df64e56954c",
+    "vlib.py": "836022c78da9bd12cf7c4b462f85fa3369d87b7da02fe296a85b485cc199e6a2",
+    "tsz/deploy.py": "73b77ac13e32668fae8e0d773f02db10668e8e726333e42508e46f76a0373b68",
+    "tsz/sizefit.py": "de5d9cb46b2e3a9db1657617ed7221a2c11610df87b65fef0c3bc0933449afa5"
+   },
+   "labels_read": false,
+   "utc": "2026-10-19T00:26:20+00:00",
+   "unit_id": "VER_DEPLOY_W100_V1"
+  },
+  {
+   "id": "V2.TRIGGER.CONDITIONS_AND_RESERVE__V1",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "W100_v (v = 0, 1) with the frozen H3 income S<v> on MODEL_SELECT: the 12 clauses and 2 guards per version (values and household-clustered / linearized subgroup SEs), the reserve (k = 2, OHN1 H_LJ floors, 5,306 households), the 8 occupation-side ratios, minimum and binding condition, recomputed with the verifier's own code and compared with TRIGGER.json (tolerance 1e-12 on values and SEs, 1e-9 on ratios; identical binding, failing and point-failing lists, identical W100 release hash and T*)",
+   "inputs": {
+    "results/pcrl_controlled_training_size_v1/trigger/TRIGGER.json": "536c9f2420e185b5c0171761c5003f93af784ef549551df82f034627bb57c9a8",
+    "results/pcrl_controlled_training_size_v1/roles/verifier/DEPLOY_W100.json": "f5de9259f34ef2954c7e864fd5b907523043aa98dc6824af5546d84b493ead99",
+    "results/pcrl_occupation_headroom_overnight_v1/roles/statistical_reviewer/RULES.json": "e18f1c68f4646ce9d1395960ab1a364a80c12541b815a55e0ba06b65074cbbb3",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V0/RELEASE.npz": "eb2eadc4d96183ff54290b5e219c71da5454478d0f2bb14be426ae2c35ffe41a",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V0/FIT.json": "23ddab5f2bd725bc67cfb7b3efb9b64365d51b57d151521003b79b39c28f1ff4",
+    ".private/pcrl_income_headroom_successor_v1/runs/H/H3_STRONG_LJDIR_PB/S0/RELEASE.npz": "4f765163c4404a84cb8baee2a851b644dda77d8c354313e739bec6afb801887d",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V1/RELEASE.npz": "c031a0b9b20e496e8effbbd176f7181f24bd1c13ff86654ca84199933edd2134",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V1/FIT.json": "75f2d92fa304ae903c58482eec3f0873e3ebfa6d2c14796a74207fb03f0ef6bd",
+    ".private/pcrl_income_headroom_successor_v1/runs/H/H3_STRONG_LJDIR_PB/S1/RELEASE.npz": "5c58ed89cf77b02780f87eedf77be5208025f455f137ffcf177647bc153b3b7c"
+   },
+   "expected": {
+    "0": {
+     "min_occ_ratio_mine": 4.8814643846635155,
+     "binding_mine": "guard|sex0",
+     "failed_mine": []
+    },
+    "1": {
+     "min_occ_ratio_mine": 4.299044124207418,
+     "binding_mine": "guard|sex0",
+     "failed_mine": []
+    }
+   },
+   "observed": {
+    "comparison": {
+     "0": {
+      "max_value_abs_diff": 1.5872719805187785e-16,
+      "max_se_abs_diff": 2.168404344971009e-19,
+      "min_occ_ratio_mine": 4.8814643846635155,
+      "min_occ_ratio_record": 4.8814643846635155,
+      "binding_mine": "guard|sex0",
+      "binding_record": "guard|sex0",
+      "failed_mine": [],
+      "failed_record": [],
+      "point_failed_mine": [],
+      "point_failed_record": [],
+      "release_sha_mine": "345803712ac1cd8daa1fe592b27b64293d8319ca7db3ba05b267c77105b8bc71",
+      "release_sha_record": "345803712ac1cd8daa1fe592b27b64293d8319ca7db3ba05b267c77105b8bc71",
+      "T_star_mine_record": [
+       168,
+       168
+      ]
+     },
+     "1": {
+      "max_value_abs_diff": 1.682681771697503e-16,
+      "max_se_abs_diff": 4.336808689942018e-19,
+      "min_occ_ratio_mine": 4.299044124207418,
+      "min_occ_ratio_record": 4.299044124207418,
+      "binding_mine": "guard|sex0",
+      "binding_record": "guard|sex0",
+      "failed_mine": [],
+      "failed_record": [],
+      "point_failed_mine": [],
+      "point_failed_record": [],
+      "release_sha_mine": "5a399e6756a2c95affbf3c70373d26b7321a5e50b37e03d36f4e44bc0e7e3197",
+      "release_sha_record": "5a399e6756a2c95affbf3c70373d26b7321a5e50b37e03d36f4e44bc0e7e3197",
+      "T_star_mine_record": [
+       154,
+       154
+      ]
+     }
+    },
+    "occupation_side": {
+     "0": {
+      "occupation|U0|accuracy_loss": {
+       "value": -0.00987376577927759,
+       "own_se": 0.003432560764287205,
+       "floor_se": 0.003508552063819701,
+       "se_used": 0.003508552063819701,
+       "margin": 0.01987376577927759,
+       "ratio": 5.664378187291699,
+       "rho": 0.012856661651638186,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      },
+      "occupation|U0|nll_excess": {
+       "value": -0.016144354288838852,
+       "own_se": 0.002714841729547664,
+       "floor_se": 0.003008418813347219,
+       "se_used": 0.003008418813347219,
+       "margin": 0.02614435428883885,
+       "ratio": 8.690397152433103,
+       "rho": 0.020127516662144414,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      },
+      "occupation|U0|brier_excess": {
+       "value": -0.006732242674626186,
+       "own_se": 0.0012383208030612217,
+       "floor_se": 0.0012445265056945948,
+       "se_used": 0.0012445265056945948,
+       "margin": 0.011732242674626185,
+       "ratio": 9.42707336560758,
+       "rho": 0.009243189663236995,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      },
+      "occupation|Ucal|accuracy_loss": {
+       "value": -0.00987376577927759,
+       "own_se": 0.003432560764287205,
+       "floor_se": 0.003508552063819701,
+       "se_used": 0.003508552063819701,
+       "margin": 0.01987376577927759,
+       "ratio": 5.664378187291699,
+       "rho": 0.012856661651638186,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      },
+      "occupation|Ucal|nll_excess": {
+       "value": -0.015263922494940052,
+       "own_se": 0.00257859871933356,
+       "floor_se": 0.002870624896810981,
+       "se_used": 0.002870624896810981,
+       "margin": 0.025263922494940052,
+       "ratio": 8.80084420747765,
+       "rho": 0.019522672701318092,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      },
+      "occupation|Ucal|brier_excess": {
+       "value": -0.006400580751591508,
+       "own_se": 0.0011855014258002193,
+       "floor_se": 0.0011955902448131499,
+       "se_used": 0.0011955902448131499,
+       "margin": 0.011400580751591508,
+       "ratio": 9.535525068936325,
+       "rho": 0.009009400261965209,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      },
+      "guard|sex0": {
+       "value": -0.0038539197108479403,
+       "own_se": 0.0017374262431530266,
+       "floor_se": 0.0018137835315699534,
+       "se_used": 0.0018137835315699534,
+       "margin": 0.008853919710847941,
+       "ratio": 4.8814643846635155,
+       "rho": 0.005226352647708035,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      },
+      "guard|sex1": {
+       "value": -0.009675320629247775,
+       "own_se": 0.0017359522262798638,
+       "floor_se": 0.0016982056785958925,
+       "se_used": 0.0017359522262798638,
+       "margin": 0.014675320629247774,
+       "ratio": 8.453758350652832,
+       "rho": 0.011203416176688047,
+       "met": true,
+       "point_pass": true,
+       "se_source": "own"
+      }
+     },
+     "1": {
+      "occupation|U0|accuracy_loss": {
+       "value": -0.00974878140232471,
+       "own_se": 0.003532959670941101,
+       "floor_se": 0.003543392635156161,
+       "se_used": 0.003543392635156161,
+       "margin": 0.019748781402324708,
+       "ratio": 5.573410410798113,
+       "rho": 0.012661996132012385,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      },
+      "occupation|U0|nll_excess": {
+       "value": -0.01280469243748992,
+       "own_se": 0.002568558801522372,
+       "floor_se": 0.0027647937601303968,
+       "se_used": 0.0027647937601303968,
+       "margin": 0.02280469243748992,
+       "ratio": 8.248243600063093,
+       "rho": 0.017275104917229125,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      },
+      "occupation|U0|brier_excess": {
+       "value": -0.005461015512395459,
+       "own_se": 0.001178725382580529,
+       "floor_se": 0.0012007928697899864,
+       "se_used": 0.0012007928697899864,
+       "margin": 0.01046101551239546,
+       "ratio": 8.711756852974192,
+       "rho": 0.008059429772815487,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      },
+      "occupation|Ucal|accuracy_loss": {
+       "value": -0.00974878140232471,
+       "own_se": 0.003532959670941101,
+       "floor_se": 0.003543392635156161,
+       "se_used": 0.003543392635156161,
+       "margin": 0.019748781402324708,
+       "ratio": 5.573410410798113,
+       "rho": 0.012661996132012385,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      },
+      "occupation|Ucal|nll_excess": {
+       "value": -0.012756540539890018,
+       "own_se": 0.002544226980076574,
+       "floor_se": 0.0027348115634206176,
+       "se_used": 0.0027348115634206176,
+       "margin": 0.02275654053989002,
+       "ratio": 8.321063448856727,
+       "rho": 0.017286917413048785,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      },
+      "occupation|Ucal|brier_excess": {
+       "value": -0.005456625455706888,
+       "own_se": 0.0011700357194367626,
+       "floor_se": 0.001188638633934499,
+       "se_used": 0.001188638633934499,
+       "margin": 0.010456625455706888,
+       "ratio": 8.797144192675727,
+       "rho": 0.00807934818783789,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      },
+      "guard|sex0": {
+       "value": -0.002293474827162534,
+       "own_se": 0.0016542212131306475,
+       "floor_se": 0.001696534070467857,
+       "se_used": 0.001696534070467857,
+       "margin": 0.007293474827162534,
+       "ratio": 4.299044124207418,
+       "rho": 0.00390040668622682,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      },
+      "guard|sex1": {
+       "value": -0.008699817856118203,
+       "own_se": 0.0016640420625439467,
+       "floor_se": 0.0017104809247479097,
+       "se_used": 0.0017104809247479097,
+       "margin": 0.013699817856118204,
+       "ratio": 8.00933682328979,
+       "rho": 0.010278856006622384,
+       "met": true,
+       "point_pass": true,
+       "se_source": "floor"
+      }
+     }
+    },
+    "income_side": {
+     "0": {
+      "min_ratio": 3.511132467535578,
+      "binding": "income|U0|accuracy_loss",
+      "met": true,
+      "failed": []
+     },
+     "1": {
+      "min_ratio": 2.8619483139645285,
+      "binding": "income|U0|accuracy_loss",
+      "met": true,
+      "failed": []
+     }
+    },
+    "whole_release": {
+     "0": {
+      "met": true,
+      "min_ratio": 3.511132467535578
+     },
+     "1": {
+      "met": true,
+      "min_ratio": 2.8619483139645285
+     }
+    }
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v2_trigger.py": "e0f3f1affc371105d4c2d8775681bdc2b17d29646cec5ec323bc03b5366c1fc8",
+    "vlib.py": "488b3093ef4e0ddbc55497ae79c17ac7c6cd19ed0ccb9c569b71e11822134ae6"
+   },
+   "utc": "2026-10-19T00:29:41+00:00",
+   "unit_id": "VER_TRIGGER_V1"
+  },
+  {
+   "id": "V2.TRIGGER.H3_INCOME_WIRE__V1",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "T0 income part: the H3 income S<v> MODEL_SELECT wire used by the evaluation equals the admitted wire (source wire hash definition: SHA-256 of float64 probabilities then int64 argmax, vs the admitted RELEASE.json wire_sha256), equals the admitted RELEASE.npz array, and its array hash equals the one recorded in TRIGGER.json",
+   "inputs": {
+    "results/pcrl_controlled_training_size_v1/trigger/TRIGGER.json": "536c9f2420e185b5c0171761c5003f93af784ef549551df82f034627bb57c9a8"
+   },
+   "expected": "all equal",
+   "observed": {
+    "0": {
+     "wire_sha256_mine": "067a21bbda07f398404c3b44b319c031b7c5a233e37361523a4388c8e52f1d83",
+     "wire_sha256_admitted_RELEASE_json": "067a21bbda07f398404c3b44b319c031b7c5a233e37361523a4388c8e52f1d83",
+     "anchor_income_equals_release_file": true,
+     "release_npz_sha256": "4f765163c4404a84cb8baee2a851b644dda77d8c354313e739bec6afb801887d",
+     "arr_sha_mine": "0f02b88156bd68c72af02893848eaed125ea60c2103fc746ca7b3f3e2386dc20",
+     "arr_sha_trigger_record": "0f02b88156bd68c72af02893848eaed125ea60c2103fc746ca7b3f3e2386dc20",
+     "ok": true
+    },
+    "1": {
+     "wire_sha256_mine": "1e028f72aed7fbbfc739508db9e965acda92dee2f38db32af8d6ec70bd6a5d52",
+     "wire_sha256_admitted_RELEASE_json": "1e028f72aed7fbbfc739508db9e965acda92dee2f38db32af8d6ec70bd6a5d52",
+     "anchor_income_equals_release_file": true,
+     "release_npz_sha256": "5c58ed89cf77b02780f87eedf77be5208025f455f137ffcf177647bc153b3b7c",
+     "arr_sha_mine": "a55dd934897275758e8696142e9ca23713b9eef2eef27526bb4438f3498121e3",
+     "arr_sha_trigger_record": "a55dd934897275758e8696142e9ca23713b9eef2eef27526bb4438f3498121e3",
+     "ok": true
+    }
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v2_trigger.py": "e0f3f1affc371105d4c2d8775681bdc2b17d29646cec5ec323bc03b5366c1fc8",
+    "vlib.py": "488b3093ef4e0ddbc55497ae79c17ac7c6cd19ed0ccb9c569b71e11822134ae6"
+   },
+   "utc": "2026-10-19T00:29:41+00:00",
+   "unit_id": "VER_TRIGGER_V1"
+  },
+  {
+   "id": "V2.TRIGGER.DECISION__V1",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "the trigger decision T0-T3 recomputed by the verifier (T0: 14 finite conditions per version and H3 wire ok; T1: 8 occupation-side point caps per version; T2: 8 occupation-side reserve conditions per version; T3: the verifier's own DEPLOY_W100.json) vs TRIGGER.json",
+   "inputs": {
+    "results/pcrl_controlled_training_size_v1/trigger/TRIGGER.json": "536c9f2420e185b5c0171761c5003f93af784ef549551df82f034627bb57c9a8",
+    "results/pcrl_controlled_training_size_v1/roles/verifier/DEPLOY_W100.json": "f5de9259f34ef2954c7e864fd5b907523043aa98dc6824af5546d84b493ead99"
+   },
+   "expected": {
+    "decision": "TRIGGER_FIRES",
+    "parts": {
+     "T0": true,
+     "T1": true,
+     "T2": true,
+     "T3": true
+    }
+   },
+   "observed": {
+    "decision": "TRIGGER_FIRES",
+    "parts": {
+     "T0": true,
+     "T1": true,
+     "T2": true,
+     "T3": true
+    },
+    "parts_agree": {
+     "T0": true,
+     "T1": true,
+     "T2": true,
+     "T3": true
+    },
+    "min_occ_ratio": {
+     "0": 4.8814643846635155,
+     "1": 4.299044124207418
+    },
+    "binding": {
+     "0": "guard|sex0",
+     "1": "guard|sex0"
+    },
+    "usable_slack_rho": {
+     "0": {
+      "occupation|U0|accuracy_loss": 0.012856661651638186,
+      "occupation|U0|nll_excess": 0.020127516662144414,
+      "occupation|U0|brier_excess": 0.009243189663236995,
+      "occupation|Ucal|accuracy_loss": 0.012856661651638186,
+      "occupation|Ucal|nll_excess": 0.019522672701318092,
+      "occupation|Ucal|brier_excess": 0.009009400261965209,
+      "guard|sex0": 0.005226352647708035,
+      "guard|sex1": 0.011203416176688047
+     },
+     "1": {
+      "occupation|U0|accuracy_loss": 0.012661996132012385,
+      "occupation|U0|nll_excess": 0.017275104917229125,
+      "occupation|U0|brier_excess": 0.008059429772815487,
+      "occupation|Ucal|accuracy_loss": 0.012661996132012385,
+      "occupation|Ucal|nll_excess": 0.017286917413048785,
+      "occupation|Ucal|brier_excess": 0.00807934818783789,
+      "guard|sex0": 0.00390040668622682,
+      "guard|sex1": 0.010278856006622384
+     }
+    },
+    "deployment_record_sha256": "f5de9259f34ef2954c7e864fd5b907523043aa98dc6824af5546d84b493ead99",
+    "deployment_record_sha_in_trigger": "f5de9259f34ef2954c7e864fd5b907523043aa98dc6824af5546d84b493ead99"
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v2_trigger.py": "e0f3f1affc371105d4c2d8775681bdc2b17d29646cec5ec323bc03b5366c1fc8",
+    "vlib.py": "488b3093ef4e0ddbc55497ae79c17ac7c6cd19ed0ccb9c569b71e11822134ae6"
+   },
+   "utc": "2026-10-19T00:29:41+00:00",
+   "unit_id": "VER_TRIGGER_V1"
+  },
+  {
+   "id": "V3.REFIT.A1__S100__V0__V1",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "A1__S100__V0: independent refit of the A1_PO_16 fit on the verifier-reconstructed rows of S100 (own dictionary, folds, T* and softmax; learner constructed from the recipe constants) vs the production fit (T*, inner NLL curve, DICT.json, RELEASE.npz bitwise on six roles) and the source A1_PO_16 S<v> release (bitwise, T*)",
+   "inputs": {
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V0/FIT.json": "23ddab5f2bd725bc67cfb7b3efb9b64365d51b57d151521003b79b39c28f1ff4",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V0/RELEASE.npz": "eb2eadc4d96183ff54290b5e219c71da5454478d0f2bb14be426ae2c35ffe41a",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V0/DICT.json": "d6d6ff6e702e2468a9fad9d76150a1333dd36a2f24ba205520b07ab73055d8b7",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V0/CURVE.npz": "1803cf41b2e065011091be879f710f636b73b7aa3230d9fab75c8be665066539",
+    ".private/pcrl_occupation_headroom_overnight_v1/runs/A/A1_PO_16/S0/OCC.npz": "5681620d893be0191a54ff93560037fe33f020fba42c3b8fc37f8de7f53a23ed"
+   },
+   "expected": {
+    "T_star": 168,
+    "release_sha256": {
+     "ATTACK_FIT": "b33086a76971b3e8544a4b3694f253715c0347744c3308a3273cca14c5387505",
+     "ATTACK_VALIDATION": "29646f87417c32d5eee436290798a1d2090828219a51dddd7d6f4729f1dfff24",
+     "CALIBRATION": "a69649bf1774871d24e68dbb53d16e83f9ba27a838550ff9144bc40623c2e1ad",
+     "DEV_REPORT": "6b052a0ea450c6e4922a7b63cb360bab8bd0d398ae3d4b7e79545d3f8acb4049",
+     "MODEL_FIT": "b037c3f0b503b1b8b0e3b8fb4c30d220a18cc31f1763cffbad4c2ff0084c2a73",
+     "MODEL_SELECT": "345803712ac1cd8daa1fe592b27b64293d8319ca7db3ba05b267c77105b8bc71"
+    },
+    "dictionary_n_collapsed": {
+     "COW": 0,
+     "MAR": 0,
+     "POBP": 0,
+     "SCHL": 0
+    }
+   },
+   "observed": {
+    "fit_id": "A1__S100__V0",
+    "subset": "S100",
+    "version": 0,
+    "dictionary_kind": "fit_only",
+    "access_rows_equal_own_subset": true,
+    "n_people": 20000,
+    "n_households": 13337,
+    "subset_min_class": 1750,
+    "inner_training_min_class": 1382,
+    "own_dictionary_equals_production": true,
+    "n_collapsed_mine": {
+     "COW": 0,
+     "SCHL": 0,
+     "MAR": 0,
+     "POBP": 0
+    },
+    "T_star_mine": 168,
+    "T_star_production": 168,
+    "T_star_source": 168,
+    "argmin_gap_to_second_best_nll": 2.95463338484403e-06,
+    "inner_curve_max_abs_diff_vs_production": 0.0,
+    "inner_fold_people": {
+     "0": 4003,
+     "1": 4005,
+     "2": 3956,
+     "3": 4024,
+     "4": 4012
+    },
+    "roles_vs_production": {
+     "MODEL_FIT": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "b037c3f0b503b1b8b0e3b8fb4c30d220a18cc31f1763cffbad4c2ff0084c2a73"
+     },
+     "CALIBRATION": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "a69649bf1774871d24e68dbb53d16e83f9ba27a838550ff9144bc40623c2e1ad"
+     },
+     "MODEL_SELECT": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "345803712ac1cd8daa1fe592b27b64293d8319ca7db3ba05b267c77105b8bc71"
+     },
+     "ATTACK_FIT": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "b33086a76971b3e8544a4b3694f253715c0347744c3308a3273cca14c5387505"
+     },
+     "ATTACK_VALIDATION": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "29646f87417c32d5eee436290798a1d2090828219a51dddd7d6f4729f1dfff24"
+     },
+     "DEV_REPORT": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "6b052a0ea450c6e4922a7b63cb360bab8bd0d398ae3d4b7e79545d3f8acb4049"
+     }
+    },
+    "roles_vs_source_A1_PO_16": {
+     "MODEL_FIT": {
+      "bitwise_vs_source": true,
+      "max_abs_vs_source": 0.0
+     },
+     "CALIBRATION": {
+      "bitwise_vs_source": true,
+      "max_abs_vs_source": 0.0
+     },
+     "MODEL_SELECT": {
+      "bitwise_vs_source": true,
+      "max_abs_vs_source": 0.0
+     },
+     "ATTACK_FIT": {
+      "bitwise_vs_source": true,
+      "max_abs_vs_source": 0.0
+     },
+     "ATTACK_VALIDATION": {
+      "bitwise_vs_source": true,
+      "max_abs_vs_source": 0.0
+     },
+     "DEV_REPORT": {
+      "bitwise_vs_source": true,
+      "max_abs_vs_source": 0.0
+     }
+    },
+    "rows_sha256_mine": "7c9bb634f7bdfe3ed5ac4d8f309aca296a2142f575840e0a417b0c109e8a866a",
+    "rows_sha256_production": "7c9bb634f7bdfe3ed5ac4d8f309aca296a2142f575840e0a417b0c109e8a866a",
+    "cpu_s": 25.0
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v3_refit.py": "aff95858adf1f62817b6e17eeb9ad6ec80f7bb028e14795c6be0acf1eb1a28b1",
+    "vlib.py": "488b3093ef4e0ddbc55497ae79c17ac7c6cd19ed0ccb9c569b71e11822134ae6"
+   },
+   "utc": "2026-10-19T00:32:40+00:00",
+   "unit_id": "VER_REFIT_A1_V1"
+  },
+  {
+   "id": "V3.REFIT.A1__S100__V1__V1",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "A1__S100__V1: independent refit of the A1_PO_16 fit on the verifier-reconstructed rows of S100 (own dictionary, folds, T* and softmax; learner constructed from the recipe constants) vs the production fit (T*, inner NLL curve, DICT.json, RELEASE.npz bitwise on six roles) and the source A1_PO_16 S<v> release (bitwise, T*)",
+   "inputs": {
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V1/FIT.json": "75f2d92fa304ae903c58482eec3f0873e3ebfa6d2c14796a74207fb03f0ef6bd",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V1/RELEASE.npz": "c031a0b9b20e496e8effbbd176f7181f24bd1c13ff86654ca84199933edd2134",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V1/DICT.json": "d6d6ff6e702e2468a9fad9d76150a1333dd36a2f24ba205520b07ab73055d8b7",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V1/CURVE.npz": "1109f1496a7e46ca9b76cb758ed2762aff1986c5b282be5d21329fe2a5108e9f",
+    ".private/pcrl_occupation_headroom_overnight_v1/runs/A/A1_PO_16/S1/OCC.npz": "2dee6e4bb26a9a03985520a1637eb17772de801c9cd56f8f4bfaf1c24a2bf0e0"
+   },
+   "expected": {
+    "T_star": 154,
+    "release_sha256": {
+     "ATTACK_FIT": "e2bd152d788fc4ae0a69dacf085b1aff7db29fd8798ecae482b39fc795b479f8",
+     "ATTACK_VALIDATION": "83017f6d106fa8688d006f9a902f9ccbd26b3a5d9098f1f3084e81cc42a49633",
+     "CALIBRATION": "8159acd3af6e93b7ef2cbf0f70cc4d435960ab73c0c9b1616cb623c8739ae39f",
+     "DEV_REPORT": "e22ab857a6534ee239f75ae4b09048a0e299758706d3782aa1a64b422fed89dd",
+     "MODEL_FIT": "de8680751b50ce2d34a338617a1760b17b49090020f0150e08cb8f42ee918d02",
+     "MODEL_SELECT": "5a399e6756a2c95affbf3c70373d26b7321a5e50b37e03d36f4e44bc0e7e3197"
+    },
+    "dictionary_n_collapsed": {
+     "COW": 0,
+     "MAR": 0,
+     "POBP": 0,
+     "SCHL": 0
+    }
+   },
+   "observed": {
+    "fit_id": "A1__S100__V1",
+    "subset": "S100",
+    "version": 1,
+    "dictionary_kind": "fit_only",
+    "access_rows_equal_own_subset": true,
+    "n_people": 20000,
+    "n_households": 13337,
+    "subset_min_class": 1750,
+    "inner_training_min_class": 1387,
+    "own_dictionary_equals_production": true,
+    "n_collapsed_mine": {
+     "COW": 0,
+     "SCHL": 0,
+     "MAR": 0,
+     "POBP": 0
+    },
+    "T_star_mine": 154,
+    "T_star_production": 154,
+    "T_star_source": 154,
+    "argmin_gap_to_second_best_nll": 8.921360544755785e-06,
+    "inner_curve_max_abs_diff_vs_production": 0.0,
+    "inner_fold_people": {
+     "0": 4030,
+     "1": 3969,
+     "2": 4034,
+     "3": 3945,
+     "4": 4022
+    },
+    "roles_vs_production": {
+     "MODEL_FIT": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "de8680751b50ce2d34a338617a1760b17b49090020f0150e08cb8f42ee918d02"
+     },
+     "CALIBRATION": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "8159acd3af6e93b7ef2cbf0f70cc4d435960ab73c0c9b1616cb623c8739ae39f"
+     },
+     "MODEL_SELECT": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "5a399e6756a2c95affbf3c70373d26b7321a5e50b37e03d36f4e44bc0e7e3197"
+     },
+     "ATTACK_FIT": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "e2bd152d788fc4ae0a69dacf085b1aff7db29fd8798ecae482b39fc795b479f8"
+     },
+     "ATTACK_VALIDATION": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "83017f6d106fa8688d006f9a902f9ccbd26b3a5d9098f1f3084e81cc42a49633"
+     },
+     "DEV_REPORT": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "e22ab857a6534ee239f75ae4b09048a0e299758706d3782aa1a64b422fed89dd"
+     }
+    },
+    "roles_vs_source_A1_PO_16": {
+     "MODEL_FIT": {
+      "bitwise_vs_source": true,
+      "max_abs_vs_source": 0.0
+     },
+     "CALIBRATION": {
+      "bitwise_vs_source": true,
+      "max_abs_vs_source": 0.0
+     },
+     "MODEL_SELECT": {
+      "bitwise_vs_source": true,
+      "max_abs_vs_source": 0.0
+     },
+     "ATTACK_FIT": {
+      "bitwise_vs_source": true,
+      "max_abs_vs_source": 0.0
+     },
+     "ATTACK_VALIDATION": {
+      "bitwise_vs_source": true,
+      "max_abs_vs_source": 0.0
+     },
+     "DEV_REPORT": {
+      "bitwise_vs_source": true,
+      "max_abs_vs_source": 0.0
+     }
+    },
+    "rows_sha256_mine": "7c9bb634f7bdfe3ed5ac4d8f309aca296a2142f575840e0a417b0c109e8a866a",
+    "rows_sha256_production": "7c9bb634f7bdfe3ed5ac4d8f309aca296a2142f575840e0a417b0c109e8a866a",
+    "cpu_s": 23.4
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v3_refit.py": "aff95858adf1f62817b6e17eeb9ad6ec80f7bb028e14795c6be0acf1eb1a28b1",
+    "vlib.py": "488b3093ef4e0ddbc55497ae79c17ac7c6cd19ed0ccb9c569b71e11822134ae6"
+   },
+   "utc": "2026-10-19T00:32:40+00:00",
+   "unit_id": "VER_REFIT_A1_V1"
+  },
+  {
+   "id": "V3.REFIT.A1__S50_O2__V1__V1",
+   "kind": "NUMERICAL_REPLAY",
+   "what": "A1__S50_O2__V1: independent refit of the A1_PO_16 fit on the verifier-reconstructed rows of S50_O2 (own dictionary, folds, T* and softmax; learner constructed from the recipe constants) vs the production fit (T*, inner NLL curve, DICT.json, RELEASE.npz bitwise on six roles)",
+   "inputs": {
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S50_O2__V1/FIT.json": "f63a7274d2450b13d3022cb6a2f07fbced1ebf9862afa07e64bd12a6d534c670",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S50_O2__V1/RELEASE.npz": "82d653d79ae29b6b217951b11571c40541195ba8256408cde563aa13b5463a1c",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S50_O2__V1/DICT.json": "8a177a15a8a1cec057fb98255f6e76899be02e3a19781b8516084861c5b0df95",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S50_O2__V1/CURVE.npz": "cfaa336854610424edc139011286bf5736d1810db4a62c6c92c1fe1f2d8fdd50"
+   },
+   "expected": {
+    "T_star": 112,
+    "release_sha256": {
+     "ATTACK_FIT": "0dc981ddee68386ae384a96caa534849ac1b2efbfcd30902ae5a1de58ab581da",
+     "ATTACK_VALIDATION": "37dbac8e6f0056ad7d359f6119465c8373689b75c5cdcdb1b0fc555b180818a3",
+     "CALIBRATION": "f918063db4edb770111a64c09c1fc71d344e3c05ee319a27c73aefc210705bc6",
+     "DEV_REPORT": "cabfacc49f9bc3a969f7c2de8c9f75ec96134009efa5804c8a5510265fc92f13",
+     "MODEL_FIT": "f1803de8af945f6597eacb85fa1ca953f4f6a7fe947936f23d544903ef7c84b3",
+     "MODEL_SELECT": "fa1bcafb0f95bf4916294382556117e8c67156bbed9b1ee10dc560eeb7d53516"
+    },
+    "dictionary_n_collapsed": {
+     "COW": 0,
+     "MAR": 0,
+     "POBP": 23,
+     "SCHL": 3
+    }
+   },
+   "observed": {
+    "fit_id": "A1__S50_O2__V1",
+    "subset": "S50_O2",
+    "version": 1,
+    "dictionary_kind": "fit_only",
+    "access_rows_equal_own_subset": true,
+    "n_people": 10046,
+    "n_households": 6669,
+    "subset_min_class": 843,
+    "inner_training_min_class": 657,
+    "own_dictionary_equals_production": true,
+    "n_collapsed_mine": {
+     "COW": 0,
+     "SCHL": 3,
+     "MAR": 0,
+     "POBP": 23
+    },
+    "T_star_mine": 112,
+    "T_star_production": 112,
+    "T_star_source": null,
+    "argmin_gap_to_second_best_nll": 1.783847781600123e-05,
+    "inner_curve_max_abs_diff_vs_production": 0.0,
+    "inner_fold_people": {
+     "0": 1967,
+     "1": 2041,
+     "2": 2067,
+     "3": 1978,
+     "4": 1993
+    },
+    "roles_vs_production": {
+     "MODEL_FIT": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "f1803de8af945f6597eacb85fa1ca953f4f6a7fe947936f23d544903ef7c84b3"
+     },
+     "CALIBRATION": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "f918063db4edb770111a64c09c1fc71d344e3c05ee319a27c73aefc210705bc6"
+     },
+     "MODEL_SELECT": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "fa1bcafb0f95bf4916294382556117e8c67156bbed9b1ee10dc560eeb7d53516"
+     },
+     "ATTACK_FIT": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "0dc981ddee68386ae384a96caa534849ac1b2efbfcd30902ae5a1de58ab581da"
+     },
+     "ATTACK_VALIDATION": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "37dbac8e6f0056ad7d359f6119465c8373689b75c5cdcdb1b0fc555b180818a3"
+     },
+     "DEV_REPORT": {
+      "bitwise_vs_production": true,
+      "max_abs_vs_production": 0.0,
+      "decisions_identical_production": true,
+      "arr_sha_mine": "cabfacc49f9bc3a969f7c2de8c9f75ec96134009efa5804c8a5510265fc92f13"
+     }
+    },
+    "roles_vs_source_A1_PO_16": {},
+    "rows_sha256_mine": "63d4572fec6a37cdfb1e14ac2d2ad8921518e2f80951880e313ecc5e62e33570",
+    "rows_sha256_production": "63d4572fec6a37cdfb1e14ac2d2ad8921518e2f80951880e313ecc5e62e33570",
+    "cpu_s": 15.9
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v3_refit.py": "aff95858adf1f62817b6e17eeb9ad6ec80f7bb028e14795c6be0acf1eb1a28b1",
+    "vlib.py": "488b3093ef4e0ddbc55497ae79c17ac7c6cd19ed0ccb9c569b71e11822134ae6"
+   },
+   "utc": "2026-10-19T00:32:40+00:00",
+   "unit_id": "VER_REFIT_A1_V1"
+  },
+  {
+   "id": "V3.ALIAS.S100_ONE_FIT_PER_VERSION__V1",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "what": "deterministic alias: exactly one S100 A1_PO_16 fit per version (no ordering-specific S100 fit directory) and its FIT.json aliases it to all four orderings",
+   "inputs": {
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V0/FIT.json": "23ddab5f2bd725bc67cfb7b3efb9b64365d51b57d151521003b79b39c28f1ff4",
+    ".private/pcrl_controlled_training_size_v1/runs/SIZE/A1__S100__V1/FIT.json": "75f2d92fa304ae903c58482eec3f0873e3ebfa6d2c14796a74207fb03f0ef6bd"
+   },
+   "expected": [
+    "A1__S100__V0",
+    "A1__S100__V1"
+   ],
+   "observed": {
+    "size_dirs": [
+     "A1__S100__V0",
+     "A1__S100__V1",
+     "A1__S50_O0__V0",
+     "A1__S50_O0__V1",
+     "A1__S50_O1__V0",
+     "A1__S50_O1__V1",
+     "A1__S50_O2__V0",
+     "A1__S50_O2__V1",
+     "A1__S50_O3__V0",
+     "A1__S50_O3__V1"
+    ],
+    "s100_dirs": [
+     "A1__S100__V0",
+     "A1__S100__V1"
+    ],
+    "aliases": {
+     "A1__S100__V0": [
+      "O0",
+      "O1",
+      "O2",
+      "O3"
+     ],
+     "A1__S100__V1": [
+      "O0",
+      "O1",
+      "O2",
+      "O3"
+     ]
+    }
+   },
+   "status": "PASS",
+   "code_sha256": {
+    "v3_refit.py": "aff95858adf1f62817b6e17eeb9ad6ec80f7bb028e14795c6be0acf1eb1a28b1",
+    "vlib.py": "488b3093ef4e0ddbc55497ae79c17ac7c6cd19ed0ccb9c569b71e11822134ae6"
+   },
+   "utc": "2026-10-19T00:32:47+00:00",
+   "unit_id": null
+  }
+ ],
+ "summary": {
+  "n_checks": 19,
+  "by_kind_and_status": {
+   "NUMERICAL_REPLAY": {
+    "PASS": 9,
+    "FAIL": 0,
+    "ATTENTION": 0,
+    "NOT_RUN": 0
+   },
+   "PROCEDURAL_COMPLIANCE": {
+    "PASS": 9,
+    "FAIL": 1,
+    "ATTENTION": 0,
+    "NOT_RUN": 0
+   }
+  },
+  "updated_utc": "2026-10-19T00:32:47+00:00"
+ }
+}

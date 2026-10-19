@@ -37,9 +37,15 @@ from . import common as C
 
 PERMITTED = OD.PERMITTED
 ALLOWED = OD.ALLOWED
-RELEASE_CODE = ('tsz.common', 'tsz.deploy', 'tsz.sizefit', 'tsz.control', 'tsz.correct', 'cts.trackf', 'cts.common', 'ohn.common',
-                'ohn.deploy', 'ohn.devrun', 'ohn.fam_a', 'ohn.protect', 'ihs.common', 'ihs.bases', 'ihs.fam_h', 'acs_replication.deploy',
-                'acs_replication.schema', 'acs_replication.trees', 'scm_bench.common')
+RELEASE_CODE_BASE = ('tsz.common', 'tsz.deploy', 'tsz.sizefit', 'cts.trackf', 'cts.common', 'ohn.common', 'ohn.deploy', 'ohn.devrun',
+                     'ohn.fam_a', 'ihs.common', 'ihs.bases', 'ihs.fam_h', 'acs_replication.deploy', 'acs_replication.schema',
+                     'acs_replication.trees', 'scm_bench.common')
+RELEASE_CODE_EXTRA = {'A1': (), 'CTRL': ('tsz.control',), 'CORR': ('tsz.control', 'tsz.correct', 'ohn.protect')}
+
+
+def release_code(name):
+    """The code a package of this kind executes at inference (pinned by hash; an edit of an unrelated module never invalidates it)."""
+    return RELEASE_CODE_BASE + RELEASE_CODE_EXTRA[name.split(':', 1)[0]]
 
 
 def store_dir():
@@ -117,7 +123,7 @@ def build(name, v, out):
     shutil.rmtree(out / '_anchor')
     deps = dict(meta['depends_sha256'])
     deps.update(_deps(name, v))
-    deps.update({f'CODE::{m}': C.sha(C.ROOT / (m.replace('.', '/') + '.py')) for m in RELEASE_CODE})
+    deps.update({f'CODE::{m}': C.sha(C.ROOT / (m.replace('.', '/') + '.py')) for m in release_code(name)})
     rec = {'schema': 'TSZ1-deploy-package-v1', 'version': v, 'seed': v, 'name': name, 'income': f'H3_STRONG_LJDIR_PB S{v} (frozen anchor)',
            'encoder': meta['encoder'], 'depends_sha256': deps, 'release_contract': 'probability and decision per recipient; nothing else',
            'permitted_inputs': PERMITTED, 'environment_at_build': OD._environment(), 'utc': C.now()}
@@ -255,20 +261,20 @@ def main(argv=None):
     a = ap.parse_args(argv)
     if a.cmd == 'store':
         kind, rest = a.name.split(':', 1)
-        check = None
+        ref_arrays = None
         if kind == 'A1':                       # the stored wire must equal the fit's saved (evaluated) release on every role
             from . import sizefit
             rel, _ = sizefit.release(rest)
-            check = {r: rel[r] for r in C.ROLES6}
+            ref_arrays = {r: rel[r] for r in C.ROLES6}
         elif kind == 'CTRL':
             from . import evaluate as EV
             sid, vv = rest.rsplit('__V', 1)
-            check = {r: EV.control_release(sid, int(vv), 'TR', r)[0] for r in C.ROLES6}
+            ref_arrays = {r: EV.control_release(sid, int(vv), 'TR', r)[0] for r in C.ROLES6}
         elif kind == 'CORR':
             from . import correct
             arm, s = rest.split('@s')
-            check = {r: correct.load_release(a.version, arm, float(s), r) for r in C.ROLES6}
-        store(a.name, a.version, check=check)
+            ref_arrays = {r: correct.load_release(a.version, arm, float(s), r) for r in C.ROLES6}
+        store(a.name, a.version, check=ref_arrays)
     elif a.cmd == 'build':
         print(json.dumps(sorted(build(a.name, a.version, a.out)['depends_sha256'])[:5]))
     else:

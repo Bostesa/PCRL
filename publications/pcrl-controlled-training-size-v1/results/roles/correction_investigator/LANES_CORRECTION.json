@@ -1,0 +1,429 @@
+{
+ "schema": "TSZ1-lanes-correction-v1",
+ "utc": "2026-10-19T00:29:09+00:00",
+ "precondition": "run ONLY after the registered trigger fired (TRIGGER.json: TRIGGER_FIRES, reported by the coordinator at 00:27Z) and W100_V0 / W100_V1 (tsz.sizefit, runs/SIZE/A1__S100__V<v>/) and the S100 control teachers (tsz.control.load_teachers, runs/CONTROL/S100__V<v>/TEACHERS/) exist; both checked label-free at 00:29Z (teachers = admitted, T 800 / 799; tsz.sizefit.predict reproduces the stored W100 MODEL_SELECT release bitwise; T* 168 / 154)",
+ "how_to_run": "python3 -m tsz.lane results/pcrl_controlled_training_size_v1/roles/correction_investigator/LANE_CORRECTION_V<v>.json (one lane per version; at most two lanes at once; the queue enforces two heavy jobs, one thread each)",
+ "interpreters": {
+  "PY": "python3 (scikit-learn 1.8.0)",
+  "TORCH": "tsz.common.TORCH_PY",
+  "CATBOOST": "tsz.common.CATBOOST_PY"
+ },
+ "dependency_order": [
+  "BASE -> DIR_CONT, DIR_LOC, DIR_PAIR -> RELEASES -> VERIFY (full pool)",
+  "NCV_WITNESS_F0_4, NCV_WITNESS_F5_9 -> NCV_ROUTING -> NCV_CORRECT_LOC, NCV_CORRECT_PAIR -> SELECT (nested)",
+  "SELECT must precede any MODEL_SELECT read of a corrected release (readers, evaluator, tsz.correct realized)",
+  "after SELECT (not in the lanes): python3 -m tsz.correct realized --version V (operation benchmark; recorded, never gating)"
+ ],
+ "lanes": {
+  "V0": [
+   {
+    "unit": "TSZ_CORR_V0_BASE_V1",
+    "stage": "correction",
+    "rss_gib": 2.0,
+    "argv": [
+     "PY",
+     "-m",
+     "tsz.correct",
+     "base",
+     "--version",
+     "0"
+    ],
+    "max_wall_s": 1200
+   },
+   {
+    "unit": "TSZ_CORR_V0_DIR_CONT_V1",
+    "stage": "correction",
+    "rss_gib": 1.5,
+    "argv": [
+     "TORCH",
+     "-m",
+     "tsz.correct",
+     "direction",
+     "--version",
+     "0",
+     "--arm",
+     "CONT"
+    ],
+    "max_wall_s": 900
+   },
+   {
+    "unit": "TSZ_CORR_V0_DIR_LOC_V1",
+    "stage": "correction",
+    "rss_gib": 1.5,
+    "argv": [
+     "TORCH",
+     "-m",
+     "tsz.correct",
+     "direction",
+     "--version",
+     "0",
+     "--arm",
+     "LOC"
+    ],
+    "max_wall_s": 900
+   },
+   {
+    "unit": "TSZ_CORR_V0_DIR_PAIR_V1",
+    "stage": "correction",
+    "rss_gib": 1.5,
+    "argv": [
+     "TORCH",
+     "-m",
+     "tsz.correct",
+     "direction",
+     "--version",
+     "0",
+     "--arm",
+     "PAIR"
+    ],
+    "max_wall_s": 900
+   },
+   {
+    "unit": "TSZ_CORR_V0_RELEASES_V1",
+    "stage": "correction",
+    "rss_gib": 1.5,
+    "argv": [
+     "PY",
+     "-m",
+     "tsz.correct",
+     "releases",
+     "--version",
+     "0"
+    ],
+    "max_wall_s": 900
+   },
+   {
+    "unit": "TSZ_CORR_V0_VERIFY_V1",
+    "stage": "correction",
+    "rss_gib": 1.5,
+    "argv": [
+     "PY",
+     "-m",
+     "tsz.correct",
+     "verify",
+     "--version",
+     "0"
+    ],
+    "max_wall_s": 600
+   },
+   {
+    "unit": "TSZ_CORR_V0_NCV_WITNESS_F0_4_V1",
+    "stage": "selection",
+    "rss_gib": 2.0,
+    "argv": [
+     "PY",
+     "-m",
+     "tsz.nested",
+     "witness",
+     "--version",
+     "0",
+     "--folds",
+     "0-4"
+    ],
+    "max_wall_s": 1800
+   },
+   {
+    "unit": "TSZ_CORR_V0_NCV_WITNESS_F5_9_V1",
+    "stage": "selection",
+    "rss_gib": 2.0,
+    "argv": [
+     "PY",
+     "-m",
+     "tsz.nested",
+     "witness",
+     "--version",
+     "0",
+     "--folds",
+     "5-9"
+    ],
+    "max_wall_s": 1800
+   },
+   {
+    "unit": "TSZ_CORR_V0_NCV_ROUTING_V1",
+    "stage": "selection",
+    "rss_gib": 1.5,
+    "argv": [
+     "CATBOOST",
+     "-m",
+     "tsz.nested",
+     "routing",
+     "--version",
+     "0"
+    ],
+    "max_wall_s": 900
+   },
+   {
+    "unit": "TSZ_CORR_V0_NCV_CORRECT_LOC_V1",
+    "stage": "selection",
+    "rss_gib": 1.5,
+    "argv": [
+     "TORCH",
+     "-m",
+     "tsz.nested",
+     "correct",
+     "--version",
+     "0",
+     "--arm",
+     "LOC"
+    ],
+    "max_wall_s": 1200
+   },
+   {
+    "unit": "TSZ_CORR_V0_NCV_CORRECT_PAIR_V1",
+    "stage": "selection",
+    "rss_gib": 1.5,
+    "argv": [
+     "TORCH",
+     "-m",
+     "tsz.nested",
+     "correct",
+     "--version",
+     "0",
+     "--arm",
+     "PAIR"
+    ],
+    "max_wall_s": 1200
+   },
+   {
+    "unit": "TSZ_CORR_V0_SELECT_V1",
+    "stage": "selection",
+    "rss_gib": 0.5,
+    "argv": [
+     "PY",
+     "-m",
+     "tsz.select",
+     "run",
+     "--version",
+     "0"
+    ],
+    "max_wall_s": 300
+   }
+  ],
+  "V1": [
+   {
+    "unit": "TSZ_CORR_V1_BASE_V1",
+    "stage": "correction",
+    "rss_gib": 2.0,
+    "argv": [
+     "PY",
+     "-m",
+     "tsz.correct",
+     "base",
+     "--version",
+     "1"
+    ],
+    "max_wall_s": 1200
+   },
+   {
+    "unit": "TSZ_CORR_V1_DIR_CONT_V1",
+    "stage": "correction",
+    "rss_gib": 1.5,
+    "argv": [
+     "TORCH",
+     "-m",
+     "tsz.correct",
+     "direction",
+     "--version",
+     "1",
+     "--arm",
+     "CONT"
+    ],
+    "max_wall_s": 900
+   },
+   {
+    "unit": "TSZ_CORR_V1_DIR_LOC_V1",
+    "stage": "correction",
+    "rss_gib": 1.5,
+    "argv": [
+     "TORCH",
+     "-m",
+     "tsz.correct",
+     "direction",
+     "--version",
+     "1",
+     "--arm",
+     "LOC"
+    ],
+    "max_wall_s": 900
+   },
+   {
+    "unit": "TSZ_CORR_V1_DIR_PAIR_V1",
+    "stage": "correction",
+    "rss_gib": 1.5,
+    "argv": [
+     "TORCH",
+     "-m",
+     "tsz.correct",
+     "direction",
+     "--version",
+     "1",
+     "--arm",
+     "PAIR"
+    ],
+    "max_wall_s": 900
+   },
+   {
+    "unit": "TSZ_CORR_V1_RELEASES_V1",
+    "stage": "correction",
+    "rss_gib": 1.5,
+    "argv": [
+     "PY",
+     "-m",
+     "tsz.correct",
+     "releases",
+     "--version",
+     "1"
+    ],
+    "max_wall_s": 900
+   },
+   {
+    "unit": "TSZ_CORR_V1_VERIFY_V1",
+    "stage": "correction",
+    "rss_gib": 1.5,
+    "argv": [
+     "PY",
+     "-m",
+     "tsz.correct",
+     "verify",
+     "--version",
+     "1"
+    ],
+    "max_wall_s": 600
+   },
+   {
+    "unit": "TSZ_CORR_V1_NCV_WITNESS_F0_4_V1",
+    "stage": "selection",
+    "rss_gib": 2.0,
+    "argv": [
+     "PY",
+     "-m",
+     "tsz.nested",
+     "witness",
+     "--version",
+     "1",
+     "--folds",
+     "0-4"
+    ],
+    "max_wall_s": 1800
+   },
+   {
+    "unit": "TSZ_CORR_V1_NCV_WITNESS_F5_9_V1",
+    "stage": "selection",
+    "rss_gib": 2.0,
+    "argv": [
+     "PY",
+     "-m",
+     "tsz.nested",
+     "witness",
+     "--version",
+     "1",
+     "--folds",
+     "5-9"
+    ],
+    "max_wall_s": 1800
+   },
+   {
+    "unit": "TSZ_CORR_V1_NCV_ROUTING_V1",
+    "stage": "selection",
+    "rss_gib": 1.5,
+    "argv": [
+     "CATBOOST",
+     "-m",
+     "tsz.nested",
+     "routing",
+     "--version",
+     "1"
+    ],
+    "max_wall_s": 900
+   },
+   {
+    "unit": "TSZ_CORR_V1_NCV_CORRECT_LOC_V1",
+    "stage": "selection",
+    "rss_gib": 1.5,
+    "argv": [
+     "TORCH",
+     "-m",
+     "tsz.nested",
+     "correct",
+     "--version",
+     "1",
+     "--arm",
+     "LOC"
+    ],
+    "max_wall_s": 1200
+   },
+   {
+    "unit": "TSZ_CORR_V1_NCV_CORRECT_PAIR_V1",
+    "stage": "selection",
+    "rss_gib": 1.5,
+    "argv": [
+     "TORCH",
+     "-m",
+     "tsz.nested",
+     "correct",
+     "--version",
+     "1",
+     "--arm",
+     "PAIR"
+    ],
+    "max_wall_s": 1200
+   },
+   {
+    "unit": "TSZ_CORR_V1_SELECT_V1",
+    "stage": "selection",
+    "rss_gib": 0.5,
+    "argv": [
+     "PY",
+     "-m",
+     "tsz.select",
+     "run",
+     "--version",
+     "1"
+    ],
+    "max_wall_s": 300
+   }
+  ]
+ },
+ "optional_after_selection": {
+  "V0": [
+   {
+    "unit": "TSZ_CORR_V0_NCV_CORRECT_CONT_V1",
+    "stage": "selection",
+    "rss_gib": 1.5,
+    "argv": [
+     "TORCH",
+     "-m",
+     "tsz.nested",
+     "correct",
+     "--version",
+     "0",
+     "--arm",
+     "CONT"
+    ],
+    "max_wall_s": 1200,
+    "note": "optional, descriptive only (CONT has no selection of its own); after SELECT so it never delays the selection"
+   }
+  ],
+  "V1": [
+   {
+    "unit": "TSZ_CORR_V1_NCV_CORRECT_CONT_V1",
+    "stage": "selection",
+    "rss_gib": 1.5,
+    "argv": [
+     "TORCH",
+     "-m",
+     "tsz.nested",
+     "correct",
+     "--version",
+     "1",
+     "--arm",
+     "CONT"
+    ],
+    "max_wall_s": 1200,
+    "note": "optional, descriptive only (CONT has no selection of its own); after SELECT so it never delays the selection"
+   }
+  ]
+ },
+ "estimated_cpu_s_per_lane": 2055.5,
+ "estimated_cpu_s_optional_cont_per_version": 265.5
+}

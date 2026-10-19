@@ -1,0 +1,11 @@
+--- a/tsz/rules.py
++++ b/tsz/rules.py
+@@ -350,7 +350,7 @@
+     if ce or cr:
+         out.append(('IR3', 'An ordinary equally exposed control explains the gain: same training-size gain on '
+                            f'{ce or "no metric"}; control also meets the occupation-side reserve at sizes {cr or "none"}.'))
+-    if expl == 'UNRESOLVED':
++    if expl == 'UNRESOLVED' or size_effect == 'SIZE_EFFECT_UNRESOLVED':      # RULES 3.6: IR4 on SIZE_EFFECT_UNRESOLVED (any pattern)
+         out.append(('IR4', 'Uncertainty leaves the size explanation unresolved.'))
+     if pattern == 'ALL_SIZES':
+         out.append(('ALL_SIZES', 'The margin is retained at 50%, 70% and 100% of this pool; the reduced-training loss of the CTS1 '

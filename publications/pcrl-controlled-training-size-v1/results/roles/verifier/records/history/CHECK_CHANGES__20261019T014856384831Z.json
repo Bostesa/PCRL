@@ -1,0 +1,99 @@
+{
+ "schema": "TSZ1-verifier-check-changes-v1",
+ "rules": "every correction of a verifier check: the earlier check stays in CHECKS.json unchanged; before, after and cause are recorded here for the coordinator; acceptance rules are never widened",
+ "changes": [
+  {
+   "check_id_before": "V0.PINS.PUBLICATION_TREE__V1",
+   "check_id_after": "V0.PINS.PUBLICATION_TREE__V2",
+   "kind": "VERIFIER_BUG",
+   "before": {
+    "status": "FAIL",
+    "result": "FAIL: results 342 files, 319 identical, 2 identical after sanitiser, 21 differ (all CSV)"
+   },
+   "after": {
+    "status": "PASS",
+    "result": "PASS: code 36/35/1 and results 342/319/23 equal SOURCE_ADMISSION.json; nothing differs or is missing"
+   },
+   "cause": "verifier bug: V1 decoded the local text files' raw bytes (keeping CRLF line endings of 21 CSV files) before applying the source sanitiser, whereas the source publication build (mechanism_design.publish_build.build) reads text with Path.read_text() (universal newlines, CRLF -> LF) and then sanitises; V2 emulates the build exactly. The 21 CSVs differ from the published blobs only by CRLF vs LF (probe: raw.replace(CRLF, LF) has the published blob id)",
+   "acceptance_rule": "unchanged: every published file must equal the local file byte for byte or after the source build's own text transformation; the counts must equal SOURCE_ADMISSION.json",
+   "adjudication": "adjudicated A1 (coordinator): accepted",
+   "utc": "2026-10-19T00:22:35+00:00",
+   "n": 1,
+   "adjudication_history": [
+    {
+     "from": "pending (coordinator)",
+     "to": "adjudicated A1 (coordinator): accepted",
+     "utc": "2026-10-19T00:28:13+00:00"
+    }
+   ]
+  },
+  {
+   "check_id_before": "V5.CORRECTION.TARGETS_INVARIANCE__V1",
+   "check_id_after": "V5.CORRECTION.TARGETS_INVARIANCE__V2",
+   "kind": "VERIFIER_BUG",
+   "before": {
+    "status": "ATTENTION",
+    "result": "ATTENTION: guard none bitwise invariant for CONT, LOC, PAIR; the static control did not change theta"
+   },
+   "after": {
+    "status": "PASS",
+    "result": "see V2"
+   },
+   "cause": "verifier bug in the sensitivity control only: V1 compared guard 'static' at targets {0.005, 0.005} and {1, 1}; with equal men / women targets the per-person weights are equal after normalization, so 'static' is invariant too and the control could not show sensitivity. V2 uses {0.005, 0.005} vs {0.0001, 0.5}. The registered criterion (theta bitwise invariant to targets under guard none, three arms, three targets dicts) was met in V1 and is unchanged",
+   "acceptance_rule": "unchanged: bitwise invariance of theta to targets under guard none (RULES.md 8.1); the control is a test of the test",
+   "adjudication": "adjudicated A4 (coordinator): accepted",
+   "utc": "2026-10-19T01:01:39+00:00",
+   "n": 2,
+   "adjudication_history": [
+    {
+     "from": "pending (coordinator)",
+     "to": "adjudicated A4 (coordinator): accepted",
+     "utc": "2026-10-19T01:43:01+00:00"
+    }
+   ]
+  },
+  {
+   "check_id_before": "V6.TABLES__V1",
+   "check_id_after": "V6.TABLES__V2",
+   "kind": "VERIFIER_BUG",
+   "before": {
+    "status": "FAIL",
+    "result": "FAIL: 20 original-benchmark rows differ only in target_0020 for the four non-target references; equal-reserve table, frontier and coarse flags agreed"
+   },
+   "after": {
+    "status": "PASS",
+    "result": "see V2"
+   },
+   "cause": "verifier bug: V1 compared the 0.020 target label for all six references, but RULES.md sections 9-11 define the 0.020 target (C6) only against NEURAL_RAW and H_LJ; CLAIMS.json correctly leaves it empty for B2TWIN, RETIRED_B3CTL, SUCC and TWJ. All 20 V1 differences were exactly these empty-by-definition cells",
+   "acceptance_rule": "unchanged: every original-benchmark field as registered must agree; the target applies to NEURAL_RAW and H_LJ only",
+   "adjudication": "adjudicated A4 (coordinator): accepted",
+   "utc": "2026-10-19T01:42:01+00:00",
+   "n": 3,
+   "adjudication_history": [
+    {
+     "from": "pending (coordinator)",
+     "to": "adjudicated A4 (coordinator): accepted",
+     "utc": "2026-10-19T01:43:01+00:00"
+    }
+   ]
+  },
+  {
+   "check_id_before": "V6.TEXT_SCOPE_SCAN__V1",
+   "check_id_after": "V6.TEXT_SCOPE_SCAN__V2",
+   "kind": "VERIFIER_BUG",
+   "before": {
+    "status": "FAIL",
+    "result": "FAIL from the automated hits and the line-wrapped phrase"
+   },
+   "after": {
+    "status": "ATTENTION",
+    "result": "see V2"
+   },
+   "cause": "verifier bug in the automated part of the scan: V1 (a) matched required phrases on raw text, so 'not a new two-output joint method' wrapped across two lines in RESEARCH_DECISION.md was reported missing, and (b) counted every mention of a forbidden term as a claim, although all 7 hits are negations, NOT_* labels or descriptions of the verifier's replay ('nothing is confirmation', 'This is not a population learning curve', 'do not guarantee', 'C7 (joint-design advantage) NOT_CLAIMABLE', 'confirmed by the verifier's own refits', 'nothing confirmed'); (c) its status expression had an operator-precedence error. V2 normalizes whitespace and classifies each hit; the manual findings are unchanged",
+   "acceptance_rule": "unchanged: no affirmative claim of anything RULES.md 12 lists as not claimable, the registered scope sentences present, every quoted number equal to the verifier's records",
+   "adjudication": "pending (coordinator)",
+   "utc": "2026-10-19T01:48:56+00:00",
+   "n": 4
+  }
+ ]
+}

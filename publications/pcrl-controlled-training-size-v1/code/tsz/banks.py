@@ -9,6 +9,8 @@ Members (each a complete release: frozen H3 income of the version + an occupatio
   CONT_AT_LOC    the matched zero-critic continuation at s*_LOC,v
   CONT_AT_PAIR   the matched zero-critic continuation at s*_PAIR,v
   LOC_AT_PAIR    LOC at s*_PAIR,v (descriptive only; RULES.md section 14 point 4; never enters a label)
+  TR100, TT100   the equally exposed full-pool task-only controls (TASK_REFIT and its T_TREE first stage on S100) with H3 income,
+                 read so that the equal-reserve comparison covers every method
   NEURAL_RAW, H_LJ, B2TWIN, RETIRED_B3CTL, SUCC, TWJ   the strong inherited references (frozen source releases)
 Selected strengths come only from the selection records (SELECTION_V<v>.json); nearby strengths are never substituted.
 """
@@ -25,8 +27,10 @@ OUT = C.RESULTS / 'grid_specs'
 
 def _selection(v):
     from . import select as SEL
-    p = SEL.selection_path(v) if hasattr(SEL, 'selection_path') else C.RESULTS / 'selection' / f'SELECTION_V{v}.json'
-    rec = json.loads(Path(p).read_text())
+    p = Path(SEL.SEL_DIR) / f'SELECTION_V{v}.json'
+    if not C.committed(p):
+        raise PermissionError(f'{p.name} must be committed before the reader bank is built')
+    rec = json.loads(p.read_text())
     return rec, C.sha(p)
 
 
@@ -53,6 +57,11 @@ def conditional():
             'W': {'path': str(wpath.relative_to(C.ROOT)), 'key': 'MODEL_SELECT', 'sha256': C.sha(wpath)},
             'LOC_SEL': ('LOC', s_loc), 'PAIR_SEL': ('PAIR', s_pair), 'CONT_AT_LOC': ('CONT', s_loc), 'CONT_AT_PAIR': ('CONT', s_pair),
             'LOC_AT_PAIR': ('LOC', s_pair)}
+        cdir = C.RUNS / 'CONTROL' / f'S100__V{v}'
+        for cname, sub, fname, key in (('TR100', 'STAGE_B', 'STAGE_B_OUTPUTS_FINAL.npz', 'TASK_REFIT__MODEL_SELECT__occupation'),
+                                       ('TT100', 'TEACHERS', 'TEACHER_OUTPUTS.npz', 'T_TREE__MODEL_SELECT__occupation')):
+            p = cdir / sub / fname
+            spec_v[cname] = {'path': str(p.relative_to(C.ROOT)), 'key': key, 'sha256': C.sha(p), 'row_id_key': 'row_id__MODEL_SELECT'}
         for name, x in spec_v.items():
             if isinstance(x, tuple):
                 arm, s = x
@@ -64,7 +73,7 @@ def conditional():
     for r in REFERENCES:
         members[r] = {'type': 'reference', 'name': r}
     cands = ['W', 'LOC_SEL', 'PAIR_SEL', 'CONT_AT_LOC', 'CONT_AT_PAIR', 'LOC_AT_PAIR']
-    comps = ['W', 'LOC_SEL', 'CONT_AT_LOC', 'CONT_AT_PAIR', 'LOC_AT_PAIR'] + list(REFERENCES)
+    comps = ['W', 'LOC_SEL', 'CONT_AT_LOC', 'CONT_AT_PAIR', 'LOC_AT_PAIR', 'TR100', 'TT100'] + list(REFERENCES)
     spec = {'bank_id': 'COND', 'purpose': 'conditional stage: the actual selected corrected releases of each version (identity where '
                                           'selected), the unchanged witness, the matched continuations and the strong inherited references',
             'members': members, 'candidates': cands, 'comparators': comps, 'fractions': [1.0], 'reps': ['R1', 'R2'],

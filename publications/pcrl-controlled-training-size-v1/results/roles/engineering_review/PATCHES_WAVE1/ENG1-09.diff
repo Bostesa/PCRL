@@ -1,0 +1,15 @@
+--- a/tsz/nested.py
++++ b/tsz/nested.py
+@@ -228,8 +228,11 @@
+     t0 = time.process_time(); w0 = time.time()
+     root = Path(dry['root']) if dry else ndir(v)
+     outp = root / f'NESTED_{arm}.json'
+-    if outp.exists() or (root / f'NESTED_{arm}.npz').exists():
++    if outp.exists():
+         raise PermissionError(f'{outp} exists (write-once)')
++    orphan = root / f'NESTED_{arm}.npz'
++    if orphan.exists():                    # npz without its record = an interrupted attempt: kept under a new name, never reused
++        orphan.rename(root / f'NESTED_{arm}.npz.incomplete_{time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())}')
+     S, ssrc = dry['strengths'] if dry else CR.strength_set(strict=True)
+     if dry:
+         X, names, y, sex, unit, inc = dry['X'], dry['names'], dry['y'], dry['sex'], dry['unit'], dry['income']

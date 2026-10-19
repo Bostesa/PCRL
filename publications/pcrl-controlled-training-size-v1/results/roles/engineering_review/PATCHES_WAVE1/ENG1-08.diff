@@ -1,0 +1,11 @@
+--- a/tsz/common.py
++++ b/tsz/common.py
+@@ -293,6 +293,8 @@
+     n = len(out['row_id'])
+     rows = np.ones(n, dtype=bool)
+     if not labels:
++        if subset is not None:
++            raise PermissionError('a subset restricts label reads only; a label-free read returns every row (use subset_mask)')
+         out['rows'] = rows
+         return out
+     if role in CLOSED_LABEL_ROLES:

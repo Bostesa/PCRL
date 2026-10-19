@@ -1,0 +1,112 @@
+{
+ "code_sha256": {
+  "v6_textscan.py": "d3d0eda02f11118857f59f90b882119704f2aad8abbc28d440a842607d2b58ab",
+  "vlib.py": "b19c28c9c2fc0dde6ef35ffc32ac7738deb0a8142057a5330bc2a5092d9a59d5"
+ },
+ "expected": "no forbidden claim; required scope present; numbers agree",
+ "id": "V6.TEXT_SCOPE_SCAN__V1",
+ "inputs": {
+  "results/pcrl_controlled_training_size_v1/ADVISOR_BRIEF.md": "e7f64afbf9c683b5ff7b1439f6375b278136b8c10e9909bd318b13b6b4bca0c4",
+  "results/pcrl_controlled_training_size_v1/RESEARCH_DECISION.md": "08ea0b7a81856e28ba98d55e1f909a0aa92d167977a9513317becdf5ccee3ff3",
+  "results/pcrl_controlled_training_size_v1/START_HERE.md": "427939f39ba1245ad45100cd80573b40227acb5506b24f3cfa2f343df4dd1428"
+ },
+ "kind": "PROCEDURAL_COMPLIANCE",
+ "observed": {
+  "findings": [
+   {
+    "doc": "RESEARCH_DECISION.md",
+    "severity": "ATTENTION",
+    "text": "\"the difference between the two gains (per-person double difference) is not resolved for any metric\"",
+    "verifier": "the DiD vs TASK_REFIT for women's Brier (50->100) is VERSION_DEPENDENT: resolved positive in v1 (+2.44e-3), unresolved in v0 (+1.21e-3); \"not resolved on both versions for any metric\" would be exact",
+    "where": "section 3, size gain of the control"
+   },
+   {
+    "doc": "RESEARCH_DECISION.md",
+    "severity": "ATTENTION",
+    "text": "\"binds the whole-release reserve of every H3-anchored release at 2.86 (v1 income accuracy)\"",
+    "verifier": "not every H3-anchored release: T_TREE at 100% (TT100) binds on its occupation side at 2.60 (v1), and the A1_PO_16 50% fits bind on the men's guard (down to 1.11); the statement holds for the conditional candidates, W and TR100",
+    "where": "section 7, first sentence"
+   },
+   {
+    "doc": "RESEARCH_DECISION.md",
+    "severity": "NOTE",
+    "text": "\"every reference fails the reserve (whole-release minimum ratios 0.32-1.95)\"",
+    "verifier": "per-version minima span 0.32-1.95; the equal-reserve table (minimum over both versions) spans 0.32-1.56 (NEURAL_RAW 1.95 / 1.56)",
+    "where": "section 6, equal reserve"
+   },
+   {
+    "doc": "RESEARCH_DECISION.md / ADVISOR_BRIEF.md / START_HERE.md",
+    "severity": "ATTENTION",
+    "text": "\"the lost margin is explained by training size on this pool\" / \"Training size explains the lost margin on this pool\" / \"On this pool the lost margin is a training-size effect\"",
+    "verifier": "C1 is MARGIN_RESTORED_BY_TRAINING_SIZE_ON_THIS_POOL, whose registered scope is non-causal for historical differences (RULES.md 3.6 / 11: \"the larger nested training sets had resolved lower loss on MODEL_SELECT and the margin pattern matched\"; not causal for every historical difference). \"explained by\" and especially \"is a training-size effect\" (START_HERE) read causally about the earlier campaign's lost margin; the earlier partitions also differed in rows and dictionaries",
+    "where": "decision in brief; finding 1; outcome line"
+   },
+   {
+    "doc": "RESEARCH_DECISION.md",
+    "severity": "ATTENTION",
+    "text": "\"so the gain is a training-size property of this pool and these learners, not a recipe-specific one\"",
+    "verifier": "the registered result is CONTROL_EXPLAINS_GAIN (recipe gain and control gain resolved, DiD not resolved on both versions); an unresolved DiD is absence of a resolved recipe-specific gain, not evidence that none exists",
+    "where": "decision in brief"
+   },
+   {
+    "doc": "ADVISOR_BRIEF.md / START_HERE.md",
+    "severity": "ATTENTION",
+    "text": "reader outcomes are reported (\"All 8 cells are positive, but the registered screen says not stable\"; \"does not lower the readers' recovery stably\")",
+    "verifier": "A-SC1 section 5 requires its disclosure sentence wherever reader labels are reported; RESEARCH_DECISION.md carries it verbatim, ADVISOR_BRIEF.md paraphrases it in its process notes, START_HERE.md does not carry it",
+    "where": "reader results"
+   }
+  ],
+  "forbidden_phrase_hits": {
+   "ADVISOR_BRIEF.md": [
+    {
+     "context": "ll-data refit reproduces the source package bitwise** (both versions; confirmed by the verifier's own refits), with    minimum occupation reserve rat",
+     "line": 25,
+     "pattern": "\\bconfirm(?:s|ed|ation)?\\b(?! (?:nothing|of nothing))"
+    },
+    {
+     "context": "TION_RECIPE_CLOSED). Not a useful component, not competitive, nothing confirmed.  **Process notes.** - The reader-seed check had to be amended after ",
+     "line": 38,
+     "pattern": "\\bconfirm(?:s|ed|ation)?\\b(?! (?:nothing|of nothing))"
+    }
+   ],
+   "RESEARCH_DECISION.md": [
+    {
+     "context": " earlier campaign and was the common evaluation role here: nothing is confirmation. The   ATTACK_FIT, ATTACK_VALIDATION and DEV_REPORT labels, the seale",
+     "line": 9,
+     "pattern": "\\bconfirm(?:s|ed|ation)?\\b(?! (?:nothing|of nothing))"
+    },
+    {
+     "context": "ontrol, so \"training size\" explains it, not the recipe. This is not a population learning curve.  Design: four household orderings of MODEL_FIT, nested subsets of 6,",
+     "line": 34,
+     "pattern": "population learning curve(?! ?\\()"
+    },
+    {
+     "context": "tegory pooling does not explain the size effect. - **Not claimed:** a population learning curve, independent replication (orderings are nested draws from one pool; v",
+     "line": 65,
+     "pattern": "population learning curve(?! ?\\()"
+    },
+    {
+     "context": "tered, pooled cross-fitted costs target 90%-size submodels and do not guarantee the deployed model's costs.  ## 5. Did readers evaluate those exact s",
+     "line": 114,
+     "pattern": "\\bguarantee[sd]?\\b"
+    },
+    {
+     "context": "not a useful protection component and not a competitive result. C7   (joint-design advantage) NOT_CLAIMABLE; C8 (novelty) NOT_CLAIMED. Occupation-only optimizatio",
+     "line": 183,
+     "pattern": "\\bjoint[- ]design advantage\\b"
+    }
+   ]
+  },
+  "required_scope_missing": {
+   "RESEARCH_DECISION.md": [
+    "not a new two-output joint method"
+   ]
+  },
+  "verified": [
+   "every table and bullet number of RESEARCH_DECISION.md sections 1-7 and ADVISOR_BRIEF.md findings 1-4 that the verifier replayed matches its own records within rounding: size table means (men's and NLL excess), reserve counts and ratio ranges, the five 50->100 contrasts with SEs and labels, 50->70 / 70->100 labels, subset spread and version difference, encoding E and share, T*, trigger agreement, usable slack 5.2 / 3.9e-3, level differences vs TASK_REFIT and T_TREE with labels, control reserve counts and ratios 3.41 / 3.19, CONTROL_EXPLAINS_GAIN, selected strengths, realized vs predicted costs, the six pair-benefit rows (mean, min, max, label), utility ratios, reference pair-benefit range -2.8 to -45.2e-3, gates, target, equal-reserve frontier statement, income ratios 3.51 / 2.86, the RETIRED_B3CTL income-gate exception",
+   "not verified by the verifier: the earlier campaign's 42-53% men's excess values (+0.65 / +2.15 / +1.11 / +1.89e-3) and the identical model files of REPRO.json (the verifier compared release arrays, not model files)"
+  ]
+ },
+ "status": "FAIL",
+ "what": "final texts (RESEARCH_DECISION.md, ADVISOR_BRIEF.md, START_HERE.md) scanned against RULES.md sections 11-12 (claims kept separate, scope sentences, nothing claimable that is listed as not claimable) and A-SC1 section 5 (disclosure sentence), and every quoted number checked against the verifier's own records"
+}

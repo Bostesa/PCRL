@@ -1,0 +1,136 @@
+{
+ "budget_context": "campaign limit 14 CPU-hours; this stage would use about 1.4-1.6 CPU-hours (planning, with margin)",
+ "data": "label-free: REAL MODEL_FIT features (admitted 145-column X, 20,000 people, 13,337 households) with INVENTED labels: occupation sampled from the admitted T_TREE S0 occupation probabilities, income sampled from the H3 S0 income probabilities, SEX drawn from a logistic model in WKHP and teacher probabilities; no label file was opened and no access-log line was written",
+ "extrapolation": {
+  "assumptions": [
+   "inner-CV HGB fits always run to max_iter = 1000 (early stopping off), so the witness cost hardly depends on the labels; real-label T* (154-168 at 20,000) only lengthens the refits slightly",
+   "the correction benchmark used the admitted T_TREE S0 routing with T = 800 trees (the CatBoost cap): real nested teachers have T <= 800, so the correction figures are upper bounds in T",
+   "the fixed recipe (20 epochs x 40 steps x 256 rows, 80 warm critic rounds, 5 critic rounds per update) makes the correction cost nearly independent of n (18,005 vs 20,000 rows measured 26 s vs 25 s)",
+   "CatBoost tree counts with real labels may differ from the invented-label count (714); <= 800 trees bounds it"
+  ],
+  "both_versions_cpu_h_LOC_PAIR": 1.142,
+  "both_versions_cpu_h_with_CONT": 1.289,
+  "both_versions_total_cpu_s_LOC_PAIR": 4111.0,
+  "cross_checks": {
+   "cts_nested_correct_fold_cpu_s_at_6740": "17.5-22.4 (CTS1 D0 NESTED_PAIR, T up to 800)",
+   "source_A1_PO_16_pipeline_cpu_s_at_20000": {
+    "S0": 124.1,
+    "S1": 127.0,
+    "note": "OCC.json pipeline_cpu_s of the source fits (python3, sklearn 1.8.0)"
+   }
+  },
+  "optional_nested_CONT_per_version_cpu_s": 265.5,
+  "per_version_cpu_s": {
+   "base_full_pool (PY; 1 A1_PO_16 pipeline on 20,000 = 36 HGB fits)": 128.3,
+   "direction x3 arms (TORCH; 1 correction + 9 critics each, 20,000 rows)": 74.8,
+   "nested correct LOC (TORCH; 10 outer folds)": 261.9,
+   "nested correct PAIR (TORCH; 10 outer folds)": 259.0,
+   "nested routing (CATBOOST; 10 outer folds x 2 CatBoost fits)": 65.3,
+   "nested witness (PY; 10 outer folds x 36 HGB fits on ~18,000)": 1155.2,
+   "releases (PY; label-free arrays + six-role deployment re-check; estimate)": 30.0,
+   "select (PY; no label)": 1.0,
+   "verify (PY; label-free fresh-process predict() re-check; estimate)": 20.0
+  },
+  "per_version_total_cpu_s_LOC_PAIR": 2055.5,
+  "planning_cpu_h_LOC_PAIR": 1.43,
+  "planning_cpu_h_with_CONT": 1.61,
+  "planning_margin": 1.25,
+  "rss": "peak child RSS 0.81-0.99 GiB per unit; reservations: 2.0 GiB (base, nested witness), 1.5 GiB (others)",
+  "unit_overhead_cpu_s": 5.0,
+  "units_per_version": 12,
+  "wall_estimate": "two lanes in parallel (one queue slot each): about 34 min each (LOC + PAIR), 39 min with CONT; with one free slot the lanes serialize: about 69 min"
+ },
+ "outer_fold_measured": {
+  "fold": 0,
+  "held_out": {
+   "households": 1334,
+   "people": 1995
+  },
+  "tag": "TSZ1_ncv10",
+  "training": {
+   "households": 12003,
+   "people": 18005
+  }
+ },
+ "per_step_cpu_s": {
+  "correct_one_outer_fold_LOC": {
+   "cpu_s": 26.2,
+   "lambda": 0.7221891993087649,
+   "routing_T": 800,
+   "rows": 18005
+  },
+  "correct_one_outer_fold_PAIR": {
+   "cpu_s": 25.9,
+   "lambda": 0.3999469992456481,
+   "routing_T": 800,
+   "rows": 18005
+  },
+  "direction_full_pool_PAIR": {
+   "cpu_s": 24.9,
+   "note": "the record's 'training' field shows fold 0's 90% (bench bookkeeping); the fit used all 20,000 rows",
+   "routing_T": 800,
+   "rows": 20000
+  },
+  "routing_one_outer_fold": {
+   "cpu_s": 6.5,
+   "parity_ok": true,
+   "tree_count_invented_labels": 714
+  },
+  "setup_cpu_s_max": 0.79,
+  "witness_one_outer_fold": {
+   "T_k": {
+    "0": 128,
+    "1": 110,
+    "2": 114,
+    "3": 104,
+    "4": 106
+   },
+   "T_star_invented_labels": 130,
+   "cpu_s": 115.5,
+   "n_collapsed_fold_dictionary": {
+    "COW": 0,
+    "MAR": 0,
+    "POBP": 5,
+    "SCHL": 0
+   },
+   "physical_fits": 36,
+   "rows": 18005
+  }
+ },
+ "queue_units": {
+  "TSZ_BENCH_CORR_CORRECT_LOC_V1": {
+   "charged_cpu_s": 27.29,
+   "child_maxrss_gib": 0.97,
+   "status": "done",
+   "wall_s": 28.153
+  },
+  "TSZ_BENCH_CORR_CORRECT_PAIR_V1": {
+   "charged_cpu_s": 26.998,
+   "child_maxrss_gib": 0.949,
+   "status": "done",
+   "wall_s": 27.248
+  },
+  "TSZ_BENCH_CORR_DIRECTION_PAIR_V1": {
+   "charged_cpu_s": 25.933,
+   "child_maxrss_gib": 0.994,
+   "status": "done",
+   "wall_s": 26.692
+  },
+  "TSZ_BENCH_CORR_ROUTING_V1": {
+   "charged_cpu_s": 7.342,
+   "child_maxrss_gib": 0.807,
+   "status": "done",
+   "wall_s": 7.558
+  },
+  "TSZ_BENCH_CORR_WITNESS_V1": {
+   "charged_cpu_s": 116.415,
+   "child_maxrss_gib": 0.971,
+   "status": "done",
+   "wall_s": 116.936
+  }
+ },
+ "role": "correction investigator",
+ "schema": "TSZ1-correction-compute-benchmark-v1",
+ "threads": "one numerical thread per job (tsz.jobqueue THREAD_ENV; torch.set_num_threads(1) inside train_correction; CatBoost thread_count=1)",
+ "utc": "2026-10-19T00:29:09+00:00"
+}
