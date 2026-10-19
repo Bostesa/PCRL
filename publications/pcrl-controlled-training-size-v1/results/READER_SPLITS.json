@@ -1,0 +1,128 @@
+{
+ "bootstrap": {
+  "B": 400,
+  "seed": "2026101900 + 100 x version + repetition index {'R1': 0, 'R2': 1}",
+  "unit": "SCORE households, readers fixed"
+ },
+ "cache": {
+  "key": "SHA-256(\"TSZ1-devgrid-v1|<rep>|<reader seed>|<FIT fraction>|<wire hash>|<SEX array hash>\")",
+  "own": ".private/pcrl_controlled_training_size_v1/runs/devgrid_cache",
+  "source": "none (fresh readers)"
+ },
+ "cells": [
+  "S0R1k0",
+  "S0R1k1",
+  "S0R2k0",
+  "S0R2k1",
+  "S1R1k0",
+  "S1R1k1",
+  "S1R2k0",
+  "S1R2k1"
+ ],
+ "exclusion": "MODEL_SELECT households never enter the fitting of release models, calibrators or correction parameters",
+ "household_overlap_between_repetitions": {
+  "R1_vs_R2_FIT": 1308,
+  "R1_vs_R2_SCORE": 476,
+  "R1_vs_R2_VALIDATION": 204
+ },
+ "household_overlap_with_earlier_grid_splits": {
+  "R1_FIT_vs_earlier_R1_FIT": 1352,
+  "R1_FIT_vs_earlier_R2_FIT": 1279,
+  "R1_SCORE_vs_earlier_R1_SCORE": 481,
+  "R1_SCORE_vs_earlier_R2_SCORE": 443,
+  "R1_VALIDATION_vs_earlier_R1_VALIDATION": 221,
+  "R1_VALIDATION_vs_earlier_R2_VALIDATION": 187,
+  "R2_FIT_vs_earlier_R1_FIT": 1329,
+  "R2_FIT_vs_earlier_R2_FIT": 1332,
+  "R2_SCORE_vs_earlier_R1_SCORE": 485,
+  "R2_SCORE_vs_earlier_R2_SCORE": 497,
+  "R2_VALIDATION_vs_earlier_R1_VALIDATION": 200,
+  "R2_VALIDATION_vs_earlier_R2_VALIDATION": 194
+ },
+ "pool": "MODEL_SELECT (8,001 people, 5,306 households); used adaptively by earlier campaigns",
+ "reader_seeds": {
+  "V0k0": 2026101705,
+  "V0k1": 2026101706,
+  "V1k0": 2026101715,
+  "V1k1": 2026101716
+ },
+ "recipes": {
+  "new8": [
+   "ET5",
+   "ET25",
+   "HGB15",
+   "HGB31",
+   "MLP64",
+   "MLP6432",
+   "CATI01",
+   "CATI1"
+  ],
+  "source8": [
+   "OUT_LR",
+   "OUT_MLP",
+   "OUT_HGB",
+   "LOG_LR",
+   "LOG_MLP",
+   "DEC_LR",
+   "CONF_HGB",
+   "LOOKUP"
+  ]
+ },
+ "registered_repetitions": [
+  "R1",
+  "R2"
+ ],
+ "repetitions": {
+  "R1": {
+   "FIT": {
+    "household_set_sha256": "1ced5b5a31ee474655759ce0c50fd04cbd64358151503085b8fafe8fac661d00",
+    "households": 2655,
+    "people": 3980
+   },
+   "SCORE": {
+    "household_set_sha256": "dbe1cce66e23c50dc0d0d385ed3a083e642c8add5ca9d123f4921ef396a1d88c",
+    "households": 1590,
+    "people": 2425
+   },
+   "VALIDATION": {
+    "household_set_sha256": "f497404a46cefd6497f7f674af942392c80aafc8a9efb4567a89100af958beb2",
+    "households": 1061,
+    "people": 1596
+   },
+   "disjoint": true,
+   "tag": "TSZ1_devgrid_R1"
+  },
+  "R2": {
+   "FIT": {
+    "household_set_sha256": "b3e1c913a06f2abf6625ea94773262b17d02e124b8fdc2202d2ff698d58bb54b",
+    "households": 2655,
+    "people": 3982
+   },
+   "SCORE": {
+    "household_set_sha256": "789d4a5311742f2867fb04f7cc700bc923ddef918f71b41aecd12bc7f82f9eb9",
+    "households": 1590,
+    "people": 2431
+   },
+   "VALIDATION": {
+    "household_set_sha256": "2297c72a4a7d391ec65fec0b1ba89c45e821fdd333c5ecb50c72cdc29b6d32f7",
+    "households": 1061,
+    "people": 1588
+   },
+   "disjoint": true,
+   "tag": "TSZ1_devgrid_R2"
+  }
+ },
+ "schema": "TSZ1-devgrid-v1",
+ "selection": "max oriented VALIDATION AUC; exact ties to the earlier candidate (source first, pair then ignore-occupation then ignore-income); near tie < 0.010 flagged; SCORE never used for selection",
+ "tags": {
+  "repetitions": {
+   "R1": "TSZ1_devgrid_R1",
+   "R2": "TSZ1_devgrid_R2"
+  }
+ },
+ "versions_at_manifest": {
+  "numpy": "2.4.2",
+  "scipy": "1.17.1",
+  "sklearn": "1.8.0"
+ }
+}

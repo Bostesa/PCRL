@@ -1,0 +1,195 @@
+{
+  "schema": "TSZ1-rules-v1",
+  "campaign": "pcrl_controlled_training_size_v1",
+  "author_role": "statistical reviewer",
+  "written_before_outcomes": "writing started 2026-10-19T00:04:26Z (date -u), before any new real-label computation, fit or outcome of this campaign; no label read, no real-data fit, no label-reading loader called",
+  "human_readable": "RULES.md (same directory)",
+  "implementation": "tsz/rules.py (pure functions; load_rules() checks this file against the module constants); invented-data tests: python3 -m tsz.test_rules",
+  "status_of_every_rule": "development rule on previously and adaptively used records; changes no original limit; the two-SE reserve is a development heuristic, not a new scientific cap or population guarantee; uncertainty statements are asymptotic and model-based",
+  "disclosure_known_values": "the published source witness margins (results/pcrl_occupation_headroom_overnight_v1/WITNESS_SELECTION.json: A1_PO_16 minimum occupation-side ratio 4.30 on s1 guard|sex0, then 4.88 s0 guard|sex0, 5.57 s1 occupation accuracy) and the CTS1 training-size records (TRAINING_SIZE_BET.json, TRAINING_SIZE_CURVE.json) were known when every constant was chosen",
+  "source_files": {
+    "results/pcrl_occupation_headroom_overnight_v1/roles/statistical_reviewer/RULES.json": "e18f1c68f4646ce9d1395960ab1a364a80c12541b815a55e0ba06b65074cbbb3"
+  },
+  "original_limits": {
+    "caps": {"accuracy_loss": 0.01, "nll_excess": 0.01, "brier_excess": 0.005},
+    "within_sex_guard_cap": 0.005,
+    "recipient_limit_auc": 0.01,
+    "material_target_auc": 0.02,
+    "utility_clauses": "income and occupation x U0_S<v> and Ucal_S<v> x accuracy loss, NLL excess (nats), summed Brier excess x versions 0 and 1: 24 clauses",
+    "guards": "within-SEX occupation summed-Brier excess vs U0_S<v>, men (sex0) and women (sex1), versions 0 and 1: 4 guards",
+    "unchanged": true
+  },
+  "versions": {
+    "values": [0, 1],
+    "meaning": "source seed v: references U0_S<v>/Ucal_S<v>, H3 income S<v>, H_LJ floor of seed v, procedure seeds of seed v",
+    "independence": "procedure repeats sharing every training row; never independent replications; never pooled"
+  },
+  "reserve": {
+    "rule": "ohn.rules.reserve imported unchanged (OHN1-rules-v1)",
+    "rule_sha256": "e18f1c68f4646ce9d1395960ab1a364a80c12541b815a55e0ba06b65074cbbb3",
+    "multiplier_k": 2.0,
+    "floor_households": 5306,
+    "floor_reference": "H_LJ MODEL_SELECT SE of the same condition and seed (copied unchanged from OHN1 reserve.floor.se)",
+    "se_used": "max(own SE, floor SE x sqrt(5306 / households))",
+    "condition": "margin = cap - value >= k x se_used (inclusive); ratio = margin / se_used",
+    "occupation_side_conditions": ["occupation|U0|accuracy_loss", "occupation|U0|nll_excess", "occupation|U0|brier_excess",
+                                   "occupation|Ucal|accuracy_loss", "occupation|Ucal|nll_excess", "occupation|Ucal|brier_excess",
+                                   "guard|sex0", "guard|sex1"],
+    "occupation_side_status": ["OCC_RESERVE_MET_BOTH", "OCC_RESERVE_ONE_VERSION", "OCC_RESERVE_NOT_MET"],
+    "income": "12 income conditions per version inherited from H3; reported separately; never in the occupation-side reserve, the trigger or the strength rule",
+    "floor_se_occupation_side": {
+      "0": {"guard|sex0": 0.0018137835315699534, "guard|sex1": 0.0016982056785958925,
+            "occupation|U0|accuracy_loss": 0.003508552063819701, "occupation|U0|brier_excess": 0.0012445265056945948,
+            "occupation|U0|nll_excess": 0.003008418813347219, "occupation|Ucal|accuracy_loss": 0.003508552063819701,
+            "occupation|Ucal|brier_excess": 0.0011955902448131499, "occupation|Ucal|nll_excess": 0.002870624896810981},
+      "1": {"guard|sex0": 0.001696534070467857, "guard|sex1": 0.0017104809247479097,
+            "occupation|U0|accuracy_loss": 0.003543392635156161, "occupation|U0|brier_excess": 0.0012007928697899864,
+            "occupation|U0|nll_excess": 0.0027647937601303968, "occupation|Ucal|accuracy_loss": 0.003543392635156161,
+            "occupation|Ucal|brier_excess": 0.001188638633934499, "occupation|Ucal|nll_excess": 0.0027348115634206176}
+    }
+  },
+  "size_design": {
+    "methods": ["A1_PO_16", "TASK_REFIT", "T_TREE"],
+    "primary_control": "TASK_REFIT",
+    "fractions": [50, 70, 100],
+    "orderings": ["O0", "O1", "O2", "O3"],
+    "contrasts": {"50->70": [50, 70], "70->100": [70, 100], "50->100": [50, 100]},
+    "metrics": ["acc_loss", "nll", "brier", "men_brier", "women_brier"],
+    "sign": "change(a->b) = loss(b) - loss(a); improvement g = -change (positive = larger training set better)",
+    "primary_endpoint": {"contrast": "50->100", "metric": "men_brier", "versions": "both"},
+    "estimator": "household-clustered paired SE on MODEL_SELECT (cluster_se; subgroup_se for SEX groups), identical to ihs.evaluate",
+    "ordering_summary": "mean over 4 orderings; SD_ord (df 3); se_eval = sqrt(mean s_o^2); se_comb = sqrt(se_eval^2 + SD_ord^2 / 4); one fit: se_comb = own SE",
+    "z": 2.0,
+    "labels_per_version": ["RESOLVED_POSITIVE", "RESOLVED_NEGATIVE", "UNRESOLVED", "INCOMPLETE"],
+    "resolved_requires_no_sign_reversal": true,
+    "labels_across_versions": ["POSITIVE_BOTH_VERSIONS", "NEGATIVE_BOTH_VERSIONS", "VERSION_DEPENDENT", "NOT_RESOLVED", "INCOMPLETE"],
+    "size_effect_labels": ["SIZE_GAIN_RESOLVED", "SIZE_LOSS_RESOLVED", "SIZE_EFFECT_UNRESOLVED", "INCOMPLETE"],
+    "margin_patterns": ["FULL_ONLY", "ALL_SIZES", "FULL_NOT_REPRODUCED", "INCOMPLETE"],
+    "margin_pattern_flags": ["FULL_ONLY_70_RETAINS", "NON_NESTED_PATTERN_50_RETAINS_70_LOSES"],
+    "margin_pattern_rule": "met100 = W100 meets the occupation-side reserve on both versions; n50 / n70 = cells of 8 (ordering, version) meeting it; FULL_NOT_REPRODUCED if not met100; FULL_ONLY if met100 and (n50 < 8 or n70 < 8); ALL_SIZES if met100 and n50 = n70 = 8",
+    "size_explanation_labels": ["SUPPORTED_ON_THIS_POOL", "NOT_SUPPORTED", "NOT_APPLICABLE_FULL_NOT_REPRODUCED", "UNRESOLVED", "INCOMPLETE"],
+    "interpretation_rules": {
+      "IR1": "FULL_ONLY: full-data refitting reproduces the margin while smaller fits lose it; the previous reduced-training experiment did not settle full-data feasibility",
+      "IR2": "FULL_NOT_REPRODUCED: inspect exact implementation and exposure differences; no retuning",
+      "IR3": "an ordinary equally exposed control explains the gain (CONTROL_EXPLAINS_GAIN or CONTROL_ALSO_MEETS_RESERVE)",
+      "IR4": "uncertainty leaves the size explanation unresolved"
+    }
+  },
+  "control": {
+    "level_labels": ["RECIPE_BETTER_RESOLVED", "RECIPE_WORSE_RESOLVED", "VERSION_DEPENDENT", "NOT_RESOLVED", "INCOMPLETE"],
+    "explains_labels": ["CONTROL_EXPLAINS_GAIN", "RECIPE_SPECIFIC_SIZE_GAIN", "NO_RECIPE_SIZE_GAIN", "RECIPE_GAIN_CONTROL_UNRESOLVED", "INCOMPLETE"],
+    "explains_contrast": "50->100",
+    "equal_reserve_flag": "CONTROL_ALSO_MEETS_RESERVE"
+  },
+  "reproduction": {
+    "labels": ["REPRODUCED_BITWISE", "REPRODUCED_WITHIN_TOLERANCE", "NOT_REPRODUCED", "INCOMPLETE"],
+    "max_abs_tolerance": 1e-12,
+    "requires_identical_decisions": true,
+    "requires_identical_tstar": true,
+    "margin_label": "MARGIN_REPRODUCED"
+  },
+  "encoding_sensitivity": {
+    "fits": "A1_PO_16 at S50(o), v = 0, o = O0..O3, admitted full-MODEL_FIT dictionary vs FIT-only dictionary",
+    "sign": "E_o = loss(FIT-only) - loss(admitted); positive = admitted dictionary better",
+    "labels": ["ENCODING_EFFECT_RESOLVED", "ENCODING_EFFECT_RESOLVED_NEGATIVE", "ENCODING_EFFECT_UNRESOLVED", "INCOMPLETE"]
+  },
+  "trigger": {
+    "evaluated_at": "once, at task-stage close, before any correction fit",
+    "parts": {
+      "T0": "both versions of W100 evaluated; 28 finite conditions per version; H3 income hash equals the admitted wire",
+      "T1": "both versions: 6 occupation point caps and 2 within-SEX guards (inclusive)",
+      "T2": "both versions: all 8 occupation-side conditions meet the reserve (k = 2, OHN1 H_LJ floor), via ohn.rules.reserve",
+      "T3": "both versions: deployed package from the six raw fields reproduces the stored W100_v release bitwise on every evaluated role and every registered refusal check passes (verifier record)"
+    },
+    "deployment_record": "results/pcrl_controlled_training_size_v1/roles/verifier/DEPLOY_W100.json",
+    "deployment_record_fields": ["bitwise", "refusals_all_pass"],
+    "deployment_record_keys": ["0", "1"],
+    "secondary_non_gating_record": {"path": "results/pcrl_controlled_training_size_v1/deploy/DEPLOYMENT_CHECKS_W100.json", "fields": ["all_bitwise", "all_refused"], "role": "second record by the coordinator's tsz.deploy check; non-gating; a disagreement with the verifier record is reported and blocks the trigger until resolved, never by relaxing a check"},
+    "labels": ["TRIGGER_FIRES", "TRIGGER_DOES_NOT_FIRE"],
+    "excluded": "income conditions, smaller subsets, controls, readers, reproduction status; nothing relaxed after outcomes"
+  },
+  "correction": {
+    "arms": ["W", "CONT", "LOC", "PAIR"],
+    "primary_arm": "LOC",
+    "secondary_arm": "PAIR",
+    "recipe": "ohn.protect.train_correction, guard 'none', one full pipeline per arm; release r_s = softmax(log p_W + s x Delta_arm)",
+    "guard_none_targets_constant": {"men": 0.005, "women": 0.005},
+    "guard_none_targets_rule": "the fixed constant above (the original guard cap) in every outer fold and in the full pipeline; theta must be bitwise invariant to targets under guard 'none' (invented-data check)",
+    "strengths": [0.0, 0.01, 0.03, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0],
+    "cont_rule": "CONT is evaluated at the selected strength of the arm it matches; no own selection"
+  },
+  "selection": {
+    "information": "nested 10-fold household cross-fitting of MODEL_FIT (tag TSZ1_ncv10); every upstream layer refitted inside each outer fold (witness, its cross-fitting base, routing, LOC and PAIR corrections); per-person increments vs s = 0 pooled over 20,000 people",
+    "nested_cont": "optional (only if the compute budget allows), descriptive, never gating",
+    "outer_folds": 10,
+    "fold_tag": "TSZ1_ncv10",
+    "statistics": ["men_brier", "women_brier", "brier", "nll", "acc_loss"],
+    "slack_of": {"men_brier": ["guard|sex0"], "women_brier": ["guard|sex1"],
+                 "brier": ["occupation|U0|brier_excess", "occupation|Ucal|brier_excess"],
+                 "nll": ["occupation|U0|nll_excess", "occupation|Ucal|nll_excess"],
+                 "acc_loss": ["occupation|U0|accuracy_loss", "occupation|Ucal|accuracy_loss"]},
+    "allowance_lambda": 1.0,
+    "allowance_definition": "a_j(v) = lambda x min over conditions mapped to j of the OHN1 H_LJ floor SE of version v",
+    "allowance": {
+      "0": {"men_brier": 0.0018137835315699534, "women_brier": 0.0016982056785958925, "brier": 0.0011955902448131499,
+            "nll": 0.002870624896810981, "acc_loss": 0.003508552063819701},
+      "1": {"men_brier": 0.001696534070467857, "women_brier": 0.0017104809247479097, "brier": 0.001188638633934499,
+            "nll": 0.0027348115634206176, "acc_loss": 0.003543392635156161}
+    },
+    "z": 2.0,
+    "pass_test": "for all 5 statistics: estimate + z x SE <= allowance (inclusive); non-finite fails; negative estimates allowed",
+    "selected": "largest s such that every nonzero strength <= s passes (fixed sequence); identity if the smallest nonzero strength fails",
+    "non_monotone": "the sequence stops at the first failure; a later pass is never selected (flag PASS_AFTER_FAIL)",
+    "identity": "always admissible and stored as the selected release",
+    "both_versions_nonzero_required": false,
+    "model_select_used": false,
+    "disclosure": "pooled cross-fitted cost estimates target reduced-size submodels and do not guarantee the deployed 100% model's costs"
+  },
+  "readers": {
+    "grid_tags": ["TSZ1_devgrid_R1", "TSZ1_devgrid_R2"],
+    "parts": {"FIT": [0, 1, 2, 3, 4], "VALIDATION": [5, 6], "SCORE": [7, 8, 9]},
+    "bootstrap_B": 400,
+    "cells": ["S0R1k0", "S0R1k1", "S0R2k0", "S0R2k1", "S1R1k0", "S1R1k1", "S1R2k0", "S1R2k1"],
+    "benefit_sign": "comparator SCORE AUC - candidate SCORE AUC (pair view; positive = candidate read less)",
+    "recipient_sign": "candidate SCORE AUC - comparator SCORE AUC (income and occupation views; <= 0.010 every cell)",
+    "z": 2.0,
+    "spread": "d_v = mean of version v's 4 cells; v_rep = SS / (n_eff - 2) with SS = sum over DISTINCT cells of (b - d_v)^2 (a (v, R) pair whose k0 and k1 cells are equal enters once); n_eff = 4 + number of (v, R) pairs with b(k0) != b(k1); v_samp = mean of the 8 squared cell SEs; sd_total = sqrt(v_rep + v_samp); identical to the source screen when n_eff = 8",
+    "k_differs": "per (v, R): b(k0) != b(k1), exact float comparison",
+    "reader_seed_qualifiers": {"READER_SEEDS_EFFECTIVE_ALL_PAIRS": "n_eff = 8", "READER_SEEDS_PARTLY_EFFECTIVE": "n_eff in 5..7", "READER_SEED_REPLICATION_ABSENT": "n_eff = 4"},
+    "genuinely_effective": "the grid passed the effective-seed check AND the comparison's qualifier is READER_SEEDS_EFFECTIVE_ALL_PAIRS; only then may a result be described as holding across reader seeds; the qualifier never changes the label",
+    "stability_labels": ["STABLE_POSITIVE", "POSITIVE_NOT_STABLE", "SIGN_CHANGES", "NOT_POSITIVE", "INCOMPLETE"],
+    "target_labels": ["DEV_GRID_TARGET_STABLE", "DEV_GRID_TARGET_POINT_ONLY", "DEV_GRID_TARGET_NOT_MET"],
+    "seed_dependent_recipes": ["ET5", "ET25", "MLP64", "MLP6432", "OUT_MLP", "LOG_MLP"],
+    "seed_invariant_recipes": ["OUT_LR", "OUT_HGB", "LOG_LR", "DEC_LR", "CONF_HGB", "LOOKUP", "HGB15", "HGB31", "CATI01", "CATI1"],
+    "forbidden_seed_formula": "MODEL_SEED_BASE + 300 + 10 v + k for v in {0, 1}, k in 0..9 (OHN1 / CTS1 grid seeds); MODEL_SEED_BASE = 2026101205",
+    "effective_seed_labels": ["READER_SEEDS_EFFECTIVE", "READER_SEEDS_NOT_EFFECTIVE"],
+    "flags": ["NONDETERMINISTIC_RECIPE", "READER_SEED_REPLICATION_ABSENT"]
+  },
+  "comparators": {
+    "required": ["NEURAL_RAW", "H_LJ", "B2TWIN", "RETIRED_B3CTL", "SUCC", "TWJ"],
+    "target_references": ["NEURAL_RAW", "H_LJ"],
+    "eligibility": "original point feasibility only (24 clauses + 4 guards, published values); kept even if they fail the reserve",
+    "equal_reserve": "the same 28-condition and 16-condition reserve applied identically to candidates, controls and references; qualified iff minimum ratio >= 2 on both versions"
+  },
+  "claims": {
+    "C1": "MARGIN_RESTORED_BY_TRAINING_SIZE_ON_THIS_POOL iff size_explanation = SUPPORTED_ON_THIS_POOL",
+    "C2": "UTILITY_PRESERVED_BOTH_VERSIONS / UTILITY_PRESERVED_ONE_VERSION / UTILITY_NOT_PRESERVED / NO_NONZERO_SELECTION (per arm; point limits AND occupation-side reserve; used by the closure rule)",
+    "C2p": "UTILITY_POINT_PRESERVED_BOTH_VERSIONS / UTILITY_POINT_PRESERVED_ONE_VERSION / UTILITY_POINT_NOT_PRESERVED / NO_NONZERO_SELECTION (per arm; original point limits only, 12 + 2 per version = 24 + 4; reported beside C2, never used for closure)",
+    "closure_uses": "C2",
+    "every_selected_release": "point status and occupation-side reserve status reported separately for every selected release, identity included, both versions",
+    "C3": "RECOVERY_BELOW_CONTINUATION iff STABLE_POSITIVE vs CONT at the same strength",
+    "C3w": "RECOVERY_BELOW_WITNESS iff STABLE_POSITIVE vs W100",
+    "C4": "RECOVERY_BELOW_LOCAL_CORRECTION (PAIR only) iff STABLE_POSITIVE vs LOC at LOC's own selected strength",
+    "C5": "COMPETITIVE_WITH_ALL_REQUIRED iff 24 + 4 at the point, old per-cell recipient gate vs all six, STABLE_POSITIVE vs all six",
+    "C6": "DEV_GRID_TARGET_STABLE / DEV_GRID_TARGET_POINT_ONLY / DEV_GRID_TARGET_NOT_MET vs NEURAL_RAW and H_LJ",
+    "C7": "NOT_CLAIMABLE",
+    "C8": "NOT_CLAIMED",
+    "protection_without_utility": "MET_WITHOUT_UTILITY (never claimable) unless C2 = UTILITY_PRESERVED_BOTH_VERSIONS",
+    "arm_qualifies": {"LOC": ["C2_both", "C3", "C3w"], "PAIR": ["C2_both", "C3", "C3w", "C4"]},
+    "outcomes": ["PRIMARY_ARM_QUALIFIES", "SECONDARY_ARM_ONLY", "CORRECTION_RECIPE_CLOSED", "NOT_RUN_TRIGGER_NOT_FIRED"],
+    "scope": ["Occupation-only optimization is not a new two-output joint method.",
+              "Lower recovery for declared readers is not arbitrary-reader protection.",
+              "Do not claim a population learning curve, independent replication or proof that size caused every historical difference.",
+              "reader recipes and overlapping splits are not independent datasets"]
+  }
+}
