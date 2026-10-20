@@ -1,0 +1,180 @@
+{
+ "schema": "FRC1-rules-v1",
+ "campaign": "pcrl_finite_routing_comparison_v1",
+ "author_role": "statistical reviewer",
+ "written_before_outcomes": "writing started 2026-10-20T23:08:34Z (date -u), before any outcome of this campaign; no label read, no real-data computation, no label-reading loader called",
+ "human_readable": "RULES.md (same directory)",
+ "implementation": "frc/rules.py (pure functions; load_rules() checks this file against the module constants and the NRM1 rule file hash); invented-data tests: python3 -m frc.test_rules (prints JSON; exit 0 iff all pass)",
+ "status_of_every_rule": "development rule on previously and adaptively used records; changes no original limit; the reserve and the original capacity gate are reported, never gating; point feasibility is never called confidence preservation; every uncertainty statement is asymptotic and model-based",
+ "inherited": {
+  "module": "nrm.rules imported unchanged (aggregate screen, benefit / target / recipient screens, reserve_status, point_eligibility, frontier_comparison, reserve_frontier, claims G1-G7, select_candidate, reader_stability, robustness, alias_groups)",
+  "nrm1_rules_json_sha256": "84f187768817e79ef9f2bb36151bea81f00b8f62d9179c8cd523069550674652",
+  "nrm_rules_py_sha256": "d5df868678d483a3452e251d8f24575932d23f0e5d22e3ef1ca3627a35030df1",
+  "ohn_rules_py_sha256": "8686a78f59a609f3391c877129a954c0b7c0c708e94f60dfbeaf547b894122ba"
+ },
+ "z": 2.0,
+ "sign_convention": "paired differences are loss(first) - loss(second) on the same people (negative favours the first); accuracy enters as a loss",
+ "qpe": {
+  "difference": "d_v = nested MODEL_FIT held-out per-person occupation NLL B1 - A (T1; 5 outer household folds NRM_FA_ncv_S<v>; household-clustered SE)",
+  "labels": [
+   "PE_ERROR_SUPPORTED",
+   "PE_ERROR_POINT_ONLY",
+   "PE_ERROR_NOT_SUPPORTED",
+   "INCOMPLETE"
+  ],
+  "PE_ERROR_SUPPORTED": "d_v + 2 SE_used_v < 0 for v = 0 and 1, and the MODEL_SELECT paired occupation NLL B1 - A (T3) < 0 at the point for v = 0 and 1",
+  "PE_ERROR_POINT_ONLY": "d_v < 0 for v = 0 and 1, otherwise",
+  "PE_ERROR_NOT_SUPPORTED": "d_v >= 0 for some v (ties at 0 are not supported)",
+  "INCOMPLETE": "a nested (estimate, SE) missing or non-finite; or the nested differences resolved and a MODEL_SELECT value missing",
+  "reported_beside": "the same nested reading (RESOLVED_NEGATIVE_BOTH / POINT_NEGATIVE_BOTH / NOT_NEGATIVE_SOME_VERSION / MISSING) for inc_nll, tot_nll, occ_brier, inc_brier, occ_acc, inc_acc with MODEL_SELECT point values; men's and women's occupation Brier from MODEL_SELECT only (T1 reads no SEX); B0 - B1; share removed",
+  "share_removed": "per version (spend_A - spend_B1) / spend_A of the nested occupation NLL spend over CONT, defined iff spend_A > 0; pooled = mean numerator / mean denominator; reported only",
+  "outer_folds": 5,
+  "se_used": "SE_used = max(household-clustered SE, sample SD of the 5 outer-fold means / sqrt(5)) per version and metric; fold means from nested[v]['folds'][i]['paired_fold_means'][metric] (or nested[v]['fold_means'][metric]); absent or not 5 finite values -> INCOMPLETE for the label (reported rows fall back to the household SE, flag FOLD_MEANS_MISSING_V<v>)"
+ },
+ "construction_choice": {
+  "rule": "per capacity, MODEL_FIT nested point estimates only: B1 iff the paired occupation NLL and the paired total (income + occupation) NLL B1 - A are both < 0 in both versions; otherwise A (ties at 0 go to A); total = inc + occ point estimates if tot_nll is not given (flag TOTAL_FROM_TASK_SUM)",
+  "use": "the chosen construction is used consistently afterwards (QUAL, TWIN, PRC, HQ, SHUF, ORD, ablation); MODEL_SELECT never chooses it"
+ },
+ "qual": {
+  "Q1": "G1 of the version at the point: 12 clauses + 2 guards, original caps, inclusive (nrm.rules.point_eligibility)",
+  "Q2": "value <= cap - d for every condition of the version (inclusive; cap - d in double precision); d = the S2 budget (the assessment budget of D2)",
+  "q2_increments": {
+   "income|accuracy_loss": 0.004,
+   "income|nll_excess": 0.004,
+   "income|brier_excess": 0.002,
+   "occupation|accuracy_loss": 0.006,
+   "occupation|nll_excess": 0.008,
+   "occupation|brier_excess": 0.003,
+   "guard": 0.003
+  },
+  "q2_increment_source": "the S2 budget of FA_PRC_v1 (occ NLL 0.008, inc NLL 0.004, occ acc 0.006, inc acc 0.004, men's / women's guards 0.0030); summed Brier not budgeted by S2: occupation 0.0030 (guard budget), income 0.0020 (half the income NLL budget); both references U0 and Ucal (adjudication finding 1, adopted before any outcome; the S1 form of the 23:24Z freeze is superseded)",
+  "qualified": "Q1 and Q2 in both versions",
+  "status": "a gate for starting the comparison, not a claim; never confidence preservation; the reserve is reported separately",
+  "known_before_registration": "A at (16, 64) meets Q1, fails this Q2 (v1 men's guard 0.00255 + 0.0030 = 0.00555 > 0.005) and meets the superseded S1 form (0.00405); QUALIFIED_WITHOUT_PROBABILITY_REPAIR can occur only at (24, 128) or (32, 256)"
+ },
+ "original_capacity_gate": {
+  "limits_estimate_plus_2se": {
+   "occ_nll": 0.004,
+   "inc_nll": 0.004,
+   "occ_acc": 0.003,
+   "inc_acc": 0.003
+  },
+  "definition": "FA_PRC_v1 section 4: nested held-out spend of the construction over CONT, estimate + 2 household-clustered SE, per task, per version",
+  "labels": [
+   "ORIGINAL_CAPACITY_GATE_PASS",
+   "ORIGINAL_CAPACITY_GATE_FAIL",
+   "INCOMPLETE"
+  ],
+  "pass": "every metric of both versions passes",
+  "gating": false
+ },
+ "reproduction": {
+  "max_abs_difference": 1e-12,
+  "rule": "T1's A reproduces every number of the GATE record (nested_means CONT and twin, spend_twin_over_cont estimate and SE) within 1e-12 and the gate label; an existing capacity without a recorded passed reproduction is STOPPED_FOR_DIAGNOSIS"
+ },
+ "capacities": {
+  "order": [
+   "16x64",
+   "24x128"
+  ],
+  "prospective": "32x256",
+  "protection_capacity": "the first capacity in order whose chosen construction is QUALIFIED; the construction is chosen per capacity (no circularity)",
+  "T5": "only if neither existing capacity qualifies: 32x256 (nested A / B0 / B1, chosen construction, MODEL_SELECT utility, QUAL)",
+  "T6": "only if 32x256 does not qualify: at most one structural repair, labelled POST_HOC, card committed before any MODEL_SELECT read of its outputs, judged by the same choice and QUAL rules; may be declined; gives only POST_HOC_REPAIR_QUALIFIED",
+  "stop": "no task-only finite release qualifies: family FA stops and protected routing remains untested",
+  "untriggered_results": "a 32x256 or repair result present without its trigger is ignored and flagged (T5_RESULT_WITHOUT_TRIGGER_IGNORED, REPAIR_WITHOUT_TRIGGER_IGNORED); a repair without a committed card is ignored (REPAIR_WITHOUT_COMMITTED_CARD_IGNORED)",
+  "states": [
+   "PROTECT",
+   "TRIGGER_T5",
+   "TRIGGER_T6",
+   "STOP_FAMILY_FA",
+   "STOPPED_FOR_DIAGNOSIS",
+   "INCOMPLETE"
+  ],
+  "record_other_construction": "per capacity: the chosen construction and whether the other would have qualified (recorded, never used)"
+ },
+ "decisions": {
+  "D1": {
+   "labels": [
+    "REPAIRED_TASK_ONLY_RELEASE",
+    "QUALIFIED_B1_REPAIR_NOT_RESOLVED",
+    "QUALIFIED_WITHOUT_PROBABILITY_REPAIR",
+    "POST_HOC_REPAIR_QUALIFIED",
+    "NO_QUALIFYING_TASK_ONLY_RELEASE",
+    "INCOMPLETE"
+   ],
+   "rule": "at the protection capacity: a T6 repair -> POST_HOC_REPAIR_QUALIFIED (never REPAIRED_TASK_ONLY_RELEASE); B1 chosen and PE_ERROR_SUPPORTED -> REPAIRED_TASK_ONLY_RELEASE; B1 chosen and PE_ERROR_POINT_ONLY -> QUALIFIED_B1_REPAIR_NOT_RESOLVED; A chosen -> QUALIFIED_WITHOUT_PROBABILITY_REPAIR; stop -> NO_QUALIFYING_TASK_ONLY_RELEASE; otherwise INCOMPLETE"
+  },
+  "D2": {
+   "configuration": "the PRC configuration selected at S2 (an alias of an earlier budget's selection is that configuration, with its brackets)",
+   "comparisons": [
+    "TWIN",
+    "SHUF_FRONTIER",
+    "HQ_FRONTIER",
+    "ORD_FRONTIER"
+   ],
+   "rule": "met (COMPONENT_BEYOND_MATCHED_CONTROLS) iff (a) G1; (b) vs TWIN: nrm.rules.comparison passes (AGG_POSITIVE pair benefit + recipient gate, both views, both versions); (c) nrm.rules.frontier_comparison == DOMINATES_CONTROL_FRONTIER against the control paths [SHUF_S2, SHUF_BR], [HQ_S2, HQ_BR] and [TWIN, distinct ORD_S1..S3, ORD_BR] (only points that exist, aliases once; an empty SHUF or HQ path is compared at [TWIN], flag <name>_AT_IDENTITY); (d) F4: nested held-out pair LOOKUP AUC_twin - AUC_prc minus 2 household-bootstrap SE > 0 in both versions; (e) reader targeting: against TWIN and every bracketing point Q* selected by frontier_comparison, the non-table (nolookup) pair winner's benefit > 0 in both version means AND the nested MODEL_FIT LOOKUP benefit AUC_control - AUC_prc > 0 in both versions",
+   "labels": "in order: NOT_COMPUTED_GRID_VALIDITY_UNKNOWN / NOT_COMPUTED_GRID_INVALID; NOT_ASSESSED_NO_FEASIBLE_STRENGTH; NOT_ASSESSED_EXACT_ALIAS (every nonzero selection transmits exactly the twin's vectors: the family stops); INCOMPLETE; NOT_MET_F4 (not a stop); READER_TARGETED (b and c all pass, e fails); COMPONENT_BEYOND_MATCHED_CONTROLS or MET_WITHOUT_TASK_FEASIBILITY (b-e pass, no G1); NO_REDUCTION_BEYOND_ANY_CONTROL; PARTIAL_<passed, joined by +, in the order TWIN, SHUF_FRONTIER, HQ_FRONTIER, ORD_FRONTIER>_ONLY; flags PRC_S2_ALIAS_OF_TWIN, <name>_AT_IDENTITY, READER_TARGETED_<comparison>, TWIN_NESTED_LOOKUP_FROM_F4; NOT_ASSESSED_PROTECTED_ROUTING_UNTESTED after a capacity stop",
+   "partial": "no partial outcome is a component claim",
+   "power": "minimum detectable pair benefit about 0.015 (2 se_agg); \"not separated\" is the default reading"
+  },
+  "D3": "NRM1 G4 (all nine point-eligible references, intersection-union, recipient gates) at the D2 configuration, with reader_budget_rule_references: NOT_CREDITED -> NOT_SUPERIOR; INCOMPLETE -> INCOMPLETE",
+  "D4": "NRM1 G5 (0.020 vs NEURAL_RAW and H_LJ; levels kept) at the D2 configuration, with reader_budget_rule_references for the two targets: NOT_CREDITED -> level NOT_MET; INCOMPLETE -> a level above NOT_MET becomes INCOMPLETE",
+  "D5": "NOT_ASSESSED_MISSING_CONTROLS unless the separate design and both sequential orders exist (then NRM1 G6); ABL_LOC alone is not the D5 control set",
+  "D6": "NOT_CLAIMED",
+  "reader_budget_rule_references": "a reference comparison flagged READER_BUDGET_ASYMMETRIC (frc.readerbudget.contrast, pair view) is credited iff the NON-TABLE winner point benefit (the grid's nolookup extra vs that reference) is > 0 in both version means; the nested MODEL_FIT LOOKUP condition does not apply to references (never refitted on MODEL_FIT); missing nolookup inputs make that reference INCOMPLETE (never not beaten). Three-valued application (the rule only withdraws credit): NOT_CREDITED turns a met label into a failure; INCOMPLETE turns a met label into INCOMPLETE; a label already failing on its own results stays failing (incomplete references listed)"
+ },
+ "outcome_class": {
+  "labels": [
+   "CANDIDATE",
+   "COMPONENT",
+   "ENGINEERING_REPAIR",
+   "FINITE_NEGATIVE_RESULT",
+   "INCOMPLETE"
+  ],
+  "rule": "CANDIDATE iff D2 met and D3 met; COMPONENT iff D2 met and D3 not; ENGINEERING_REPAIR iff D1 = REPAIRED_TASK_ONLY_RELEASE and D2 not met; FINITE_NEGATIVE_RESULT otherwise; INCOMPLETE if D1, D2 or D3 is incomplete or uncomputed for grid validity",
+  "flags": [
+   "D3_WITHOUT_D2",
+   "POINT_FEASIBLE_NOT_RESERVE_QUALIFIED",
+   "PROTECTED_ROUTING_UNTESTED"
+  ]
+ },
+ "strongest_nonzero": {
+  "rule": "among PRC configurations with lambda > 0, G1, not an alias (of an earlier configuration or ALIAS_ZERO vs TWIN), complete grid: the largest registered-cell aggregate pair benefit vs TWIN; ties (|dx| <= 1e-12) to the smaller lambda, then config_id; none -> NO_FEASIBLE_NONZERO_RELEASE",
+  "status": "descriptive; chosen on registered MODEL_SELECT cells (winner's curse); robustness cells and the ablation never change D1-D6"
+ },
+ "refit_effectiveness": {
+  "rule": "REFIT_GENUINELY_EFFECTIVE iff (a) R3 and R4 assignment hashes differ from each other and from R1 / R2, and every pairwise SCORE household overlap involving R3 or R4 is recorded, finite and in [0, 1); and (b) the FRC1 grid_validity holds on the eight seeds S<v>k<k>, k = 0..3, on the minimum set (strongest release and its matched controls); otherwise REFIT_NOT_GENUINELY_EFFECTIVE and the failed part's cells are counted once"
+ },
+ "reader_seeds": {
+  "model_seed_base": 2026101205,
+  "offset_this_campaign": 700,
+  "forbidden_offsets": [
+   300,
+   400,
+   500,
+   600
+  ],
+  "rule": "recorded seeds S<v>k<k> = MODEL_SEED_BASE + 700 + 10 v + k exactly (k0, k1 registered; k2, k3 robustness), distinct integers, none equal to MODEL_SEED_BASE + {300, 400, 500, 600} + 10 v + k (k = 0..9); recipe-equality parts of A-SC1 as nrm.rules.grid_validity, unchanged",
+  "bootstrap_seed": "2026102100 + 100 v + repetition index (R1 0, R2 1, R3 2, R4 3); B = 400",
+  "split_tags": "FRC1_devgrid_R<r>"
+ },
+ "scope": [
+  "Lower recovery for the declared development readers is not protection against every reader.",
+  "MODEL_SELECT is adaptively used: development evidence, never confirmation.",
+  "Versions share training rows; repetitions share households; reader recipes and overlapping splits are not independent datasets.",
+  "A reserve-frontier result is not superiority over every historical method.",
+  "Novelty is never inferred from performance.",
+  "Point feasibility, QUAL and the reserve are not confidence preservation."
+ ],
+ "change_record": [
+  {
+   "utc": "see RULES.md section 13",
+   "what": "adjudication ADJUDICATION_PREREG.md items adopted before any outcome: Q2 at S2; Q-PE SE_used with fold means; D2 conjuncts (TWIN comparison, frontier vs HQ / SHUF / ORD paths with brackets, F4, reader targeting, NOT_ASSESSED_EXACT_ALIAS); POST_HOC_REPAIR_QUALIFIED; D3 reader-budget rule; capacity record of the other construction"
+  },
+  {
+   "utc": "see RULES.md section 13 (third pass)",
+   "what": "coordinator correction: references flagged READER_BUDGET_ASYMMETRIC are credited on the non-table winner condition only; missing inputs give INCOMPLETE; the same rule applies to D4"
+  }
+ ]
+}
