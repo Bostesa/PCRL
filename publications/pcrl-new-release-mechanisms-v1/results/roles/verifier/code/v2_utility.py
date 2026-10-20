@@ -57,33 +57,61 @@ def compute(S, rel, refs, v, floor):
     absolute['occupation']['women_brier'] = float(pp['occupation']['brier'][S['sex'] == 1].mean())
     ds = V.draws_of(rel)
     distinct = {t: (V.distinct_rows(ds[0][t]) if len(ds) == 1 else [V.distinct_rows(d[t]) for d in ds]) for t in V.TASKS}
+    wires = {t: (V.wire_sha(rel[t]) if np.asarray(rel[t]).ndim == 2 else [V.wire_sha(x) for x in rel[t]]) for t in V.TASKS}
     return {'conditions': conds, 'reserve': res, 'reserve_with_mc': res_mc, 'absolute': absolute, 'distinct': distinct, 'pp': pp,
-            'draws': len(ds)}
+            'draws': len(ds), 'wires': wires}
 
 
-def paired(S, pa, pb):
+def paired(S, pa, pb, mc_rule='paired_draws'):
+    """loss(a) - loss(b) per person, household-clustered SEs. MC SE, two registered definitions (by evaluator version):
+    'paired_draws' (before 705966524): SD over matched per-draw mean differences / sqrt(R) (one-draw side broadcast), reported only
+    if a side is randomized; 'quadrature' (705966524, ENG1-06): sqrt(mc_a^2 + mc_b^2), each release's own SD over per-draw means /
+    sqrt(R) (0 when deterministic), also for the men's / women's Brier and total NLL."""
     out = {}
     unit, sex = S['unit'], S['sex']
+
+    def own_mc(p, t, m, mask=None):
+        arr = p[t]['draw_arrays'][m]
+        return V.mc_se([x[mask].mean() if mask is not None else x.mean() for x in arr])
+
+    def quad(t, m, mask=None):
+        return math.sqrt(own_mc(pa, t, m, mask) ** 2 + own_mc(pb, t, m, mask) ** 2)
+
+    def total_mc(p):
+        ti, to = list(p['income']['draw_means']['nll']), list(p['occupation']['draw_means']['nll'])
+        k = max(len(ti), len(to))
+        ti, to = (ti * k if len(ti) == 1 else ti), (to * k if len(to) == 1 else to)
+        return V.mc_se(np.add(ti[:k], to[:k]))
     for t in V.TASKS:
         for m in ('acc_loss', 'nll', 'brier'):
             d = pa[t][m] - pb[t][m]
             rec = {'value': float(d.mean()), 'se': V.cluster_se(d, unit)}
-            da, db = pa[t]['draw_means'][m], pb[t]['draw_means'][m]
-            if len(da) > 1 or len(db) > 1:
-                if len(da) == len(db):
-                    dm = da - db
-                elif len(db) == 1:
-                    dm = da - db[0]
-                elif len(da) == 1:
-                    dm = da[0] - db
-                else:
-                    dm = None
-                rec['se_mc'] = (float(np.std(dm, ddof=1) / math.sqrt(len(dm))) if dm is not None and len(dm) > 1 else None)
+            if mc_rule == 'quadrature':
+                rec['se_mc'] = quad(t, m)
+            else:
+                da, db = pa[t]['draw_means'][m], pb[t]['draw_means'][m]
+                if len(da) > 1 or len(db) > 1:
+                    if len(da) == len(db):
+                        dm = da - db
+                    elif len(db) == 1:
+                        dm = da - db[0]
+                    elif len(da) == 1:
+                        dm = da[0] - db
+                    else:
+                        dm = None
+                    rec['se_mc'] = (float(np.std(dm, ddof=1) / math.sqrt(len(dm))) if dm is not None and len(dm) > 1 else None)
             out[f'{t}|{m}'] = rec
             if m == 'brier':
                 for g, name in ((0, 'men_brier'), (1, 'women_brier')):
                     mask = sex == g
-                    out[f'{t}|{name}'] = {'value': float(d[mask].mean()), 'se': V.subgroup_se(d, mask, unit)}
+                    r2 = {'value': float(d[mask].mean()), 'se': V.subgroup_se(d, mask, unit)}
+                    if mc_rule == 'quadrature':
+                        r2['se_mc'] = quad(t, 'brier', mask)
+                    out[f'{t}|{name}'] = r2
+    tot = (pa['income']['nll'] + pa['occupation']['nll']) - (pb['income']['nll'] + pb['occupation']['nll'])
+    out['total|nll'] = {'value': float(tot.mean()), 'se': V.cluster_se(tot, unit)}
+    if mc_rule == 'quadrature':
+        out['total|nll']['se_mc'] = math.sqrt(total_mc(pa) ** 2 + total_mc(pb) ** 2)
     return out
 
 
@@ -129,7 +157,9 @@ def compare(mine, recv, v, specs_costs=None):
     rec_failed = sorted(pt.get('failed', [])) if pt else None
     if pt and rec_failed != my_failed:
         mm.append({'what': 'failed clauses', 'recorded': rec_failed, 'mine': my_failed})
-    rs, me = recv.get('reserve', {}), mine['reserve']
+    rs, me = recv.get('reserve') or recv.get('reserve_without_mc') or {}, mine['reserve']
+    if not rs:
+        mm.append({'what': 'no per-version reserve block in the record'})
     if rs:
         pairs = (('whole_release_met', me['met']), ('occ_side_met', me['occ_side_met']), ('income_reserve_met', me['income_met']))
         for k, val in pairs:
@@ -164,6 +194,12 @@ def compare(mine, recv, v, specs_costs=None):
             cost_diff = max(cost_diff, abs(float(r['value']) - m['value']), abs(float(r['se']) - m['se']))
             if m.get('se_mc') is not None and r.get('se_mc') is not None:
                 cost_diff = max(cost_diff, abs(float(r['se_mc']) - m['se_mc']))
+            elif (m.get('se_mc') is None) != (r.get('se_mc') is None):
+                mm.append({'what': f'paired cost {spec} {k}: MC SE present on one side only', 'mine': m.get('se_mc'),
+                           'recorded': r.get('se_mc')})
+    wrec = recv.get('wire_sha256_eval') or recv.get('wire_sha256')
+    if wrec is not None and mine.get('wires') is not None and {t: wrec[t] for t in V.TASKS} != mine['wires']:
+        mm.append({'what': 'recorded evaluation wire hashes differ from the release arrays', 'recorded': wrec, 'mine': mine['wires']})
     if cost_diff > TOL_VALUE:
         mm.append({'what': 'paired costs', 'max_abs_diff': cost_diff})
     return {'mismatches': mm, 'max_abs_value_diff': dv, 'max_abs_se_diff': dse, 'max_abs_se_mc_diff': dmc,
@@ -179,8 +215,8 @@ def summary_values(mine):
 
 
 # ---------------------------------------------------------------- targets
-def run_references(S, tag, floor):
-    p = V.RUNS / 'REFERENCES' / 'EVAL_MS.json'
+def run_references(S, tag, floor, fname='EVAL_MS.json'):
+    p = V.RUNS / 'REFERENCES' / fname
     doc = json.loads(p.read_text())
     checks, record = [], {'file': V.rel(p), 'file_sha256': V.file_sha(p), 'references': {}}
     for name, per in doc['references'].items():
@@ -197,9 +233,9 @@ def run_references(S, tag, floor):
             record['references'].setdefault(name, {})[vs] = {'conditions': summary_values(mine), **{k: x for k, x in res[vs].items() if k != 'mismatches'},
                                                             'mismatches': res[vs]['mismatches'], 'provenance': prov}
         ok = all(not r['mismatches'] for r in res.values())
-        checks.append({'id': f'V2.UTILITY.REF.{name.replace(":", "_")}__{tag}',
-                       'what': f'own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics and distinct '
-                               f'vectors of reference {name} (both versions) vs runs/REFERENCES/EVAL_MS.json',
+        checks.append({'id': f'V2.UTILITY.REF.{name.replace(":", "_").replace("+", "_")}__{tag}',
+                       'what': f'own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct '
+                               f'vectors and recorded wires of reference {name} (both versions) vs runs/REFERENCES/{fname}',
                        'inputs': {V.rel(p): record['file_sha256'], 'wires': {vs: provs[vs]['wire_sha256'] for vs in provs},
                                   'frozen_bank_sha256': {vs: provs[vs]['bank_sha256'] for vs in provs}},
                        'result': {vs: {k: x for k, x in r.items()} for vs, r in res.items()},
@@ -214,7 +250,9 @@ def run_release(S, spec, tag, floor):
     p = V.RUNS / fam / cfg / (f'EVAL_MS__{etag}.json' if etag else 'EVAL_MS.json')
     doc = json.loads(p.read_text())
     res, record, proc = {}, {}, []
-    wires = {}
+    wires, mine_by_v = {}, {}
+    new_format = any('reserve_without_mc' in x for x in doc['versions'].values() if isinstance(x, dict))
+    mc_rule = 'quadrature' if new_format else 'paired_draws'
     for vs, recv in doc['versions'].items():
         if recv.get('missing'):
             res[vs] = {'missing': True}
@@ -227,19 +265,40 @@ def run_release(S, spec, tag, floor):
         rel = arr['MODEL_SELECT']
         wires[vs] = {t: ([V.wire_sha(x) for x in rel[t]] if np.asarray(rel[t]).ndim == 3 else V.wire_sha(rel[t])) for t in V.TASKS}
         mine = compute(S, rel, refs, v, floor)
+        mine_by_v[v] = mine
         costs = {}
         for cspec in recv.get('paired_costs', {}):
             other, _ = vref.comparator(cspec, v)
-            costs[cspec] = paired(S, mine['pp'], V.per_person_avg({t: S[t] for t in V.TASKS}, other))
+            costs[cspec] = paired(S, mine['pp'], V.per_person_avg({t: S[t] for t in V.TASKS}, other), mc_rule)
         res[vs] = compare(mine, recv, v, costs)
         record[vs] = {'conditions': summary_values(mine), **{k: x for k, x in res[vs].items()}, 'paired_costs': costs,
-                      'release': prov, 'randomized': bool(rrec.get('randomized')), 'draws': mine['draws']}
+                      'release': prov, 'randomized': bool(rrec.get('randomized')), 'draws': mine['draws'], 'mc_rule': mc_rule}
+    rr = doc.get('reserve_rules')
+    if rr is not None and len(mine_by_v) == 2:          # the governing MC-aware reserve (nrm.rules.reserve_status) per file
+        gm = {}
+        for lab, key in (('with_mc', 'reserve_with_mc'), ('without_mc', 'reserve')):
+            per = {v: (m[key] if m[key] is not None else m['reserve']) for v, m in mine_by_v.items()}
+            rv = sorted(r_['ratio'] if r_['ratio'] is not None else -math.inf for v in per for r_ in per[v]['conditions'].values())
+            gm[lab] = {'qualified': all(per[v]['met'] for v in per), 'min_by_version': {str(v): per[v]['min_ratio'] for v in per},
+                       'ratio_vector': rv}
+        rec_w, rec_wo = rr, rr.get('without_mc') or {}
+        for lab, recd in (('with_mc', rec_w), ('without_mc', rec_wo)):
+            if bool(recd.get('qualified')) != gm[lab]['qualified']:
+                res.setdefault('file', {'mismatches': []})['mismatches'].append({'what': f'reserve_rules {lab} qualified', 'recorded': recd.get('qualified'), 'mine': gm[lab]['qualified']})
+            mb = recd.get('min_ratio_by_version') or {}
+            for v in ('0', '1'):
+                if v in mb and not math.isclose(float(mb[v]), gm[lab]['min_by_version'][v], rel_tol=TOL_RATIO, abs_tol=TOL_RATIO):
+                    res.setdefault('file', {'mismatches': []})['mismatches'].append({'what': f'reserve_rules {lab} min ratio V{v}', 'recorded': mb[v], 'mine': gm[lab]['min_by_version'][v]})
+            vec = recd.get('ratio_vector')
+            if vec is not None and (len(vec) != len(gm[lab]['ratio_vector']) or any(not math.isclose(float(x), y, rel_tol=TOL_RATIO, abs_tol=TOL_RATIO) for x, y in zip(vec, gm[lab]['ratio_vector']))):
+                res.setdefault('file', {'mismatches': []})['mismatches'].append({'what': f'reserve_rules {lab} ratio vector'})
+        record['reserve_rules_mine'] = gm
     ok = all(not r.get('mismatches') for r in res.values() if not r.get('missing'))
     chk = {'id': f'V2.UTILITY.{fam}.{cfg}{("." + etag) if etag else ""}__{tag}',
            'what': f'own recomputation of clauses, guards, SEs (and MC SEs), point status, reserve, absolute metrics, distinct vectors '
                    f'and paired costs of {fam}/{cfg} vs {p.name}',
            'inputs': {V.rel(p): V.file_sha(p), 'wire_sha256': wires,
-                      'releases': {vs: record[vs]['release']['release_sha256'] for vs in record}},
+                      'releases': {vs: record[vs]['release']['release_sha256'] for vs in record if vs in ('0', '1')}},
            'result': res, 'numerical_status': 'PASS' if ok else 'FAIL', 'procedural_status': 'PASS' if not proc else 'FAIL',
            'procedural_findings': proc}
     return [chk], {f'{fam}/{cfg}': record}
@@ -294,6 +353,14 @@ def selftest():
     # paired costs: identical releases -> zero
     z = paired(S, mine['pp'], mine['pp'])
     ok['paired_identical_zero'] = all(r['value'] == 0.0 and r['se'] == 0.0 for r in z.values())
+    pa3 = V.per_person_avg({t: S[t] for t in V.TASKS}, {t: np.stack([rel[t]] * 3) for t in V.TASKS})
+    zq = paired(S, pa3, mine['pp'], 'quadrature')
+    ok['quadrature_constant_draws_zero_mc'] = all(abs(r['se_mc']) < 1e-15 for r in zq.values())
+    pn = V.per_person_avg({t: S[t] for t in V.TASKS}, st)
+    zn = paired(S, pn, mine['pp'], 'quadrature')
+    mc_inc = V.mc_se(pn['income']['draw_means']['nll'])
+    ok['quadrature_matches_own_mc'] = abs(zn['income|nll']['se_mc'] - mc_inc) < 1e-15 and zn['total|nll']['se_mc'] > 0 and \
+        zn['occupation|nll']['se_mc'] < 1e-15
     ok['all_ok'] = all(ok.values())
     return ok
 
@@ -301,6 +368,7 @@ def selftest():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--tag'); ap.add_argument('--references', action='store_true'); ap.add_argument('--release', action='append', default=[])
+    ap.add_argument('--ref-file', default='EVAL_MS.json')
     ap.add_argument('--selftest', action='store_true')
     a = ap.parse_args()
     if a.selftest:
@@ -316,7 +384,7 @@ def main():
     S = load_labels(f'verify: independent recomputation of clauses, guards, SEs, reserve and paired costs for {what} (separate code)')
     checks, record = [], {'tag': a.tag, 'utc': V.utc(), 'targets': what}
     if a.references:
-        c, r = run_references(S, a.tag, floor)
+        c, r = run_references(S, a.tag, floor, a.ref_file)
         checks += c; record['references'] = r
     for spec in a.release:
         c, r = run_release(S, spec, a.tag, floor)

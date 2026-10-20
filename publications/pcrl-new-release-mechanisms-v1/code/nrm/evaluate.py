@@ -82,27 +82,43 @@ def per_person(S, rel):
     return out
 
 
+def _mc_se(draw_means):
+    """Monte Carlo SE of one release's draw-averaged mean: SD over its per-draw means / sqrt(R); 0 for a deterministic release."""
+    x = np.asarray(draw_means, dtype=float)
+    return float(x.std(ddof=1) / np.sqrt(len(x))) if len(x) > 1 else 0.0
+
+
 def paired_costs(a, b, S):
-    """loss(a) - loss(b) per task and metric (a, b: per_person outputs), household-clustered SEs; MC SE over matched draws if both
-    have the same number of draws (else over a's draws)."""
+    """loss(a) - loss(b) per task and metric (a, b: per_person outputs), household-clustered SEs. Monte Carlo SE (ENG1-06): each
+    release's own MC SE from its per-draw means, combined in quadrature (independent channels); 0 for deterministic releases."""
     from ihs.evaluate import cluster_se, subgroup_se
     unit, sex = S['unit'], S['sex']
     out = {}
+
+    def mc(m, task=None, mask=None):
+        parts = []
+        for x in (a, b):
+            if task is None:                              # total NLL: per-draw income mean + occupation mean
+                ti = [d.mean() for d in x['income']['draws']['nll']]
+                to = [d.mean() for d in x['occupation']['draws']['nll']]
+                k = max(len(ti), len(to))
+                ti, to = (ti * k if len(ti) == 1 else ti), (to * k if len(to) == 1 else to)
+                parts.append(_mc_se(np.add(ti[:k], to[:k])))
+            else:
+                parts.append(_mc_se([d[mask].mean() if mask is not None else d.mean() for d in x[task]['draws'][m]]))
+        return float(np.sqrt(sum(p * p for p in parts)))
+
     for task in C.TASKS:
         for m in ('acc_loss', 'nll', 'brier'):
             d = a[task][m] - b[task][m]
-            rec = {'value': float(d.mean()), 'se': cluster_se(d, unit)}
-            da, db = a[task]['draws'][m], b[task]['draws'][m]
-            if len(da) > 1 or len(db) > 1:
-                dm = (da.mean(1)[:, None] - db.mean(1)[None, :]).ravel() if len(da) != len(db) else da.mean(1) - db.mean(1)
-                rec['se_mc'] = float(np.std(dm, ddof=1) / np.sqrt(len(dm))) if len(dm) > 1 else 0.0
-            out[f'{task}|{m}'] = rec
+            out[f'{task}|{m}'] = {'value': float(d.mean()), 'se': cluster_se(d, unit), 'se_mc': mc(m, task)}
             if m == 'brier':
                 for g, name in ((0, 'men_brier'), (1, 'women_brier')):
                     mask = sex == g
-                    out[f'{task}|{name}'] = {'value': float(d[mask].mean()), 'se': subgroup_se(d, mask, unit)}
+                    out[f'{task}|{name}'] = {'value': float(d[mask].mean()), 'se': subgroup_se(d, mask, unit),
+                                             'se_mc': mc('brier', task, mask)}
     tot = (a['income']['nll'] + a['occupation']['nll']) - (b['income']['nll'] + b['occupation']['nll'])
-    out['total|nll'] = {'value': float(tot.mean()), 'se': cluster_se(tot, unit),
+    out['total|nll'] = {'value': float(tot.mean()), 'se': cluster_se(tot, unit), 'se_mc': mc('nll'),
                         'definition': 'per-person income + occupation NLL difference (the statistical reviewer\'s primary frontier cost)'}
     return out
 
@@ -122,9 +138,33 @@ def utility_of(v, rel, S, ctx):
             c['value'] = float(vals.mean()); c['se'] = float(np.nanmean(ses))
             c['se_mc'] = float(vals.std(ddof=1) / np.sqrt(len(vals)))
             c['draw_values'] = vals.tolist()
+            # derived fields recomputed from the draw-averaged value (ENG1-06: never draw 0's)
+            cap = float(c['cap'])
+            c['margin'] = cap - c['value']
+            if 'normalized' in c:                         # value / cap (verifier V2B: was left at draw 0's value)
+                c['normalized'] = c['value'] / cap
+            c['margin_se_units'] = c['margin'] / c['se'] if c['se'] > 0 else (np.inf if c['margin'] > 0 else -np.inf)
+            c['point_pass'] = bool(c['value'] <= cap)
+            c['draw_point_pass'] = [bool(x <= cap) for x in vals]
+    base['point_pass_12'] = all(c['point_pass'] for c in base['clauses'])
+    base['guard_pass'] = all(g['point_pass'] for g in base['guards'])
+    base['by_sex'] = None
+    base['task_summary'] = None
+    base['draw_averaged_note'] = ('values, SEs and point_pass are draw averages over the emitted draws; by_sex and task_summary of '
+                                  'single draws are not carried (see the per-draw records)')
     ev = {'utility': base, 'distinct_vectors': {t: [e['distinct_vectors'][t] for e in evs] for t in C.TASKS},
           'wire_sha256': [e['wire_sha256'] for e in evs], 'note': f'draw-averaged over {len(evs)} independent one-draw-per-person draws'}
     return ev, len(evs)
+
+
+def wires_of(rel):
+    """The selection wire hashes (ENG1-05): scm_bench wire_sha (probabilities + argmax) per task, as nrm.devreaders records them; a
+    list over the emitted draws for a randomized release."""
+    out = {}
+    for t in C.TASKS:
+        a = np.asarray(rel[t])
+        out[t] = [C.wire_sha(a[r]) for r in range(a.shape[0])] if a.ndim == 3 else C.wire_sha(a)
+    return out
 
 
 def point_status(u):
@@ -175,8 +215,9 @@ def release_cmd(family, config, compare=(), tag=None):
         absolute['occupation']['women_brier'] = float(pp['occupation']['brier'][S['sex'] == 1].mean())
         ps, rs = point_status(u), reserve_of(u, v)
         res['versions'][str(v)] = {'release_sha256': rec['release_sha256'], 'kind': rec['kind'], 'card': rec.get('card'),
-                                   'randomized': bool(rec.get('randomized')), 'draws': R, 'utility': u, 'point': ps, 'reserve': rs,
-                                   'absolute': absolute, 'paired_costs': costs, 'distinct_vectors': ev.get('distinct_vectors')}
+                                   'randomized': bool(rec.get('randomized')), 'draws': R, 'utility': u, 'point': ps,
+                                   'reserve_without_mc': rs, 'absolute': absolute, 'paired_costs': costs,
+                                   'distinct_vectors': ev.get('distinct_vectors'), 'wire_sha256_eval': wires_of(rel)}
         row = {'family': family, 'config_id': config, 'version': v, 'kind': rec['kind'], 'draws': R, 'tag': tag or '',
                'point_pass_12_plus_2': ps['point_pass_12_plus_2'], 'max_value_over_cap': round(ps['max_value_over_cap'], 4),
                'failed': ';'.join(ps['failed']), 'whole_reserve_met': rs['whole_release_met'],
@@ -187,10 +228,17 @@ def release_cmd(family, config, compare=(), tag=None):
         for g in u['guards']:
             row[f"guard|{g['group']}"] = round(float(g['value']), 6)
         rows.append(row)
+    vs = {v: res['versions'][str(v)] for v in C.VERSIONS if not res['versions'][str(v)].get('missing')}
+    if len(vs) == len(C.VERSIONS):                       # the governing reserve rule (MC SE in quadrature; ENG1-06)
+        from . import rules as RU
+        try:
+            res['reserve_rules'] = RU.reserve_status({v: {'utility': e['utility']} for v, e in vs.items()})
+        except Exception as ex:                          # recorded, never hidden
+            res['reserve_rules'] = {'status': 'ERROR', 'error': f'{type(ex).__name__}: {ex}'}
     res['cpu_s'] = time.process_time() - t0
     res['unit_id'] = os.environ.get(C.UNIT_ENV)
     res['note'] = ('development evidence on adaptively used MODEL_SELECT; the two-SE reserve is a separate heuristic, not a cap; '
-                   'never a fitting input')
+                   'never a fitting input; reserve_without_mc per version is descriptive, reserve_rules governs')
     C.write_json_x(out, res)
     LEDGER.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     with open(LEDGER, 'a') as f:
@@ -202,12 +250,12 @@ def release_cmd(family, config, compare=(), tag=None):
     return res
 
 
-def reference_cmd(names):
+def reference_cmd(names, tag=None):
     """The same utility, reserve and absolute metrics for frozen comparators ('W', 'REF:<name>'), written once to
-    runs/REFERENCES/EVAL_MS.json and the ledgers (family 'REF')."""
-    out = C.RUNS / 'REFERENCES' / 'EVAL_MS.json'
+    runs/REFERENCES/EVAL_MS[__<tag>].json and the ledgers (family 'REF')."""
+    out = C.RUNS / 'REFERENCES' / (f'EVAL_MS__{tag}.json' if tag else 'EVAL_MS.json')
     if out.exists():
-        raise PermissionError('runs/REFERENCES/EVAL_MS.json exists (write-once)')
+        raise PermissionError(f'runs/REFERENCES/{out.name} exists (write-once)')
     S = ms(f'benchmark: MODEL_SELECT utility and reserve of the frozen comparators {list(names)} under this campaign\'s evaluator '
            '(adaptive development evidence)')
     res, rows = {'schema': 'NRM1-eval-ms-refs-v1', 'utc': C.now(), 'references': {}}, []
@@ -222,7 +270,8 @@ def reference_cmd(names):
             absolute['occupation']['women_brier'] = float(pp['occupation']['brier'][S['sex'] == 1].mean())
             ps, rs = point_status(u), reserve_of(u, v)
             res['references'].setdefault(name, {})[str(v)] = {'provenance': prov, 'utility': u, 'point': ps, 'reserve': rs,
-                                                              'absolute': absolute, 'distinct_vectors': ev.get('distinct_vectors')}
+                                                              'absolute': absolute, 'distinct_vectors': ev.get('distinct_vectors'),
+                                                              'wire_sha256': wires_of(rel)}
             row = {'family': 'REF', 'config_id': name, 'version': v, 'kind': 'reference', 'draws': 1, 'tag': '',
                    'point_pass_12_plus_2': ps['point_pass_12_plus_2'], 'max_value_over_cap': round(ps['max_value_over_cap'], 4),
                    'failed': ';'.join(ps['failed']), 'whole_reserve_met': rs['whole_release_met'],
@@ -269,8 +318,18 @@ def selftest():
     stack = {'income': np.stack([rel['income']] * 3), 'occupation': np.stack([rel['occupation']] * 3)}
     b = per_person(S, stack)
     zb = paired_costs(b, a, S)
-    ok['constant_draws_equal_deterministic'] = all(abs(r['value']) < 1e-12 for r in zb.values())
+    ok['constant_draws_equal_deterministic'] = all(abs(r['value']) < 1e-12 for r in zb.values() if isinstance(r, dict))
     ok['three_draws'] = len(draws_of(stack)) == 3
+    ok['constant_draws_zero_mc_se'] = all(abs(r.get('se_mc', 0.0)) < 1e-12 for r in zb.values() if isinstance(r, dict))
+    # wire hashes in the grid's format (ENG1-05): deterministic -> one hash per task; randomized -> one per draw
+    from scm_bench.common import wire_sha
+    w1, w3 = wires_of(rel), wires_of(stack)
+    ok['wire_format_deterministic'] = w1['income'] == wire_sha(rel['income']) and w1['occupation'] == wire_sha(rel['occupation'])
+    ok['wire_format_randomized'] = w3['occupation'] == [wire_sha(stack['occupation'][r]) for r in range(3)]
+    # randomized MC SE: draws that differ give a positive MC SE
+    noisy = {'income': stack['income'], 'occupation': np.stack([rel['occupation'], rng.dirichlet(np.ones(5), n), rel['occupation']])}
+    zn = paired_costs(per_person(S, noisy), a, S)
+    ok['differing_draws_positive_mc_se'] = zn['occupation|nll']['se_mc'] > 0 and zn['total|nll']['se_mc'] > 0
     ok['all_ok'] = all(ok.values())
     return ok
 
@@ -280,13 +339,13 @@ def main(argv=None):
     sub = ap.add_subparsers(dest='cmd', required=True)
     r = sub.add_parser('release'); r.add_argument('--family', required=True); r.add_argument('--config', required=True)
     r.add_argument('--compare', action='append', default=[]); r.add_argument('--tag', default=None)
-    f = sub.add_parser('references'); f.add_argument('--name', action='append', required=True)
+    f = sub.add_parser('references'); f.add_argument('--name', action='append', required=True); f.add_argument('--tag', default=None)
     sub.add_parser('selftest')
     a = ap.parse_args(argv)
     if a.cmd == 'release':
         release_cmd(a.family, a.config, a.compare, a.tag); return 0
     if a.cmd == 'references':
-        reference_cmd(a.name); return 0
+        reference_cmd(a.name, a.tag); return 0
     res = selftest(); print(json.dumps(res)); return 0 if res['all_ok'] else 1
 
 

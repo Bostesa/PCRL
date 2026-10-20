@@ -149,7 +149,12 @@ def main():
         rel = {t: np.asarray(rel[t], dtype=np.float64) for t in V.TASKS}
         for cell in a.cells:
             rep, k = cell[2:4], int(cell.split('k')[1])
-            out.setdefault(cell, {})[name] = refit_member(rel['income'], rel['occupation'], sex, unit, rep, V.reader_seed(a.seed, k))
+            inc, occ = rel['income'], rel['occupation']
+            if inc.ndim == 3 or occ.ndim == 3:                  # randomized: the cell's one emitted draw per person (instance map)
+                di = G.draw_index(prov.get('draw_rule') or {}, rep)
+                inc = inc[di] if inc.ndim == 3 else inc
+                occ = occ[di] if occ.ndim == 3 else occ
+            out.setdefault(cell, {})[name] = refit_member(inc, occ, sex, unit, rep, V.reader_seed(a.seed, k))
     comp = {}
     if a.candidate:
         for cell, per in out.items():

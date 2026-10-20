@@ -61,7 +61,19 @@ def _check_prob(p, k, what, randomized):
 
 
 def save(family, config_id, version, arrays, record):
-    """Write RELEASE.npz / RELEASE.json for one configuration. Refuses overwrites and the 61st configuration."""
+    """Write RELEASE.npz / RELEASE.json for one configuration. Refuses overwrites and the 61st configuration. The budget check, the
+    write and the ledger append happen under one exclusive file lock (engineering review ENG1-03: concurrent saves)."""
+    import fcntl
+    LEDGER.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    with open(LEDGER.parent / 'CONFIG_LEDGER.lock', 'a') as lockf:
+        fcntl.flock(lockf, fcntl.LOCK_EX)
+        try:
+            return _save_locked(family, config_id, version, arrays, record)
+        finally:
+            fcntl.flock(lockf, fcntl.LOCK_UN)
+
+
+def _save_locked(family, config_id, version, arrays, record):
     if int(version) not in C.VERSIONS:
         raise ValueError(f'version must be one of {C.VERSIONS}')
     missing = [k for k in REQUIRED if k not in record]
@@ -72,7 +84,7 @@ def save(family, config_id, version, arrays, record):
     randomized = bool(record['randomized'])
     if randomized and not all(k in record for k in ('draws', 'seed_handling', 'noise_coupling')):
         raise ValueError('a randomized release record needs draws, seed_handling and noise_coupling')
-    card = C.card_info(record['mechanism_card'])
+    card = C.card_info(record['mechanism_card'], family=family)
     d = rdir(family, config_id, version)
     if (d / 'RELEASE.npz').exists():
         raise PermissionError(f'{family}/{config_id}/V{version} already exists (append-only; a revision gets a new config id)')

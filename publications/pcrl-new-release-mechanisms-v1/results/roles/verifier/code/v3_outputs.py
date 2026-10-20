@@ -80,6 +80,17 @@ def output_checks(arrs, rec, sizes):
             card[f'draw{i}'] = {'income': V.distinct_rows(d['income']), 'occupation': V.distinct_rows(d['occupation']),
                                 'pair': V.distinct_rows(pair),
                                 'wire_sha256': {t: V.wire_sha(d[t]) for t in V.TASKS}}
+            if i == 0:
+                occ = {}
+                for nm, arr in (('income', d['income']), ('occupation', d['occupation']), ('pair', pair)):
+                    keys = {}
+                    for row in np.ascontiguousarray(arr):
+                        k = row.tobytes(); keys[k] = keys.get(k, 0) + 1
+                    sizes = np.array(sorted(keys.values()))
+                    if len(sizes) <= 2000:                 # finite release: people per released vector / joint value
+                        occ[nm] = {'n_values': int(len(sizes)), 'min_people': int(sizes.min()), 'median_people': float(np.median(sizes)),
+                                   'max_people': int(sizes.max()), 'singletons': int((sizes == 1).sum())}
+                card['people_per_value_draw0'] = occ
     return probs, info, card
 
 
@@ -214,13 +225,19 @@ def main():
                        'result': {'record_problems': p_rec, 'exposure_problems': p_exp, 'attention': a_exp, 'exposure': einfo},
                        'numerical_status': 'NOT_APPLICABLE',
                        'procedural_status': 'FAIL' if (p_rec or p_exp) else ('ATTENTION' if a_exp else 'PASS')})
+    nums = {}
+    for e in ledger:
+        nums.setdefault(int(e['configuration_number']), []).append(f"{e['family']}/{e['config_id']}/V{e['version']}")
+    dup = {n: x for n, x in nums.items() if len(x) > 1}
+    budget_ok = n_conf <= 60 and all((V.RUNS / e['family'] / e['config_id'] / f"V{e['version']}" / 'RELEASE.npz').is_file() for e in ledger)
     checks.append({'id': f'V3.CONFIG_BUDGET__{a.tag}', 'what': 'configuration ledger: distinct (family, config, version) <= 60, every entry '
-                   'has its release directory', 'inputs': V.inputs_sha([V.CONFIG_LEDGER]),
-                   'result': {'n_configurations': n_conf, 'n_ledger_lines': len(ledger),
+                   'has its release directory; duplicate configuration numbers (concurrent saves; the budget check is not atomic) '
+                   'are reported', 'inputs': V.inputs_sha([V.CONFIG_LEDGER]),
+                   'result': {'n_configurations': n_conf, 'n_ledger_lines': len(ledger), 'duplicate_configuration_numbers': dup,
                               'missing_dirs': [f"{e['family']}/{e['config_id']}/V{e['version']}" for e in ledger
                                                if not (V.RUNS / e['family'] / e['config_id'] / f"V{e['version']}" / 'RELEASE.npz').is_file()]},
                    'numerical_status': 'NOT_APPLICABLE',
-                   'procedural_status': 'PASS' if n_conf <= 60 and all((V.RUNS / e['family'] / e['config_id'] / f"V{e['version']}" / 'RELEASE.npz').is_file() for e in ledger) else 'FAIL'})
+                   'procedural_status': ('ATTENTION' if dup else 'PASS') if budget_ok else 'FAIL'})
     V.write_record(f'V3_OUTPUTS__{a.tag}.json', record)
     print(json.dumps(V.append_checks(checks), indent=1))
     for c in checks:

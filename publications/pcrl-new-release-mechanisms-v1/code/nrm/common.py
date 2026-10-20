@@ -110,14 +110,29 @@ def registered():
 
 
 # ------------------------------------------------------------------ mechanism cards (committed before the fit they govern)
-def card_info(card):
-    """Committed, unchanged mechanism card under results/<campaign>/cards/: its repository path, SHA-256, commit and commit time."""
+CARD_PREFIX = {'FA': 'FA_', 'FB': 'FB_', 'FC': 'FC_', 'CTL': 'CTL_'}     # family -> card file prefix (ENG1-11)
+
+
+def family_of_module(mod):
+    """'nrm.fb.learner' -> 'FB' (fitting entry points only), else None."""
+    parts = str(mod).split('.')
+    return parts[1].upper() if len(parts) > 1 and parts[0] == 'nrm' and parts[1].upper() in CARD_PREFIX else None
+
+
+def card_info(card, family=None):
+    """Committed, unchanged mechanism card under results/<campaign>/cards/: its repository path, SHA-256, commit and commit time.
+    With `family`, the card's file name must carry that family's prefix (FA_ / FB_ / FC_ / CTL_); the template README.md is never a
+    card (engineering review ENG1-11)."""
     if not card:
         raise PermissionError('a fitting read needs the committed mechanism card that governs the fit (card=...)')
     p = Path(card)
     p = (p if p.is_absolute() else ROOT / p).resolve()
     if not p.is_relative_to(CARDS.resolve()) or not p.is_file():
         raise PermissionError(f'{card}: mechanism cards live under {CARDS.relative_to(ROOT)}/')
+    if p.name == 'README.md':
+        raise PermissionError('cards/README.md is the template, not a mechanism card')
+    if family is not None and not p.name.startswith(CARD_PREFIX.get(str(family).upper(), '\0')):
+        raise PermissionError(f'{p.name} is not a card of family {family} (expected prefix {CARD_PREFIX.get(str(family).upper())})')
     rel = str(p.relative_to(ROOT))
     if not committed(p):
         raise PermissionError(f'{rel} is not committed (commit the card before the fit it governs)')
@@ -255,15 +270,35 @@ def load(role, fields, operation, purpose, card=None):
     if not purpose or len(purpose) < 12:
         raise PermissionError('a label read needs a stated purpose')
     entry = _check_entry(operation)
-    cinfo = card_info(card) if pol.get('card') else {}
+    chain = _module_chain()
+    if role == 'MODEL_SELECT' and any(family_of_module(m) for m in chain):
+        raise PermissionError(f'MODEL_SELECT labels are never read inside a fitting entry point (call chain {chain}; ENG1-02)')
+    if not os.environ.get(UNIT_ENV):
+        raise PermissionError('label reads run only inside a queue unit (nrm.jobqueue sets NRM_UNIT_ID; ENG1-02)')
+    cinfo = card_info(card, family=family_of_module(entry.split(':')[0])) if pol.get('card') else {}
     for name in labels:
         out[name] = _label(role, name, out)
     keep = ('X', 'feature_names', 'row_id', 'unit', 'raw_inputs') + labels
     res = {k: v for k, v in out.items() if k in keep}
     _log({'role': role, 'fields': sorted(labels), 'operation': operation, 'purpose': purpose, 'people': int(n),
           'households': int(len(np.unique(out['unit']))), 'rows_sha256': arr_sha(np.asarray(out['row_id'])), 'entry_point': entry,
-          **cinfo})
+          'module_chain': chain, **cinfo})
     return res
+
+
+def _module_chain():
+    """Every module on the call stack outside this module, plus the __main__ module's spec name (ENG1-02: a fitting module calling a
+    coordinator helper is still visible)."""
+    mods = []
+    for fr in inspect.stack()[1:40]:
+        g = fr.frame.f_globals
+        mod = g.get('__name__', '?')
+        if mod == '__main__':
+            spec = g.get('__spec__')
+            mod = spec.name if spec is not None and getattr(spec, 'name', None) else str(g.get('__file__', '?'))
+        if mod != __name__ and mod not in mods:
+            mods.append(mod)
+    return mods
 
 
 def access_events():

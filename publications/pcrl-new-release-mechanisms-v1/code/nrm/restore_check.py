@@ -31,6 +31,9 @@ def main(out):
         meta = json.loads((Path(p) / 'PACKAGE.json').read_text())
         packaged.add((meta['name'], int(meta['version'])))
     S = C.features('MODEL_SELECT')
+    import sys as _sys
+    here = _sys.version.split()[0]
+    skipped = {}
     for rj in sorted(C.RUNS.glob('*/*/V*/RELEASE.json')):
         rec = json.loads(rj.read_text())
         if C.sha(rj.parent / 'RELEASE.npz') != rec['release_sha256']:
@@ -39,17 +42,36 @@ def main(out):
         name, v = f"{rec['family']}/{rec['config_id']}", int(rec['version'])
         if packaged and (name, v) not in packaged:
             continue
-        from .deploy import from_features
-        saved, _ = RL.load(rec['family'], rec['config_id'], v, roles=('MODEL_SELECT',))
-        new = from_features(name, v, S['X'], S['feature_names'], draw=0)
-        reran[f'{name}/V{v}'] = all(bool(np.array_equal(saved['MODEL_SELECT'][t][0] if saved['MODEL_SELECT'][t].ndim == 3
-                                                         else saved['MODEL_SELECT'][t], new[t])) for t in C.TASKS)
+        if rec.get('python') and rec['python'] != here:      # ENG1-04: re-run under the family's own fit interpreter only
+            skipped[f'{name}/V{v}'] = f"fitted under python {rec['python']}; this pass runs {here} (checked in the other pass)"
+            continue
+        from .deploy import from_features, _keys_for
+        try:
+            saved, _ = RL.load(rec['family'], rec['config_id'], v, roles=('MODEL_SELECT',))
+            new = from_features(name, v, S['X'], S['feature_names'], draw=0, keys=_keys_for(rec, 'MODEL_SELECT', S['row_id']))
+            reran[f'{name}/V{v}'] = all(bool(np.array_equal(saved['MODEL_SELECT'][t][0] if saved['MODEL_SELECT'][t].ndim == 3
+                                                             else saved['MODEL_SELECT'][t], new[t])) for t in C.TASKS)
+        except Exception as ex:                                # recorded per release, never an abort (ENG1-04)
+            reran[f'{name}/V{v}'] = False
+            skipped[f'{name}/V{v}__error'] = f'{type(ex).__name__}: {str(ex)[:200]}'
     readers = {}
+    readers_other = {}
     for pk in sorted((C.RUNS / 'READER_CUSTODY').glob('*.pkl')) if (C.RUNS / 'READER_CUSTODY').is_dir() else []:
-        with open(pk, 'rb') as f:
-            obj = pickle.load(f)
-        X = obj['design_fn'](obj['wire']) if callable(obj.get('design_fn')) else obj['X_score']
-        readers[pk.name] = bool(np.array_equal(obj['predict'](obj['model'], X), obj['score_raw']))
+        fit_py = None
+        try:                                                   # recorded per reader, never an abort (as for releases)
+            with open(pk, 'rb') as f:
+                obj = pickle.load(f)
+            fit_py = obj.get('python')
+            X = obj['design_fn'](obj['wire']) if callable(obj.get('design_fn')) else obj['X_score']
+            ok, err = bool(np.array_equal(obj['predict'](obj['model'], X), obj['score_raw'])), None
+        except Exception as ex:
+            ok, err = False, f'{type(ex).__name__}: {str(ex)[:200]}'
+        if not ok and fit_py and fit_py != here:               # ENG2-06: judged in its fit interpreter's pass, not failed here
+            readers_other[pk.name] = f'fitted under python {fit_py}; this pass runs {here}; not bitwise here' + (f' ({err})' if err else '')
+            continue
+        readers[pk.name] = ok
+        if err:
+            skipped[f'{pk.name}__error'] = err
     grid = {}
     for g in sorted((C.RUNS / 'GRID').glob('*/S*/GRID.json')) if (C.RUNS / 'GRID').is_dir() else []:
         grid[str(g.relative_to(C.RUNS))] = {'json_parses': bool(json.loads(g.read_text()).get('paired') is not None),
@@ -64,14 +86,22 @@ def main(out):
                 _read_entry(e, n); cache_ok += 1
             except Exception as ex:                                   # recorded, never hidden
                 cache_bad.append(f'{e.name}: {type(ex).__name__}')
-    if pkgs:
+    mine = []                                                  # packages whose release was fitted under this interpreter
+    for p in pkgs:
+        meta = json.loads((Path(p) / 'PACKAGE.json').read_text())
+        fam, cfg = meta['name'].split('/')
+        if RL.load(fam, cfg, int(meta['version']), roles=('DEV_REPORT',))[1].get('python') == here:
+            mine.append(p)
+    if mine:
         from . import deploy as DP
-        dep = DP.check(pkgs, Path(out).with_name('restore_deploy_detail.json'))
+        dep = DP.check(mine, Path(out).with_name(f'restore_deploy_detail_py{here}.json'))
     else:
         dep = {'all_bitwise': None, 'all_refused': None}
     rec = {'admitted_copies_rehash_ok': not bad_adm, 'admitted_copies_checked': len(adm), 'mismatched': bad_adm[:10],
+           'python': here, 'models_not_rerun_in_this_pass': skipped,
            'releases_rehashed_ok': rel_ok, 'releases_mismatched': rel_bad[:20], 'models_rerun_bitwise': reran,
-           'representative_readers_bitwise': readers, 'reader_grids': grid, 'reader_cache_entries_ok': cache_ok,
+           'representative_readers_bitwise': readers, 'readers_judged_in_other_pass': readers_other, 'reader_grids': grid,
+           'reader_cache_entries_ok': cache_ok,
            'reader_cache_entries_bad': cache_bad[:20], 'deployment_packages': len(pkgs),
            'deployment_from_backup_bitwise': dep['all_bitwise'], 'deployment_from_backup_all_refused': dep.get('all_refused'),
            'labels_read': False}

@@ -46,9 +46,11 @@ import argparse
 import hashlib
 import json
 import os
+import pickle
 import sys
 import time
 import warnings
+from pathlib import Path
 
 for _v in ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'VECLIB_MAXIMUM_THREADS', 'NUMEXPR_NUM_THREADS'):
     os.environ.setdefault(_v, '1')                    # one numerical thread (campaign rule); set before numpy / sklearn load
@@ -73,17 +75,26 @@ BUDGETS = {
     'S3': {'occ_nll': 0.012, 'inc_nll': 0.006, 'occ_brier_men': 0.0045, 'occ_brier_women': 0.0045, 'occ_acc': 0.008, 'inc_acc': 0.006},
 }
 CONFIGS = {
-    'PRC_TWIN': {'kind': 'task_only_twin', 'route': {}, 'what': 'lam = 0: independent KL k-means quantizers (16 income, 64 occupation '
-                 'cells) of the task posteriors, label-refit decoders; never reads SEX'},
+    'PRC_TWIN': {'kind': 'task_only_twin', 'route': {}, 'capacity': (16, 64),
+                 'what': 'lam = 0: independent KL k-means quantizers (16 income, 64 occupation cells) of the task posteriors, '
+                         'label-refit decoders; never reads SEX'},
+    # R0 (card FA_PRC_v1 section 10; applied 15:33Z on the coordinator's instruction after both internal gates FAILED): the
+    # registered capacity ladder rung, same task teachers (the stage-1 cache, identical by construction), new config id.
+    'PRC_TWIN_C128': {'kind': 'task_only_twin', 'route': {}, 'capacity': (24, 128),
+                      'what': 'R0 capacity ladder twin: lam = 0, independent KL k-means quantizers (24 income, 128 occupation '
+                              'cells) of the same task posteriors, label-refit decoders; never reads SEX'},
     **{f'PRC_{s}': {'kind': 'protected', 'route': {}, 'budget': s, 'what': f'propensity-routed cells, strength chosen by select_path '
                     f'at budget {s} (pair + local dependence, per-SEX guard)'} for s in BUDGETS},
     **{f'ORD_{s}': {'kind': 'sex_blind_control', 'route': {}, 'budget': s, 'what': f'SEX-blind coarsening: the twin at the most '
                     f'coarsened codebook pair of ORD_LADDER whose nested spend meets budget {s}'} for s in BUDGETS},
     'HQ_S2': {'kind': 'post_hoc_grouping_control', 'route': {'restrict': 'twin_cells'}, 'budget': 'S2',
               'what': 'published IBSI / privacy-funnel objective restricted to h(q): routing inputs are functions of the task posteriors'},
-    'LOC_S2': {'kind': 'separate_recipients_control', 'route': {'w_pair': 0.0, 'w_loc': 1.0}, 'budget': 'S2',
-               'what': 'separately designed recipient releases: each routing sees only its own view table'},
+    'SHUF_S2': {'kind': 'shuffled_control', 'route': {'restrict': 'shuffle'}, 'budget': 'S2',
+                'what': 'SEX-blind control at the same cells: the same optimizer, strength grid and codebooks with pi, qO0 and qO1 '
+                        'replaced by a keyed-hash donor copy from the MODEL_FIT out-of-fold bank (objective, tables and acceptance '
+                        'all on the copy)'},
 }
+# LOC_S2 (separately designed recipients) was dropped by the coordinator's card decision V1 (no joint-design claim); SHUF_S2 added.
 
 
 # ---------------------------------------------------------------- small utilities
@@ -155,7 +166,7 @@ def fit_hgb(hp, Z, y, K, max_iter, seed, cat):
     return m
 
 
-def predict(m, Z):
+def _proba(m, Z):
     return clipn(probs(m.decision_function(Z)))
 
 
@@ -211,9 +222,9 @@ def fit_teachers(Z, lab, unit, version, hp, names, T_fixed=None, log=None):
             m = fit_hgb(hp, Zt[tr], y[tr], K, T, version, cat)
             if aug:
                 for s in (0, 1):
-                    oof[s][te] = predict(m, sex_aug(Z[te], s))
+                    oof[s][te] = _proba(m, sex_aug(Z[te], s))
             else:
-                oof[te] = predict(m, Zt[te])
+                oof[te] = _proba(m, Zt[te])
         out['oof'][nm] = oof
         if log:
             log(json.dumps({'teacher': nm, 'T': T}))
@@ -230,13 +241,38 @@ def embed_oof(tch):
 
 
 def embed(models, Z):
-    """Runtime statistics from features alone (deployed full refits)."""
-    E = {'qI': predict(models['inc'], Z), 'qO': predict(models['occ'], Z)}
+    """Runtime statistics from features alone (deployed full refits). 'Z' is kept for the SHUF donor key."""
+    E = {'qI': _proba(models['inc'], Z), 'qO': _proba(models['occ'], Z), 'Z': Z}
     if 'sex' in models:
-        E['pi'] = np.clip(predict(models['sex'], Z)[:, 1], 0.01, 0.99)
-        E['qO0'] = predict(models['occ_s'], sex_aug(Z, 0))
-        E['qO1'] = predict(models['occ_s'], sex_aug(Z, 1))
+        E['pi'] = np.clip(_proba(models['sex'], Z)[:, 1], 0.01, 0.99)
+        E['qO0'] = _proba(models['occ_s'], sex_aug(Z, 0))
+        E['qO1'] = _proba(models['occ_s'], sex_aug(Z, 1))
     return E
+
+
+SHUF_FIELDS = ('pi', 'qO0', 'qO1')
+
+
+def donor_index(Z, tag, n_bank):
+    """SHUF donor of every row: SHA-256(tag | the row's compact features) mod n_bank. A deterministic function of the six fields
+    (deployable); pseudo-random with respect to them, hence carries no information about the person's SEX."""
+    Z = np.ascontiguousarray(np.asarray(Z, dtype=np.float64))
+    t = tag.encode()
+    return np.array([int.from_bytes(hashlib.sha256(t + Z[i].tobytes()).digest()[:8], 'big') % n_bank for i in range(len(Z))],
+                    dtype=np.int64)
+
+
+def shuffle_embedding(E, bank, tag):
+    """pi, qO0, qO1 of every row replaced by its donor's bank values (idempotent: depends only on the row's features)."""
+    memo = ('_donor', tag, len(bank['pi']))
+    d = E.get(memo)
+    if d is None:
+        d = donor_index(E['Z'], tag, len(bank['pi']))
+    R = dict(E)
+    R[memo] = d
+    for f in SHUF_FIELDS:
+        R[f] = bank[f][d]
+    return R
 
 
 # ---------------------------------------------------------------- routing (privacy-funnel Lloyd on e(x))
@@ -260,7 +296,10 @@ def _guard(E, CO, book):
 
 
 def restrict_embedding(E, book):
-    """h(q) restriction (HQ control): pi, qO0, qO1 replaced by their MODEL_FIT means within the twin's joint task cell of x."""
+    """HQ control: pi, qO0, qO1 replaced by their MODEL_FIT means within the twin's joint task cell of x (a function of q only).
+    SHUF control: pi, qO0, qO1 replaced by the keyed-hash donor copy (no person-level SEX information)."""
+    if book.get('restrict') == 'shuffle':
+        return shuffle_embedding(E, book['shuf_bank'], book['shuf_tag'])
     if book.get('restrict') != 'twin_cells':
         return E
     tw = book['twin']
@@ -413,10 +452,53 @@ def twin_book(E, KI, KO, seed, rp):
     return lloyd(E, book, rp['init_steps'])
 
 
+def protected_path(E, twin, k0, l0, lams, rp):
+    """One deterministic continuation chain up the grid that records the state at each requested GRID strength; each recorded
+    state equals protected_book(target) (same visits in the same order; selftest), so a whole strength path costs one chain."""
+    lams = sorted({float(x) for x in lams})
+    if any(x not in LAMBDA_GRID for x in lams):
+        raise ValueError('path strengths must be grid values')
+    Eu, book0 = _prepare(E, twin, k0, l0, rp)
+    return _chain(Eu, book0, k0, l0, lams, rp)
+
+
 def protected_book(E, twin, k0, l0, lam, rp):
     """Warm start from the twin; tables from the twin's cells; Lloyd continuation at strength lam."""
+    Eu, book0 = _prepare(E, twin, k0, l0, rp)
+    return _chain(Eu, book0, k0, l0, [float(lam)], rp)[float(lam)]
+
+
+def _prepare(E, twin, k0, l0, rp):
+    """SHUF: the bank is the training rows' own (pi, qO0, qO1); the whole chain (routing, tables, objective, acceptance) then runs
+    on the donor copy, so the optimizer never sees person-level SEX information. Other kinds run on E itself."""
+    if rp.get('restrict') == 'shuffle':
+        bank = {f: np.array(E[f], copy=True) for f in SHUF_FIELDS}
+        Eu = shuffle_embedding(E, bank, rp['shuf_tag'])
+        book0 = _protected_start(Eu, twin, k0, l0, rp)
+        book0['shuf_bank'], book0['shuf_tag'] = bank, rp['shuf_tag']
+        return Eu, book0
+    return E, _protected_start(E, twin, k0, l0, rp)
+
+
+def _chain(E, book0, k0, l0, targets, rp):
+    start = (dict(book0), k0, l0)
+    book, k, l = dict(book0), k0, l0
+    out = {}
+    for lam_t in sorted({g for g in LAMBDA_GRID if g < max(targets)} | set(targets)):   # deterministic continuation up the grid
+        # the objective strength changes; the rule (codewords, tables, tilt) and its partition do not, so (k, l) stays
+        # route(E, book); lloyd refreshes the tables from the current partition before it tries any tilt
+        book['lam'] = start[0]['lam'] = float(lam_t)
+        if objective(E, start[0], k0, l0) < objective(E, book, k, l):         # never worse than the twin at this strength
+            book, k, l = dict(start[0]), k0, l0
+        book, k, l = lloyd(E, book, rp['path_steps'], k, l)
+        if lam_t in targets:
+            out[lam_t] = (dict(book), k.copy(), l.copy())
+    return out
+
+
+def _protected_start(E, twin, k0, l0, rp):
     book = {key: (v.copy() if isinstance(v, np.ndarray) else v) for key, v in twin.items()}
-    book.update({'lam': float(lam), 'w_pair': float(rp['w_pair']), 'w_loc': float(rp['w_loc']), 'kappa': float(rp['kappa']),
+    book.update({'lam': 0.0, 'w_pair': float(rp['w_pair']), 'w_loc': float(rp['w_loc']), 'kappa': float(rp['kappa']),
                  'm_shrink': float(rp['m_shrink']), 'restrict': rp.get('restrict')})
     book['rbar'] = float(E['pi'].mean())
     book['p0'], book['p1'] = float((1 - E['pi']).mean()), float(E['pi'].mean())
@@ -433,16 +515,7 @@ def protected_book(E, twin, k0, l0, lam, rp):
             mean = E[key].mean(0)
             book[f'hq_{key}'] = clipn((S + mean[None]) / (n[:, None] + 1.0))
     book['tilt'] = 0.0                                                         # start = the twin's own rule and partition
-    start = (dict(book), k0, l0)
-    k, l = k0, l0
-    for lam_t in sorted({g for g in LAMBDA_GRID if g < lam} | {float(lam)}):     # deterministic continuation up the grid
-        # the objective strength changes; the rule (codewords, tables, tilt) and its partition do not, so (k, l) stays
-        # route(E, book); lloyd refreshes the tables from the current partition before it tries any tilt
-        book['lam'] = start[0]['lam'] = float(lam_t)
-        if objective(E, start[0], k0, l0) < objective(E, book, k, l):         # never worse than the twin at this strength
-            book, k, l = dict(start[0]), k0, l0
-        book, k, l = lloyd(E, book, rp['path_steps'], k, l)
-    return book, k, l
+    return book
 
 
 def decoders(cells, y, C, alpha):
@@ -457,34 +530,48 @@ def emit(E, book, dec):
 
 
 # ---------------------------------------------------------------- the whole pipeline (fit on training rows; apply from features)
-def route_params(cfg_id, lam=None):
+def route_params(cfg_id, lam=None, version=None):
     rp = dict(ROUTE)
     rp.update(CONFIGS[cfg_id]['route'])
     if lam is not None:
         rp['lam'] = float(lam)
+    if rp.get('restrict') == 'shuffle':
+        if version is None:
+            raise ValueError('the SHUF donor key is version-specific')
+        rp['shuf_tag'] = f'NRM_FA_shuf_S{int(version)}'                  # seeded, recorded donor key of version v
     return rp
 
 
 def fit_pipeline(Z, lab, unit, version, plan, hp=None, T_fixed=None, capacity=(16, 64), log=None):
-    """plan: {name: ('twin',) | ('ord', KI, KO) | ('prc', cfg_id, lam)}. Fits on the given (MODEL_FIT) rows only. Teachers pi and
-    qOs are fitted only when a protected entry is in the plan (the twin and ORD entries never read SEX)."""
+    """plan: {name: ('cont',) | ('twin',) | ('ord', KI, KO) | ('prc', cfg_id, lam)}. Fits on the given (MODEL_FIT) rows only.
+    Teachers pi and qOs are fitted only when a protected entry is in the plan (cont, twin and ORD entries never read SEX); the
+    protected entries of one cfg_id share one continuation chain (protected_path). 'cont' = the continuous task teachers."""
     hp = hp or HGB
     need_sex = any(p[0] == 'prc' for p in plan.values())
     names = ('inc', 'occ', 'sex', 'occ_s') if need_sex else ('inc', 'occ')
     tch = fit_teachers(Z, lab, unit, version, hp, names, T_fixed=T_fixed, log=log)
     E = embed_oof(tch)
+    E['Z'] = Z
     rp0 = route_params('PRC_TWIN')
     KI, KO = capacity
     tb, k0, l0 = twin_book(E, KI, KO, version, rp0)
     state = {'version': int(version), 'T': tch['T'], 'models': tch['models'], 'books': {}, 'dec': {}, 'fit_cells': {},
              'capacity': [int(KI), int(KO)], 'E_fit': E, 'twin_fit': (tb, k0, l0)}
+    chains = {}
+    for p in plan.values():
+        if p[0] == 'prc':
+            chains.setdefault(p[1], set()).add(float(p[2]))
+    paths = {c: protected_path(E, tb, k0, l0, sorted(ls), route_params(c, version=version)) for c, ls in chains.items()}
     for name, p in plan.items():
+        if p[0] == 'cont':
+            state['books'][name] = state['dec'][name] = state['fit_cells'][name] = None
+            continue
         if p[0] == 'twin':
             book, k, l = tb, k0, l0
         elif p[0] == 'ord':
             book, k, l = twin_book(E, p[1], p[2], version, rp0)
         else:
-            book, k, l = protected_book(E, tb, k0, l0, p[2], route_params(p[1], p[2]))
+            book, k, l = paths[p[1]][float(p[2])]
         state['books'][name] = book
         state['dec'][name] = {'I': decoders(k, lab['income'], book['CI'], rp0['alpha_dec']),
                               'O': decoders(l, lab['occupation'], book['CO'], rp0['alpha_dec'])}
@@ -495,6 +582,8 @@ def fit_pipeline(Z, lab, unit, version, plan, hp=None, T_fixed=None, capacity=(1
 def apply_pipeline(state, Z, name, E=None):
     """Release of entry `name` from compact features alone (E may be passed to reuse runtime statistics)."""
     E = embed(state['models'], Z) if E is None else E
+    if state['books'][name] is None:                                           # 'cont': the continuous task teachers
+        return {'income': E['qI'].copy(), 'occupation': E['qO'].copy()}, None, None
     rel, k, l = emit(E, state['books'][name], state['dec'][name])
     return rel, k, l
 
@@ -554,6 +643,7 @@ def nested(Z, lab, unit, version, plan, hp=None, T_fixed=None, capacity=(16, 64)
     of = household_folds(unit, outer, f'NRM_FA_ncv_S{version}')
     res = {name: {'rows': np.zeros(len(Z), dtype=bool)} for name in plan}
     store = {name: {} for name in plan}
+    fitted = {name: [] for name in plan}                 # per outer fold: in-sample (fitted) dependence of the training cells
     for o in range(outer):
         tr, te = of != o, of == o
         if np.intersect1d(unit[tr], unit[te]).size:
@@ -564,11 +654,17 @@ def nested(Z, lab, unit, version, plan, hp=None, T_fixed=None, capacity=(16, 64)
         for name in plan:
             rel, k, l = apply_pipeline(st, Z[te], name, E=E)
             m = person_metrics(rel, {k2: v[te] for k2, v in lab.items()})
-            ktr, ltr = st['fit_cells'][name]
-            KO = st['books'][name]['CO'].shape[0]
-            vtr, vte = views(ktr, ltr, KO), views(k, l, KO)
-            for vw in vtr:
-                m[f'look_{vw}'] = lookup_scores(vtr[vw], lab['sex'][tr], vte[vw])
+            if k is not None and 'sex' in lab:                                 # finite release: held-out LOOKUP
+                ktr, ltr = st['fit_cells'][name]
+                KO = st['books'][name]['CO'].shape[0]
+                vtr, vte = views(ktr, ltr, KO), views(k, l, KO)
+                for vw in vtr:
+                    m[f'look_{vw}'] = lookup_scores(vtr[vw], lab['sex'][tr], vte[vw])
+                s_tr = lab['sex'][tr]
+                fitted[name].append({'auc_pair_insample': auc(lookup_scores(vtr['pair'], s_tr, vtr['pair']), s_tr),
+                                     'mi_pair_labels_insample': plugin_mi(vtr['pair'], s_tr.astype(np.float64)),
+                                     'mi_pair_pi_fitted': (plugin_mi(vtr['pair'], st['E_fit']['pi'])
+                                                           if 'pi' in st['E_fit'] else float('nan'))})
             for key, v in m.items():
                 store[name].setdefault(key, np.zeros(len(Z)))[te] = v
             res[name]['rows'] |= te
@@ -576,11 +672,18 @@ def nested(Z, lab, unit, version, plan, hp=None, T_fixed=None, capacity=(16, 64)
     for name in plan:
         d = store[name]
         out[name] = {key: float(v.mean()) for key, v in d.items() if not key.startswith('look_')}
-        for vw in ('pair', 'income', 'occupation'):
-            out[name][f'auc_{vw}'] = auc(d[f'look_{vw}'], lab['sex'])
-        sx = lab['sex'].astype(bool)
-        out[name]['occ_brier_men'] = float(d['occ_brier'][~sx].mean())
-        out[name]['occ_brier_women'] = float(d['occ_brier'][sx].mean())
+        if 'sex' in lab:
+            for vw in ('pair', 'income', 'occupation'):
+                if f'look_{vw}' in d:
+                    out[name][f'auc_{vw}'] = auc(d[f'look_{vw}'], lab['sex'])
+            sx = lab['sex'].astype(bool)
+            out[name]['occ_brier_men'] = float(d['occ_brier'][~sx].mean())
+            out[name]['occ_brier_women'] = float(d['occ_brier'][sx].mean())
+            if fitted[name]:                                 # fitted-vs-held-out divergence (reported per strength)
+                for key in fitted[name][0]:
+                    out[name][f'fit_{key}'] = float(np.mean([f[key] for f in fitted[name]]))
+                if 'auc_pair' in out[name]:
+                    out[name]['divergence_auc_pair_insample_minus_heldout'] = out[name]['fit_auc_pair_insample'] - out[name]['auc_pair']
         out[name]['_per_person'] = d
     return out
 
@@ -588,10 +691,12 @@ def nested(Z, lab, unit, version, plan, hp=None, T_fixed=None, capacity=(16, 64)
 def spend(nest, name, ref, lab, unit):
     """Held-out spend of `name` over `ref` (paired, per person) with household-clustered SEs; accuracy as a loss."""
     a, b = nest[name]['_per_person'], nest[ref]['_per_person']
-    sx = lab['sex'].astype(bool)
     rows = {'occ_nll': (a['occ_nll'] - b['occ_nll'], None), 'inc_nll': (a['inc_nll'] - b['inc_nll'], None),
-            'occ_acc': (b['occ_acc'] - a['occ_acc'], None), 'inc_acc': (b['inc_acc'] - a['inc_acc'], None),
-            'occ_brier_men': (a['occ_brier'] - b['occ_brier'], ~sx), 'occ_brier_women': (a['occ_brier'] - b['occ_brier'], sx)}
+            'occ_acc': (b['occ_acc'] - a['occ_acc'], None), 'inc_acc': (b['inc_acc'] - a['inc_acc'], None)}
+    if 'sex' in lab:                                     # subgroup rows only where SEX was read (never in the capacity gate)
+        sx = lab['sex'].astype(bool)
+        rows.update({'occ_brier_men': (a['occ_brier'] - b['occ_brier'], ~sx),
+                     'occ_brier_women': (a['occ_brier'] - b['occ_brier'], sx)})
     out = {}
     for key, (v, sub) in rows.items():
         if sub is None:
@@ -675,7 +780,7 @@ def selftest():
     checks['twin_fits_no_sex_teacher'] = sorted(st_b['models']) == ['inc', 'occ']
 
     plan = {'PRC_TWIN': ('twin',), 'PRC_A': ('prc', 'PRC_S2', 0.5), 'PRC_B': ('prc', 'PRC_S2', 2.0),
-            'HQ': ('prc', 'HQ_S2', 2.0), 'LOC': ('prc', 'LOC_S2', 2.0), 'ORD': ('ord', 3, 8)}
+            'HQ': ('prc', 'HQ_S2', 2.0), 'SHUF': ('prc', 'SHUF_S2', 2.0), 'ORD': ('ord', 3, 8)}
     st = fit_pipeline(Z, lab, unit, 0, plan, hp=hp, capacity=cap)
     st2 = fit_pipeline(Z, lab, unit, 0, plan, hp=hp, capacity=cap)
     E = embed(st['models'], Z)
@@ -719,10 +824,11 @@ def selftest():
         consistent &= bool(np.array_equal(kr, kf) and np.array_equal(lr, lf))
         fit_mi[nm] = plugin_mi(kf * b['CO'].shape[0] + lf, Ef['pi'])
         if plan[nm][0] == 'prc':
+            Ec = restrict_embedding(Ef, b) if b.get('restrict') == 'shuffle' else Ef     # SHUF optimizes on its donor copy
             bt = dict(b)
             bt.update({'CI': tb['CI'], 'CO': tb['CO'], 'tilt': 0.0})
-            set_tables(Ef['pi'], bt, k0, l0)
-            obj[nm] = (objective(Ef, b, kf, lf), objective(Ef, bt, k0, l0))
+            set_tables(Ec['pi'], bt, k0, l0)
+            obj[nm] = (objective(Ec, b, kf, lf), objective(Ec, bt, k0, l0))
     checks['rule_consistent_fitted_partition'] = consistent
     checks['objective_not_above_twin'] = all(a <= t + 1e-12 for a, t in obj.values())
     checks['protected_lowers_fitted_pair_dependence'] = fit_mi['PRC_B'] < fit_mi['PRC_TWIN'] and fit_mi['PRC_A'] < fit_mi['PRC_TWIN']
@@ -745,9 +851,19 @@ def selftest():
     checks['hq_routing_function_of_q_only'] = bool(np.array_equal(kh, kh2) and np.array_equal(lh, lh2))
     info['prc_reroutes_on_propensity'] = int(((kp != kp2) | (lp != lp2)).sum())
     checks['prc_uses_propensity'] = info['prc_reroutes_on_propensity'] > 0
-    # LOC (w_pair = 0): the joint rule separates into recipient-specific rules
-    bL = st['books']['LOC']
-    checks['loc_has_no_pair_term'] = bL['w_pair'] == 0.0
+    # SHUF: routing ignores the person's own (pi, qO0, qO1) (any permutation of them leaves every cell unchanged); the bank is the
+    # training rows' out-of-fold statistics; the donor copy is idempotent
+    bS = st['books']['SHUF']
+    prm = np.random.default_rng(3).permutation(len(Eh['pi']))
+    Ep = dict(Eh)
+    Ep['pi'], Ep['qO0'], Ep['qO1'] = Eh['pi'][prm], Eh['qO0'][prm], Eh['qO1'][prm]
+    ks, ls_ = route(Eh, bS)
+    kp_, lp_ = route(Ep, bS)
+    Es1 = shuffle_embedding(Ef, bS['shuf_bank'], bS['shuf_tag'])
+    Es2 = shuffle_embedding(Es1, bS['shuf_bank'], bS['shuf_tag'])
+    checks['shuf_ignores_person_propensity'] = bool(np.array_equal(ks, kp_) and np.array_equal(ls_, lp_))
+    checks['shuf_bank_and_idempotence'] = bool(np.array_equal(bS['shuf_bank']['pi'], Ef['pi'])
+                                               and np.array_equal(Es1['pi'], Es2['pi']) and np.array_equal(Es1['qO1'], Es2['qO1']))
 
     # 4. nested estimator (outer household folds) and the predeclared selection rule
     nplan = {'PRC_TWIN': ('twin',), 'P1': ('prc', 'PRC_S2', 0.5), 'P2': ('prc', 'PRC_S2', 2.0), 'P3': ('prc', 'PRC_S2', 8.0)}
@@ -761,6 +877,127 @@ def selftest():
         (chosen[b] is None) or all(audit[c][key][0] + 2 * audit[c][key][1] <= BUDGETS[b][key]
                                    for c in ['P1', 'P2', 'P3'][:['P1', 'P2', 'P3'].index(chosen[b]) + 1] for key in BUDGETS[b])
         for b in BUDGETS)
+    # 5. one chain equals the per-target continuation (whole strength path at the cost of one chain)
+    Ef, (tb0, k00, l00) = st['E_fit'], st['twin_fit']
+    rp2 = route_params('PRC_S2')
+    chain = protected_path(Ef, tb0, k00, l00, [0.5, 2.0], rp2)
+    same = True
+    for lam in (0.5, 2.0):
+        b1, k1, l1 = protected_book(Ef, tb0, k00, l00, lam, rp2)
+        b2, k2, l2 = chain[lam]
+        same &= bool(np.array_equal(k1, k2) and np.array_equal(l1, l2) and b1['tilt'] == b2['tilt']
+                     and np.array_equal(b1['CO'], b2['CO']) and np.array_equal(b1['rP'], b2['rP']))
+    checks['path_chain_equals_per_target'] = same
+
+    # 6. stages, storage and the deployment interface (temporary roots, invented data, a fake save; no real path touched)
+    import tempfile
+    saved = {}
+
+    def fake_save(family, cfg, v, arrays, rec):
+        need = ('mechanism_card', 'kind', 'description', 'n_model_fits', 'n_calibrator_fits', 'n_crossfit_fits', 'n_critic_fits',
+                'roles_read', 'exposure', 'training_people', 'training_households', 'fit_cpu_s', 'randomized')
+        if [k for k in need if k not in rec] or (family, cfg, v) in saved:
+            raise AssertionError('record fields or append-only')
+        saved[(family, cfg, v)] = ({r: {t: a.copy() for t, a in d.items()} for r, d in arrays.items()}, rec)
+
+    quiet = lambda *a, **k: None
+    with tempfile.TemporaryDirectory() as tmp:
+        _ROOT.update(runs=f'{tmp}/runs', cache=f'{tmp}/cache', records=f'{tmp}/records')
+        try:
+            data_t = {'X': X, 'feature_names': names, 'unit': unit, 'row_id': np.arange(n), 'income': lab['income'],
+                      'occupation': lab['occupation']}
+            data_s = dict(data_t, sex=lab['sex'])
+            X2 = _fake_population(700, np.random.default_rng(7))[0]
+            roles = {'R_FIT': {'X': X, 'feature_names': names}, 'R_NEW': {'X': X2, 'feature_names': names}}
+            refused = []
+            for fn in (lambda: stage_twin(0, data_s, roles, fake_save, 'card', hp=hp, capacity=cap, log=quiet),
+                       lambda: stage_gate(0, data_s, 'card', hp=hp, capacity=cap, outer=3, log=quiet)):
+                try:
+                    fn()
+                    refused.append(False)
+                except PermissionError:
+                    refused.append(True)
+            for v in (0, 1):
+                stage_twin(v, data_t, roles, fake_save, 'card', hp=hp, capacity=cap, log=quiet)
+            twin_eq = np.array_equal(saved[('FA', 'PRC_TWIN', 0)][0]['R_FIT']['occupation'], rel['PRC_TWIN'][0]['occupation'])
+            # R0 ladder twin: reuses the stage-1 teacher cache (no new fit, identical statistics), own config id and gate file
+            r0 = stage_twin(0, data_t, roles, fake_save, 'card', hp=hp, capacity=(8, 24), log=quiet, twin_id='PRC_TWIN_C128')
+            Ea = embed(_load_model('PRC_TWIN', 0)['teachers'], Z)
+            Eb = embed(_load_model('PRC_TWIN_C128', 0)['teachers'], Z)
+            g_r0 = stage_gate(0, data_t, 'card', hp=hp, capacity=(8, 24), outer=3, log=quiet, twin_id='PRC_TWIN_C128')
+            checks['r0_ladder_twin_reuses_teachers'] = bool(
+                np.array_equal(Ea['qO'], Eb['qO']) and np.array_equal(Ea['qI'], Eb['qI']) and r0['n_model_fits'] == 0
+                and r0['capacity'] == [8, 24] and g_r0['twin_id'] == 'PRC_TWIN_C128'
+                and (Path(_ROOT['records']) / 'GATE_V0_8x24.json').is_file())
+            g0 = stage_gate(0, data_t, 'card', hp=hp, capacity=cap, outer=3, log=quiet)
+            stage_gate(1, data_t, 'card', hp=hp, capacity=cap, outer=3, limits={k: 1.0 for k in CAPACITY_GATE}, log=quiet)
+            info['gate_v0_real_limits'] = g0['gate']
+            info['gate_v0_spend'] = g0['spend_twin_over_cont']
+            if g0['gate'] == 'FAIL':
+                try:
+                    stage_paths(0, data_s, 'card', hp=hp, capacity=cap, outer=3, log=quiet)
+                    refused.append(False)
+                except PermissionError:
+                    refused.append(True)
+            loose = {b: {k: 1.0 for k in BUDGETS[b]} for b in BUDGETS}           # selftest only: makes stage 3 reachable
+            sel = stage_paths(1, data_s, 'card', hp=hp, capacity=cap, outer=3, ladder=((4, 12), (3, 8), (2, 6)), budgets=loose,
+                              log=quiet)
+            info['selection_v1_loose_budgets'] = sel['selection']
+            for cfgs, d in ((['PRC_S1', 'HQ_S2', 'SHUF_S2'], data_s), (['PRC_TWIN'], data_t)):    # stage 3 never reads SEX
+                try:
+                    stage_configs(1, cfgs, d, roles, fake_save, 'card', log=quiet)
+                    refused.append(False)
+                except (PermissionError, ValueError):
+                    refused.append(True)
+            r_prot = stage_configs(1, ['PRC_S1', 'PRC_S2', 'PRC_S3', 'HQ_S2', 'SHUF_S2'], data_t, roles, fake_save, 'card', log=quiet)
+            r_ord = stage_configs(1, ['ORD_S1', 'ORD_S2', 'ORD_S3'], data_t, roles, fake_save, 'card', log=quiet)
+            info['stage3_results'] = {**r_prot, **r_ord}
+            checks['stage_refusals'] = all(refused) and len(refused) == 4 + (g0['gate'] == 'FAIL')
+            v1 = sorted(c for (_, c, v) in saved if v == 1)
+            chk = stage_check(1, data_s, lambda c, v: saved[('FA', c, v)][0]['R_FIT'], v1, log=quiet)
+            info['check1_pair_auc_invented'] = {c: round(r['lookup_crossfit_model_fit']['pair']['auc'], 4)
+                                                for c, r in chk['configs'].items()}
+            checks['check1_runs_on_saved_releases'] = len(chk['configs']) == len(v1) and all(
+                np.isfinite(r['lookup_crossfit_model_fit'][vw]['auc']) for r in chk['configs'].values()
+                for vw in ('pair', 'income', 'occupation'))
+            checks['reader_budget_recorded'] = all('reader_budget' in rec for (_, c, v), (_, rec) in saved.items())
+            bit = True
+            for (fam, cfg, v), (arrays, rec) in saved.items():
+                for r, F in roles.items():
+                    p = predict(cfg, v, F['X'], F['feature_names'])
+                    bit &= all(np.array_equal(p[t], arrays[r][t]) for t in ('income', 'occupation'))
+                bit &= all(Path(p).is_file() for p in model_paths(cfg, v))
+            checks['predict_reproduces_saved_bitwise'] = bool(bit) and len(saved) >= 5 and twin_eq
+            checks['ord_release_reads_no_sex_teacher'] = sorted(_load_model('ORD_S1', 1)['teachers']) == ['inc', 'occ']
+            checks['alias_not_saved_twice'] = all(v != 'SAVED' for c, v in info['stage3_results'].items()
+                                                  if c in ('PRC_S2', 'PRC_S3', 'ORD_S2', 'ORD_S3'))
+            pr = []
+            for kw in ({'keys': {'role': 'x', 'row_id': np.arange(3)}}, {'draw': 1}):
+                try:
+                    predict('PRC_TWIN', 0, X[:3], names, **kw)
+                    pr.append(False)
+                except PermissionError:
+                    pr.append(True)
+            try:
+                predict('PRC_TWIN', 0, X[:3, ::-1], names[::-1])
+                pr.append(False)
+            except PermissionError:
+                pr.append(True)
+            (model_dir('PRC_TWIN', 0) / 'RELEASE.npz').write_bytes(b'')
+            try:
+                write_model('PRC_TWIN', 0, {})
+                pr.append(False)
+            except PermissionError:
+                pr.append(True)
+            try:
+                _cache_get(0, 'TASK', 'not-these-rows')
+                pr.append(False)
+            except PermissionError:
+                pr.append(True)
+            checks['deploy_refusals'] = all(pr) and len(pr) == 5
+        finally:
+            _ROOT.update(runs=None, cache=None, records=None)
+
     info['cpu_s'] = round(time.process_time() - t0, 2)
     passed = all(bool(v) for v in checks.values())
     print(json.dumps({'selftest': 'PASS' if passed else 'FAIL', 'checks': {k: bool(v) for k, v in checks.items()}, 'info': info},
@@ -768,32 +1005,446 @@ def selftest():
     return passed
 
 
-# ---------------------------------------------------------------- real-data entry points (queue only; after the receipt)
-def _real(version, mode, operation, purpose, capacity=(16, 64)):
-    from nrm import common as NC                                    # coordinator infrastructure (refuses before the receipt)
+# ---------------------------------------------------------------- storage and the deployment interface (nrm.deploy contract)
+SCHEMA = 'NRM-FA-PRC-v1'
+PROTECTED_KINDS = ('protected', 'post_hoc_grouping_control', 'shuffled_control')     # use the stage-2 SEX-side statistics
+RECORD_KIND = {'task_only_twin': 'twin', 'protected': 'candidate', 'sex_blind_control': 'control',
+               'post_hoc_grouping_control': 'control', 'shuffled_control': 'control'}
+SELECT_FAMILY = {'protected': 'PRC', 'sex_blind_control': 'ORD', 'post_hoc_grouping_control': 'HQ',
+                 'shuffled_control': 'SHUF'}
+CAPACITY_GATE = {'occ_nll': 0.004, 'inc_nll': 0.004, 'occ_acc': 0.003, 'inc_acc': 0.003}   # twin over continuous teachers, +2 SE
+_ROOT = {'runs': None, 'cache': None, 'records': None}      # selftest only: temporary roots (no real path is touched)
+
+
+def _paths():
+    if _ROOT['runs'] is not None:
+        return Path(_ROOT['runs']), Path(_ROOT['cache']), Path(_ROOT['records'])
+    from nrm import common as NC
+    return NC.RUNS, NC.PRIV / 'fa_cache', NC.RESULTS / 'roles' / 'designer_a'
+
+
+def _utc():
+    return time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+
+
+def _sha_bytes(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def model_dir(config_id, version):
+    if config_id not in CONFIGS:
+        raise KeyError(f'unknown configuration {config_id}')
+    return _paths()[0] / FAMILY / config_id / f'V{int(version)}'
+
+
+def model_paths(config_id, version):
+    """The files predict() reads for one configuration (hash-pinned in a deployment package)."""
+    d = model_dir(config_id, version)
+    return [d / 'MODEL.pkl', d / 'MODEL.json']
+
+
+def write_model(config_id, version, payload):
+    """Write-once MODEL.pkl / MODEL.json beside the release. An incomplete earlier attempt (files but no RELEASE.npz) is moved
+    aside, kept and named; a completed configuration is never rewritten."""
+    d = model_dir(config_id, version)
+    if (d / 'RELEASE.npz').exists():
+        raise PermissionError(f'{FAMILY}/{config_id}/V{version} is complete (append-only; a revision gets a new config id)')
+    if d.exists() and any(d.iterdir()):
+        d.rename(d.with_name(f'{d.name}__incomplete_{time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())}'))
+    d.mkdir(parents=True, exist_ok=True, mode=0o700)
+    buf = pickle.dumps(payload, protocol=5)
+    with open(d / 'MODEL.pkl', 'xb') as f:
+        f.write(buf)
+    meta = {'schema': SCHEMA, 'family': FAMILY, 'config_id': config_id, 'version': int(version), 'model_sha256': _sha_bytes(buf),
+            'feature_names_sha256': _sha_bytes(json.dumps(list(payload['feature_names'])).encode()),
+            'teachers': sorted(payload['teachers']), 'T_star': payload['T'], 'utc': _utc()}
+    with open(d / 'MODEL.json', 'x') as f:
+        json.dump(meta, f, indent=1, sort_keys=True)
+    return meta
+
+
+def _load_model(config_id, version):
+    d = model_dir(config_id, version)
+    meta = json.loads((d / 'MODEL.json').read_text())
+    buf = (d / 'MODEL.pkl').read_bytes()
+    if _sha_bytes(buf) != meta['model_sha256'] or meta['config_id'] != config_id or int(meta['version']) != int(version):
+        raise PermissionError(f'{config_id} V{version}: MODEL.pkl differs from MODEL.json')
+    P = pickle.loads(buf)
+    if P['schema'] != SCHEMA or P['config_id'] != config_id or int(P['version']) != int(version):
+        raise PermissionError(f'{config_id} V{version}: model payload identity differs')
+    return P
+
+
+def predict(config_id, version, X, feature_names, draw=0, keys=None):
+    """Deployment function (nrm.deploy contract): the configuration's income (n, 2) and occupation (n, 5) vectors from admitted
+    features alone, reading only model_paths(config_id, version). Deterministic: per-request keys and draws other than 0 are
+    refused; the feature columns must be exactly the admitted names the configuration was fitted on."""
+    if keys is not None:
+        raise PermissionError('deterministic release: per-request keys are refused')
+    if int(draw) != 0:
+        raise PermissionError('deterministic release: only draw 0 exists')
+    P = _load_model(config_id, version)
+    names = tuple(map(str, feature_names))
+    if names != tuple(P['feature_names']):
+        raise PermissionError('feature columns differ from the admitted encoding the configuration was fitted on')
+    X = np.asarray(X, dtype=np.float64)
+    if X.ndim != 2 or X.shape[1] != len(names) or not np.isfinite(X).all():
+        raise ValueError('X must be a finite (n, columns) matrix of the admitted encoding')
     from ohn import fam_a as FA
-    d = NC.load('MODEL_FIT', ('features', 'income', 'occupation', 'sex'), operation, purpose)
-    Z = FA.compact_po(d['X'], d['feature_names'])
-    lab = {'income': d['income'], 'occupation': d['occupation'], 'sex': d['sex']}
-    return d, Z, lab
+    rel, _, _ = emit(embed(P['teachers'], FA.compact_po(X, names)), P['book'], P['dec'])
+    return rel
+
+
+def _payload(config_id, version, names, teachers, book, dec, T, extra=None):
+    return {'schema': SCHEMA, 'config_id': config_id, 'version': int(version), 'feature_names': tuple(names),
+            'teachers': teachers, 'book': book, 'dec': dec, 'T': T, **(extra or {})}
+
+
+def _release_all(config_id, version, role_features):
+    """Every role's release computed by predict() itself, so the saved wire IS the deployment function's output (bitwise)."""
+    return {r: predict(config_id, version, F['X'], F['feature_names']) for r, F in role_features.items()}
+
+
+def _write_once_json(path, obj):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, 'x') as f:
+        json.dump(obj, f, indent=1, sort_keys=True, default=float)
+
+
+def _cache_put(version, name, obj):
+    """Private, hash-checked cache of fitted statistics shared by the units of one version (moved aside, never overwritten)."""
+    d = _paths()[1] / f'V{int(version)}'
+    d.mkdir(parents=True, exist_ok=True, mode=0o700)
+    for suf in ('pkl', 'sha256'):
+        p = d / f'{name}.{suf}'
+        if p.exists():
+            p.rename(d / f'{name}__superseded_{time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())}.{suf}')
+    buf = pickle.dumps(obj, protocol=5)
+    with open(d / f'{name}.pkl', 'xb') as f:
+        f.write(buf)
+    with open(d / f'{name}.sha256', 'x') as f:
+        f.write(_sha_bytes(buf))
+    return _sha_bytes(buf)
+
+
+def _cache_get(version, name, row_sha=None):
+    d = _paths()[1] / f'V{int(version)}'
+    buf = (d / f'{name}.pkl').read_bytes()
+    if _sha_bytes(buf) != (d / f'{name}.sha256').read_text().strip():
+        raise PermissionError(f'cache {name} V{version} differs from its hash')
+    obj = pickle.loads(buf)
+    if row_sha is not None and obj['row_id_sha256'] != row_sha:
+        raise PermissionError(f'cache {name} V{version} was fitted on other rows')
+    return obj
+
+
+def _prep(data, sex):
+    from ohn import fam_a as FA
+    if sex != ('sex' in data):
+        raise PermissionError('this stage reads SEX' if sex else 'this stage never reads SEX')
+    names = tuple(map(str, data['feature_names']))
+    lab = {k: np.asarray(data[k], dtype=np.int64) for k in ('income', 'occupation', 'sex') if k in data}
+    return FA.compact_po(data['X'], names), lab, np.asarray(data['unit']), names, array_sha(np.asarray(data['row_id']))
+
+
+def _record(card, kind, description, fits, roles_read, exposure, people, households, cpu, extra):
+    return {'mechanism_card': card, 'kind': kind, 'description': description, 'n_model_fits': int(fits[0]),
+            'n_calibrator_fits': 0, 'n_crossfit_fits': int(fits[1]), 'n_critic_fits': 0, 'roles_read': roles_read,
+            'exposure': exposure, 'training_people': int(people), 'training_households': int(households),
+            'fit_cpu_s': round(float(cpu), 1), 'randomized': False, **extra}
+
+
+def _occupied(k, l):
+    return {'income': int(len(np.unique(k))), 'occupation': int(len(np.unique(l))), 'pair': int(len(np.unique(k * 100000 + l)))}
+
+
+def value_ids(rel):
+    """Cell identities as read off the released vectors themselves (what any reader can recover): income, occupation, joint."""
+    _, ii = np.unique(rel['income'], axis=0, return_inverse=True)
+    _, io = np.unique(rel['occupation'], axis=0, return_inverse=True)
+    ii, io = np.asarray(ii).ravel(), np.asarray(io).ravel()
+    return {'income': ii, 'occupation': io, 'pair': ii * (int(io.max()) + 1) + io}
+
+
+def reader_budget(rel):
+    """Label-free reader budget of one role's release: distinct released vectors and people per value (per view)."""
+    out = {'people': int(len(rel['income']))}
+    for vw, ids in value_ids(rel).items():
+        _, inv, cnt = np.unique(ids, return_inverse=True, return_counts=True)
+        out[vw] = {'values': int(len(cnt)), 'people_per_value_median': float(np.median(cnt)), 'min': int(cnt.min()),
+                   'p10': float(np.percentile(cnt, 10)), 'max': int(cnt.max()),
+                   'share_people_in_values_below_5': float((cnt[np.asarray(inv).ravel()] < 5).mean())}
+    return out
+
+
+def _no_stats(**kw):
+    return None
+
+
+# ---------------------------------------------------------------- the four stages (data and storage injected; queue units below)
+def stage_twin(version, data, role_features, save, card, hp=None, capacity=None, log=print, stats=_no_stats, twin_id='PRC_TWIN'):
+    """Stage 1 (unit FA_TWIN_V<v>): task teachers and the task-only twin on MODEL_FIT income and occupation (SEX never read).
+    The first twin fits and caches the task teachers; a ladder twin (R0) reuses that cache (identical teachers, no new fit)."""
+    t0 = time.process_time()
+    if CONFIGS[twin_id]['kind'] != 'task_only_twin':
+        raise ValueError(f'{twin_id} is not a twin')
+    capacity = tuple(capacity or CONFIGS[twin_id]['capacity'])
+    Z, lab, unit, names, row_sha = _prep(data, sex=False)
+    if twin_id == 'PRC_TWIN':
+        tch = fit_teachers(Z, lab, unit, version, hp or HGB, ('inc', 'occ'), log=log)
+        cache_sha = _cache_put(version, 'TASK', {'T': tch['T'], 'curve_min': tch['curve_min'], 'models': tch['models'],
+                                                 'oof': tch['oof'], 'row_id_sha256': row_sha, 'feature_names': names})
+        fits = (2 * (N_INNER + 1), 2 * N_XF)
+    else:
+        tch = _cache_get(version, 'TASK', row_sha)
+        cache_sha = _sha_bytes((_paths()[1] / f'V{int(version)}' / 'TASK.pkl').read_bytes())
+        fits = (0, 0)
+    E = embed_oof(tch)
+    tb, k0, l0 = twin_book(E, capacity[0], capacity[1], version, route_params('PRC_TWIN'))
+    dec = {'I': decoders(k0, lab['income'], tb['CI'], ROUTE['alpha_dec']),
+           'O': decoders(l0, lab['occupation'], tb['CO'], ROUTE['alpha_dec'])}
+    write_model(twin_id, version, _payload(twin_id, version, names, dict(tch['models']), tb, dec, tch['T'],
+                                           {'capacity': list(capacity)}))
+    arrays = _release_all(twin_id, version, role_features)
+    rec = _record(card, 'twin', CONFIGS[twin_id]['what'], fits, 'MODEL_FIT: income, occupation',
+                  'MODEL_FIT income and occupation labels of all MODEL_FIT people reach the two task teachers (inner household CV '
+                  'for T*, full refit, 5-fold household cross-fitting) and the label-refit cell decoders; no SEX, CALIBRATION or '
+                  'MODEL_SELECT label', len(Z), len(np.unique(unit)), time.process_time() - t0,
+                  {'T_star': tch['T'], 'capacity': list(capacity), 'occupied_cells_fit': _occupied(k0, l0),
+                   'fitted_task_ce_oof': objective(E, tb, k0, l0), 'task_cache_sha256': cache_sha,
+                   'reader_budget': {r: reader_budget(arrays[r]) for r in arrays}})
+    save(FAMILY, twin_id, version, arrays, rec)                   # save() books the record's fit counts to the unit
+    return rec
+
+
+def stage_gate(version, data, card, hp=None, capacity=None, outer=N_OUTER, limits=None, log=print, stats=_no_stats,
+               twin_id='PRC_TWIN'):
+    """Stage 1b (unit FA_GATE_V<v>): nested capacity gate, SEX never read: held-out spend of the twin over the continuous task
+    teachers (whole pipeline refitted on the outer-training households at the full-pool T*); estimate + 2 SE <= limits."""
+    capacity = tuple(capacity or CONFIGS[twin_id]['capacity'])
+    Z, lab, unit, names, row_sha = _prep(data, sex=False)
+    task = _cache_get(version, 'TASK', row_sha)
+    nest = nested(Z, lab, unit, version, {'CONT': ('cont',), 'PRC_TWIN': ('twin',)}, hp=hp, T_fixed=task['T'],
+                  capacity=capacity, outer=outer, log=log)
+    sp = spend(nest, 'PRC_TWIN', 'CONT', lab, unit)
+    lim = limits or CAPACITY_GATE
+    ok = all(sp[k][0] + 2 * sp[k][1] <= v for k, v in lim.items())
+    out = {'stage': 'capacity_gate', 'version': int(version), 'twin_id': twin_id, 'capacity': list(capacity),
+           'gate': 'PASS' if ok else 'FAIL',
+           'limits_estimate_plus_2se': lim, 'spend_twin_over_cont': {k: list(v) for k, v in sp.items()},
+           'nested_means': {n: {k: v for k, v in d.items() if k != '_per_person'} for n, d in nest.items()},
+           'outer_folds': outer, 'T_fixed': task['T'], 'nested_T': 'non-nested (full-pool T*)', 'utc': _utc()}
+    _write_once_json(_paths()[2] / f'GATE_V{int(version)}_{capacity[0]}x{capacity[1]}.json', out)
+    stats(n_model_fits=2 * outer, n_crossfit_fits=2 * N_XF * outer)
+    return out
+
+
+def stage_paths(version, data, card, hp=None, capacity=None, outer=N_OUTER, ladder=ORD_LADDER, budgets=None, log=print,
+                stats=_no_stats, twin_id='PRC_TWIN'):
+    """Stage 2 (unit FA_PATHS_V<v>; only after the gate PASS and the coordinator's OK): full-pool SEX-side teachers (cached), then the
+    nested estimator over the PRC / HQ / SHUF strength chains and the ORD ladder, and the predeclared selection (MODEL_FIT only).
+    `twin_id` is the twin whose capacity gate passed; stage 3 builds every configuration from that twin."""
+    capacity = tuple(capacity or CONFIGS[twin_id]['capacity'])
+    gate = json.loads((_paths()[2] / f'GATE_V{int(version)}_{capacity[0]}x{capacity[1]}.json').read_text())
+    if gate['gate'] != 'PASS':
+        raise PermissionError('the twin did not pass the capacity gate: protected paths are not fitted')
+    Z, lab, unit, names, row_sha = _prep(data, sex=True)
+    task = _cache_get(version, 'TASK', row_sha)
+    ss = fit_teachers(Z, lab, unit, version, hp or HGB, ('sex', 'occ_s'), log=log)
+    ss_sha = _cache_put(version, 'SEXSIDE', {'T': ss['T'], 'curve_min': ss['curve_min'], 'models': ss['models'],
+                                             'oof': ss['oof'], 'row_id_sha256': row_sha})
+    don = donor_index(Z, route_params('SHUF_S2', version=version)['shuf_tag'], len(Z))
+    shuf_overlap = {'self_donor': int((don == np.arange(len(Z))).sum()), 'same_household_donor': int((unit[don] == unit).sum())}
+    plan = {'PRC_TWIN': ('twin',)}
+    for fam, cfg in (('PRC', 'PRC_S2'), ('HQ', 'HQ_S2'), ('SHUF', 'SHUF_S2')):
+        plan.update({f'{fam}@{g}': ('prc', cfg, g) for g in LAMBDA_GRID})
+    plan.update({f'ORD@{a}x{b}': ('ord', a, b) for a, b in ladder})
+    nest = nested(Z, lab, unit, version, plan, hp=hp, T_fixed={**task['T'], **ss['T']}, capacity=capacity, outer=outer, log=log)
+    sel, audit = {}, {}
+    B = budgets or BUDGETS                                       # the predeclared BUDGETS (the selftest alone passes others)
+    for fam, bud in (('PRC', B), ('HQ', {'S2': B['S2']}), ('SHUF', {'S2': B['S2']}), ('ORD', B)):
+        cands = [n for n in plan if n.startswith(fam + '@')]
+        chosen, aud = select_path(nest, lab, unit, cands, budgets=bud)
+        sel[fam] = chosen
+        audit[fam] = {c: {k: list(v) for k, v in a.items()} for c, a in aud.items()}
+    out = {'stage': 'paths_and_selection', 'version': int(version), 'twin_id': twin_id, 'capacity': list(capacity), 'selection': sel,
+           'audit_spend_over_twin': audit, 'budgets': B, 'rule': 'last candidate in path order such that it and every '
+           'earlier candidate keep nested estimate + 2 household-clustered SE <= budget on every metric', 'ladder': [list(x) for x in ladder],
+           'lambda_grid': list(LAMBDA_GRID), 'nested_means': {n: {k: v for k, v in d.items() if k != '_per_person'}
+                                                              for n, d in nest.items()},
+           'outer_folds': outer, 'T_fixed': {**task['T'], **ss['T']}, 'sexside_cache_sha256': ss_sha,
+           'shuf_donor_overlap_full_pool': shuf_overlap, 'verdict_note': 'selection only; verdicts use MODEL_SELECT spend measured '
+           'by nrm.evaluate, never these nested MODEL_FIT estimates', 'utc': _utc()}
+    _write_once_json(_paths()[2] / f'SELECTION_V{int(version)}.json', out)
+    stats(n_model_fits=2 * (N_INNER + 1) + 4 * outer, n_crossfit_fits=2 * N_XF + 4 * N_XF * outer)
+    return out
+
+
+def stage_configs(version, config_ids, data, role_features, save, card, log=print, stats=_no_stats):
+    """Stage 3 (unit FA_CFG_V<v>): the selected configurations from the cached full-pool statistics. This unit reads MODEL_FIT
+    income and occupation only: SEX reaches PRC / HQ / SHUF solely through the stage-2 SEX-side teachers' out-of-fold statistics,
+    and never reaches ORD. NOT_FEASIBLE budgets are not fitted and a budget whose selection equals an earlier budget's is recorded
+    as an alias, never saved twice."""
+    t0 = time.process_time()
+    kinds = {CONFIGS[c]['kind'] for c in config_ids}
+    if not kinds or 'task_only_twin' in kinds:
+        raise ValueError('stage 3 fits selected configurations (the twin is stage 1)')
+    sexside = bool(kinds & set(PROTECTED_KINDS))
+    Z, lab, unit, names, row_sha = _prep(data, sex=False)
+    selrec = json.loads((_paths()[2] / f'SELECTION_V{int(version)}.json').read_text())
+    sel, twin_id = selrec['selection'], selrec.get('twin_id', 'PRC_TWIN')      # the twin whose gate passed (stage 2)
+    task = _cache_get(version, 'TASK', row_sha)
+    E = {'qI': task['oof']['inc'], 'qO': task['oof']['occ'], 'Z': Z}
+    teachers = dict(task['models'])
+    T = dict(task['T'])
+    if sexside:
+        ss = _cache_get(version, 'SEXSIDE', row_sha)
+        E.update(embed_oof({'oof': {'inc': E['qI'], 'occ': E['qO'], 'sex': ss['oof']['sex'], 'occ_s': ss['oof']['occ_s']}}))
+        teachers.update(ss['models'])
+        T.update(ss['T'])
+    tb = _load_model(twin_id, version)['book']
+    k0, l0 = route(E, tb)
+    out = {}
+    for cfg in config_ids:
+        kind, b = CONFIGS[cfg]['kind'], CONFIGS[cfg]['budget']
+        fam = SELECT_FAMILY[kind]
+        choice = sel[fam].get(b)
+        if choice is None:
+            out[cfg] = 'NOT_FEASIBLE'
+            continue
+        earlier = [x for x in sorted(sel[fam]) if x < b and sel[fam][x] == choice]
+        if earlier:
+            out[cfg] = f'ALIAS_OF_{fam}_{earlier[0]}'
+            continue
+        t1 = time.process_time()
+        if fam == 'ORD':
+            KI, KO = (int(x) for x in choice.split('@')[1].split('x'))
+            book, k, l = twin_book(E, KI, KO, version, route_params('PRC_TWIN'))
+        else:
+            book, k, l = protected_book(E, tb, k0, l0, float(choice.split('@')[1]), route_params(cfg, version=version))
+        dec = {'I': decoders(k, lab['income'], book['CI'], ROUTE['alpha_dec']),
+               'O': decoders(l, lab['occupation'], book['CO'], ROUTE['alpha_dec'])}
+        used = teachers if fam != 'ORD' else {'inc': teachers['inc'], 'occ': teachers['occ']}
+        write_model(cfg, version, _payload(cfg, version, names, used, book, dec, T, {'selected': choice}))
+        arrays = _release_all(cfg, version, role_features)
+        expo = ('MODEL_FIT income and occupation labels reach the shared task teachers (stage 1) and the label-refit decoders; '
+                + {'PRC': 'MODEL_FIT SEX reaches the SEX propensity and the SEX-conditional occupation teacher (stage 2) and, '
+                          'through their out-of-fold predictions, the cell tables and the routing rule',
+                   'HQ': 'MODEL_FIT SEX reaches the stage-2 SEX-side teachers, whose out-of-fold predictions enter only as means '
+                         'within the twin task cells (routing is a function of the task posteriors)',
+                   'SHUF': 'the stage-2 SEX-side out-of-fold predictions enter only as a keyed-hash donor copy (no person-level SEX '
+                           'information); the donor bank is stored in the model file',
+                   'ORD': 'no SEX reaches the release; the operating point was chosen by the stage-2 rule, whose subgroup rows '
+                          'used MODEL_FIT SEX labels as an evaluation of SEX-blind candidates'}[fam])
+        rec = _record(card, RECORD_KIND[kind], CONFIGS[cfg]['what'], (0, 0),
+                      'MODEL_FIT: income, occupation (this unit)' + ('; SEX via the stage-2 cache' if fam != 'ORD' else ''),
+                      expo, len(Z), len(np.unique(unit)), time.process_time() - t1,
+                      {'selected': choice, 'occupied_cells_fit': _occupied(k, l), 'T_star': T,
+                       'reader_budget': {r: reader_budget(arrays[r]) for r in arrays},
+                       'twin_id': twin_id,
+                       'teacher_fits_shared_with': 'stage-1 twin unit (task teachers) and stage-2 paths unit (SEX-side teachers)'})
+        save(FAMILY, cfg, version, arrays, rec)
+        out[cfg] = 'SAVED'
+    log(json.dumps({'stage': 'configs', 'version': int(version), 'result': out, 'cpu_s': round(time.process_time() - t0, 1)}))
+    return out
+
+
+def stage_check(version, data, loader, config_ids, log=print):
+    """Check 1 (unit FA_CHECK_V<v>_<k>): household 5-fold cross-fitted LOOKUP on MODEL_FIT of saved FA releases, with the cells
+    read off the released MODEL_FIT vectors themselves, plus the reader budget. SEX is read as an evaluation label only."""
+    Z, lab, unit, names, row_sha = _prep(data, sex=True)
+    out = {}
+    for cfg in config_ids:
+        mf = loader(cfg, version)
+        if len(mf['income']) != len(Z):
+            raise AssertionError(f'{cfg}: MODEL_FIT release rows differ from the label rows')
+        ids = value_ids(mf)
+        out[cfg] = {'lookup_crossfit_model_fit': {vw: lookup_crossfit(ids[vw], lab['sex'], unit, f'NRM_FA_check_S{int(version)}')
+                                                  for vw in ('pair', 'income', 'occupation')},
+                    'reader_budget_model_fit': reader_budget(mf)}
+    rec = {'stage': 'check1', 'version': int(version), 'configs': out, 'folds': 5, 'fold_tag': f'NRM_FA_check_S{int(version)}',
+           'reader': 'LOOKUP with Beta(1 * base rate) shrinkage, tables from the other 4 household folds', 'utc': _utc()}
+    _write_once_json(_paths()[2] / f'CHECK1_V{int(version)}_{time.strftime("%H%M%S", time.gmtime())}.json', rec)
+    log(json.dumps({'stage': 'check1', 'version': int(version), 'pair_auc': {c: round(v['lookup_crossfit_model_fit']['pair']['auc'], 4)
+                                                                            for c, v in out.items()}}))
+    return rec
+
+
+# ---------------------------------------------------------------- real-data entry points (queue units; after the receipt and GO)
+PURPOSE = {
+    'twin': 'FA PRC stage 1: task teachers and the task-only twin cells on MODEL_FIT income and occupation (no SEX)',
+    'gate': 'FA PRC stage 1b: nested household cross-fitted capacity gate of the twin on MODEL_FIT (no SEX)',
+    'paths': 'FA PRC stage 2: SEX-side teachers and the nested strength-path selection on MODEL_FIT (SEX as training label)',
+    'cfg': 'FA PRC stage 3: selected configurations from cached MODEL_FIT statistics (income and occupation labels only)',
+    'check': 'FA PRC check 1: household cross-fitted LOOKUP of saved FA releases on MODEL_FIT (SEX as evaluation label only)',
+}
+
+
+def _real(fields, purpose, card):
+    from nrm import common as NC                                    # refuses before the receipt and without the committed card
+    return NC.load('MODEL_FIT', fields, 'fit', purpose, card=card)
+
+
+def _real_roles():
+    from nrm import common as NC
+    return {r: NC.features(r) for r in NC.ROLES6}
+
+
+def run(cmd, version, card, configs=None, twin='PRC_TWIN'):
+    from nrm import common as NC
+    from nrm import release as RL
+    base = ('features', 'income', 'occupation')
+    if cmd == 'fit' and len(configs) == 1 and CONFIGS[configs[0]]['kind'] == 'task_only_twin':
+        return stage_twin(version, _real(base, PURPOSE['twin'], card), _real_roles(), RL.save, card, stats=NC.unit_stats,
+                          twin_id=configs[0])
+    if cmd == 'gate':
+        return stage_gate(version, _real(base, PURPOSE['gate'], card), card, stats=NC.unit_stats, twin_id=twin)
+    if cmd == 'paths':
+        return stage_paths(version, _real(base + ('sex',), PURPOSE['paths'], card), card, stats=NC.unit_stats, twin_id=twin)
+    if cmd == 'fit':
+        return stage_configs(version, configs, _real(base, PURPOSE['cfg'], card), _real_roles(), RL.save, card,
+                             stats=NC.unit_stats)
+    if cmd == 'check':
+        saved = sorted(p.parent.parent.name for p in (_paths()[0] / FAMILY).glob(f'*/V{int(version)}/RELEASE.json'))
+        loader = lambda cfg, v: RL.load(FAMILY, cfg, v, roles=('MODEL_FIT',))[0]['MODEL_FIT']
+        return stage_check(version, _real(base + ('sex',), PURPOSE['check'], card), loader, saved)
+    raise ValueError(cmd)
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(prog='nrm.fa.prc')
     sub = ap.add_subparsers(dest='cmd', required=True)
     sub.add_parser('selftest')
-    for c in ('fit', 'nested'):
-        p = sub.add_parser(c)
-        p.add_argument('--version', type=int, required=True, choices=(0, 1))
-        p.add_argument('--operation', required=True)
-        p.add_argument('--purpose', required=True)
+    p = sub.add_parser('fit')
+    p.add_argument('--config', required=True, help='PRC_TWIN alone, or a comma list of stage-3 configurations of one kind')
+    p.add_argument('--version', type=int, required=True, choices=(0, 1))
+    p.add_argument('--card', required=True)
+    p = sub.add_parser('nested')
+    p.add_argument('--phase', required=True, choices=('gate', 'paths'))
+    p.add_argument('--twin', default='PRC_TWIN', choices=tuple(c for c in CONFIGS if CONFIGS[c]['kind'] == 'task_only_twin'))
+    p.add_argument('--version', type=int, required=True, choices=(0, 1))
+    p.add_argument('--card', required=True)
+    p = sub.add_parser('check')
+    p.add_argument('--version', type=int, required=True, choices=(0, 1))
+    p.add_argument('--card', required=True)
     a = ap.parse_args(argv)
     from threadpoolctl import threadpool_limits
-    if a.cmd == 'selftest':
-        with threadpool_limits(limits=1):
+    with threadpool_limits(limits=1):
+        if a.cmd == 'selftest':
             return 0 if selftest() else 1
-    raise SystemExit('real-data commands are enabled only after the protocol receipt and the committed mechanism card '
-                     '(wave 2; they will call nrm.common.load / nrm.release.save through the queue)')
+        if a.cmd == 'fit':
+            cfgs = [c.strip() for c in a.config.split(',') if c.strip()]
+            unknown = [c for c in cfgs if c not in CONFIGS]
+            if unknown or (any(CONFIGS[c]['kind'] == 'task_only_twin' for c in cfgs) and len(cfgs) > 1):
+                raise SystemExit(f'bad --config {a.config}')
+            res = run('fit', a.version, a.card, cfgs)
+        elif a.cmd == 'check':
+            res = run('check', a.version, a.card)
+        else:
+            res = run(a.phase, a.version, a.card, twin=a.twin)
+        print(json.dumps(res if isinstance(res, dict) else {'result': str(res)}, default=float)[:4000])
+        return 0
 
 
 if __name__ == '__main__':

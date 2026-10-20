@@ -34,7 +34,8 @@ CODE = ['nrm', 'tsz', 'cts', 'ohn', 'ihs', 'ffv', 'amd', 'scm_bench', 'acs_repli
         'results/pcrl_scm_utility_matched_v1', 'results/pcrl_correction_transfer_stability_v1']
 PRIVATE = [f'.private/{CAMPAIGN}', '.private/pcrl_occupation_headroom_overnight_v1', '.private/pcrl_income_headroom_successor_v1']
 EXCLUDE = [f'.private/{CAMPAIGN}/compute/tickets']
-PY = os.environ.get('NRM_PYTHON', sys.executable)
+PY = os.environ.get('NRM_PYTHON', 'python3')
+TORCH_PY = '<repository>/.venv/bin/python'                 # family B's fit interpreter (torch venv)
 FILES = ('TIP_COMMIT', 'branch_since_base.bundle', 'code.tar', 'private.tar')
 
 
@@ -59,8 +60,24 @@ def restore_check(d: Path, read_back: str) -> dict:
     try:
         _run(['tar', '-xf', str(d / 'code.tar'), '-C', str(w)]); _run(['tar', '-xf', str(d / 'private.tar'), '-C', str(w)])
         env = {**os.environ, 'PYTHONPATH': str(w), 'OMP_NUM_THREADS': '1', 'OPENBLAS_NUM_THREADS': '1', 'VECLIB_MAXIMUM_THREADS': '1'}
-        rc, out = _run([PY, '-m', 'nrm.restore_check', str(w / 'restore_check.json')], cwd=str(w), env=env)
-        dep = json.loads((w / 'restore_check.json').read_text()) if (w / 'restore_check.json').exists() else {'all_ok': False, 'error': out[-1500:]}
+        passes = {}
+        for label, exe in (('python3', PY), ('torch_venv', TORCH_PY)):   # each family re-runs under its own fit interpreter (ENG1-04)
+            outp = w / f'restore_check_{label}.json'
+            rc, out = _run([exe, '-m', 'nrm.restore_check', str(outp)], cwd=str(w), env=env)
+            passes[label] = json.loads(outp.read_text()) if outp.exists() else {'all_ok': False, 'error': out[-1500:]}
+        rerun = {}
+        for p in passes.values():
+            rerun.update(p.get('models_rerun_bitwise') or {})
+        covered = set(rerun)
+        notrun = set().union(*[set(k for k in (p.get('models_not_rerun_in_this_pass') or {}) if not k.endswith('__error'))
+                              for p in passes.values()]) - covered
+        seen = set().union(*[set(p.get('representative_readers_bitwise') or {}) | set(p.get('readers_judged_in_other_pass') or {})
+                             for p in passes.values()])
+        bitwise = {r for p in passes.values() for r, ok in (p.get('representative_readers_bitwise') or {}).items() if ok}
+        dep = {'passes': passes, 'models_rerun_bitwise': rerun, 'models_never_rerun': sorted(notrun),
+               'readers_never_bitwise': sorted(seen - bitwise),           # ENG2-06: every reader bitwise in at least one pass
+               'all_ok': all(bool(p.get('all_ok')) for p in passes.values()) and not notrun and all(rerun.values())
+               and not (seen - bitwise)}
     finally:
         shutil.rmtree(w, ignore_errors=True)
     rec = {'tip_commit': (d / 'TIP_COMMIT').read_text().strip(), 'manifest_rehash_ok': rehash, 'bundle_verify': rc_b == 0 and 'is okay' in out_b,

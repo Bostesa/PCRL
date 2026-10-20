@@ -21,6 +21,9 @@ Channel law (one release instance = one key; one draw per recipient per person):
                the person's own direction: utility is per recipient, so the coupling costs nothing and aligns the linked view's noise)
     'iso'    z~_i = z_i + c_i * F_i^{-1/2} xi_i / sqrt(5), xi_i ~ N(0, I_5) (five independent draws; uncoupled; SEX-blind; second-
                order cost s^2 / 2; c_i = min(s, cap / sqrt(tr F_i^{-1} / 5)))
+    'minf'   v_i = e_i / sqrt(lambda_min,i): the eigenvector of F_i with the smallest eigenvalue ("noise where the task is cheapest";
+               SEX-blind; unit Fisher norm; sign: largest-|.| component positive), then the same c_i, shared scalar draw, cap, keys as
+               'sex'. F_i is block diagonal, so the minimum-Fisher direction lies in one recipient's block (generically).
     emitted  p~_I = softmax(H2^T z~_I), p~_O = softmax(H5^T z~_O); decisions = argmax of the emitted vectors.
 The optimal-direction formula is the rank-1 solution of: minimise the linked linear-Gaussian SEX discriminability
 delta^T (Sigma_w + Sigma_n)^{-1} delta subject to the second-order Fisher cost tr(F Sigma_n)/2 = s^2/2 (gamma = 2c = s^2).
@@ -45,7 +48,7 @@ import numpy as np
 
 K = {'income': 2, 'occupation': 5}
 DZ = 5
-MODES = ('none', 'sex', 'pca', 'iso')
+MODES = ('none', 'sex', 'pca', 'iso', 'minf')
 CAP = 1.5                 # predeclared per-person noise cap (centred-logit units per unit draw)
 GH_NODES = 48             # Gauss-Hermite nodes for the deterministic mean vector
 SCHEMA = 'NRM-FB-channel-v1'
@@ -109,7 +112,7 @@ def geometry(z, sex=None, mode='sex', ridge=1e-6):
     """Channel geometry from deterministic centred logits z (n, 5). 'sex' needs the MODEL_FIT SEX labels (0 = men, 1 = women)."""
     if mode not in MODES:
         raise ValueError(f'unknown mode {mode}')
-    if mode in ('none', 'iso'):
+    if mode in ('none', 'iso', 'minf'):
         return {'schema': SCHEMA, 'mode': mode}
     z = np.asarray(z, np.float64)
     if mode == 'sex':
@@ -132,7 +135,7 @@ def geometry(z, sex=None, mode='sex', ridge=1e-6):
 
 def scale_geometry(geom, t_inc, t_occ):
     """Geometry of z / T (per-block temperatures): delta and Sigma_w transform linearly."""
-    if geom['mode'] in ('none', 'iso'):
+    if geom['mode'] in ('none', 'iso', 'minf'):
         return dict(geom)
     D = np.diag([1.0 / t_inc] + [1.0 / t_occ] * 4)
     d = D @ np.asarray(geom['delta']); S = D @ np.asarray(geom['Sw']) @ D
@@ -154,6 +157,10 @@ def operators(z, chan):
     if mode == 'none' or s == 0.0:
         return np.zeros((n, DZ))
     F = fisher(z)
+    if mode == 'minf':
+        v = minf_directions(F)
+        c = np.minimum(s, cap / np.maximum(np.linalg.norm(v, axis=1), 1e-300))
+        return v * c[:, None]
     if mode == 'iso':
         w, V = np.linalg.eigh(F)
         w = np.maximum(w, 1e-12)
@@ -173,6 +180,16 @@ def operators(z, chan):
     v = d / np.sqrt(np.maximum(q, 1e-300))[:, None]
     c = np.minimum(s, cap / np.maximum(np.linalg.norm(v, axis=1), 1e-300))
     return v * c[:, None]
+
+
+def minf_directions(F):
+    """(n, 5) unit-Fisher-norm directions along each person's smallest-eigenvalue eigenvector of F_i (deterministic sign)."""
+    w, V = np.linalg.eigh(F)
+    e = V[:, :, 0]
+    big = np.argmax(np.abs(e), axis=1)
+    sgn = np.sign(e[np.arange(len(e)), big])
+    sgn[sgn == 0] = 1.0
+    return e * sgn[:, None] / np.sqrt(np.maximum(w[:, 0], 1e-12))[:, None]
 
 
 def perturb(z, op, eps):
@@ -348,13 +365,29 @@ def selftest():
     yi = (rng.random(n) < pi0[:, 1]).astype(np.int64)
     yo = np.array([rng.choice(5, p=p) for p in po0])
     s_small = 0.1
-    for mode, geom in (('sex', g_sex), ('pca', g_pca), ('iso', {'mode': 'iso'})):
+    for mode, geom in (('sex', g_sex), ('pca', g_pca), ('iso', {'mode': 'iso'}), ('minf', {'mode': 'minf'})):
         ch = {'mode': mode, 's': s_small, 'geom': geom}
         Em = emit(z, ch, key, 'MODEL_FIT', row_id, reps=8)
         cost = (task_metrics(Em['income'], yi)['nll'] - task_metrics(pi0, yi)['nll']) + \
                (task_metrics(Em['occupation'], yo)['nll'] - task_metrics(po0, yo)['nll'])
         info[f'cost_{mode}'] = {'realized_nll_cost': cost, 'second_order': s_small ** 2 / 2}
-    checks['second_order_cost_matches'] = all(abs(info[f'cost_{m}']['realized_nll_cost'] / (s_small ** 2 / 2) - 1) < 0.35 for m in ('sex', 'pca', 'iso'))
+    checks['second_order_cost_matches'] = all(abs(info[f'cost_{m}']['realized_nll_cost'] / (s_small ** 2 / 2) - 1) < 0.35 for m in ('sex', 'pca', 'iso', 'minf'))
+    # MINF: unit Fisher norm, minimum-eigenvalue direction, cost s^2 / 2, cap share recorded, coupled shared scalar
+    Fz = fisher(z)
+    vm = minf_directions(Fz)
+    lam = np.linalg.eigvalsh(Fz)[:, 0]
+    checks['minf_unit_fisher_norm'] = bool(np.allclose(np.einsum('ni,nij,nj->n', vm, Fz, vm), 1.0, atol=1e-8))
+    checks['minf_is_min_eigen_direction'] = bool(np.allclose(np.einsum('ni,ni->n', vm, vm) * lam, 1.0, atol=1e-6))
+    info['minf_cap_binding_share_at_s0.1'] = float(np.mean(np.linalg.norm(vm, axis=1) * s_small > CAP))
+    checks['minf_cost_s2_over_2'] = abs(info['cost_minf']['realized_nll_cost'] / (s_small ** 2 / 2) - 1) < 0.35
+    Em = emit(z[:2000], {'mode': 'minf', 's': 0.2, 'geom': {'mode': 'minf'}}, key, 'MODEL_SELECT', row_id[:2000], reps=1)
+    opm = operators(z[:2000], {'mode': 'minf', 's': 0.2, 'geom': {'mode': 'minf'}})
+    dzm = z_from_probs(Em['income'][0], Em['occupation'][0]) - z[:2000]
+    cm = (dzm * opm).sum(1) / np.maximum((opm * opm).sum(1), 1e-300)
+    checks['minf_rank1_shared_keyed_draw'] = bool(np.allclose(dzm, cm[:, None] * opm, atol=1e-6) and
+                                                  np.allclose(cm, keyed_normals(key, 'NRM-FB|MODEL_SELECT|r0', row_id[:2000], 1)[:, 0], atol=1e-6))
+    one_q = np.mean(emit_one(z[:2000], {'mode': 'minf', 's': 0.2, 'geom': {'mode': 'minf'}}, key, 'MODEL_SELECT', row_id[:2000], 0)['occupation'] == Em['occupation'][0])
+    checks['emit_one_equals_emit'] = bool(one_q == 1.0)
     # 5. mean vector (deterministic construction) equals the Monte Carlo average of draws
     mv = mean_vector(z[:500], chan)
     big = emit(z[:500], chan, key, 'MC', row_id[:500], reps=4000)
@@ -365,7 +398,7 @@ def selftest():
     #    SEX-blind channels (one draw per person; invented data with the SEX shift in a low-variance direction)
     s_t = 0.3
     d2 = {'identity': lda_delta2(z, sex)}
-    for mode, geom in (('sex', g_sex), ('pca', g_pca), ('iso', {'mode': 'iso'})):
+    for mode, geom in (('sex', g_sex), ('pca', g_pca), ('iso', {'mode': 'iso'}), ('minf', {'mode': 'minf'})):
         Em = emit(z, {'mode': mode, 's': s_t, 'geom': geom}, key, 'MODEL_SELECT', row_id, reps=1)
         d2[mode] = lda_delta2(z_from_probs(Em['income'][0], Em['occupation'][0]), sex)
     info['lda_delta2_one_draw'] = d2

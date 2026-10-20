@@ -31,8 +31,10 @@ FRESH grid (splits frozen in the registration before any new fit; READER_SPLITS.
 
 Bank spec (JSON): {"bank_id", "purpose", "members": {name: member}, "candidates": [...], "comparators": [...], optional "reps",
 "reader_seeds", "fractions"}. A member is
-  a release of this campaign:  {"type": "nrm", "family": F, "config": C[, "draw": d]}  (nrm.release.load, hash-checked; "draw"
-                               picks one emitted draw of a randomized release, default 0),
+  a release of this campaign:  {"type": "nrm", "family": F, "config": C[, "draw": d | "rep"][, "draw_offset": o]}
+                               (nrm.release.load, hash-checked; for a randomized release the default "rep" reads instance
+                               REP_INSTANCE[repetition] (R1 0, R2 1, R3 6, R4 7) in every cell, plus "draw_offset" for Monte Carlo
+                               replicate members (+2, +4; R1/R2 only); a fixed "draw" d reads instance d everywhere),
   the previous witness:        {"type": "witness"}  (A1_PO_16 S<v> occupation + H3 income S<v>),
   a frozen source release (loaded by ohn.devreaders.load_member from the admitted copies):
       {"type": "reference", "name": NAME} | {"type": "occ", "family": F, "config": C, "anchor": "H3" | "TW"} |
@@ -66,6 +68,7 @@ from task_conditioned_representation.inference import auc
 from ffv.readers import NEW8, design_for, fit_new, predict_new, pick, versions
 from ohn import common as OC
 from . import common as C
+from . import readerextra as RX                     # reader-robustness extras (descriptive; proposal of 15:35Z, integrated pre-lock)
 
 GRID_VERSION = 'NRM1-devgrid-v1'            # this campaign's fresh grid version string: part of the cache key
 SCHEMA = 'NRM1-devgrid-v1'                  # this module's result schema
@@ -96,7 +99,8 @@ MANIFEST_PATH = C.RESULTS / 'READER_SPLITS.json'
 SELFTEST_PATH = C.RESULTS / 'roles' / 'coordinator' / 'checks' / 'DEVGRID_SELFTEST.json'
 RECIPE_FILES = ('ffv/readers.py', 'ffv/features.py', 'scm_bench/readers.py', 'task_conditioned_representation/attacks.py',
                 'task_conditioned_representation/inference.py')
-LOCK_FILES = ('nrm/devreaders.py', 'nrm/release.py', 'tsz/devreaders.py', 'ohn/devreaders.py', 'ohn/devrun.py',
+EXTRAS = True                                       # score fingerprints, NOLOOKUP winner, TABLE_CV enhanced winner (descriptive)
+LOCK_FILES = ('nrm/devreaders.py', 'nrm/release.py', 'nrm/readerextra.py', 'tsz/devreaders.py', 'ohn/devreaders.py', 'ohn/devrun.py',
               'ohn/common.py') + RECIPE_FILES
 RELEASE_ROOTS = (C.RUNS, OC.RUNS, C.ROOT / '.private' / 'pcrl_income_headroom_successor_v1')
 N_MODEL_SELECT = 8001
@@ -319,6 +323,25 @@ def _check_views(views):
     return views
 
 
+REP_INSTANCE = {'R1': 0, 'R2': 1, 'R3': 6, 'R4': 7}      # declared (DECLARATIONS_V1; reviewer's ruling): R3/R4 never reuse the
+                                                         # R1/R2 Monte Carlo replicate instances 2-5
+
+
+def draw_for(rule, rep):
+    """The emitted draw (release instance) a cell of repetition `rep` reads from a randomized release. Rule {'draw': 'rep'} (the
+    registered mapping REP_INSTANCE: R1 -> 0, R2 -> 1, R3 -> 6, R4 -> 7; both reader seeds of a cell read the same instance,
+    separating reader-seed from Monte Carlo variation) plus an optional 'draw_offset' (Monte Carlo replicate members, +2 and +4,
+    registered repetitions only), or {'draw': d} (one fixed instance). Every person contributes exactly that one draw (FIT,
+    VALIDATION and SCORE)."""
+    if rule.get('draw', 'rep') == 'rep':
+        base = REP_INSTANCE[rep]
+        if int(rule.get('draw_offset', 0)) and rep not in REPS:
+            raise ValueError('Monte Carlo replicate offsets apply to the registered repetitions R1 and R2 only')
+    else:
+        base = int(rule['draw'])
+    return base + int(rule.get('draw_offset', 0))
+
+
 def evaluate_bank(bank, rel_seed, sex, unit, fracs=(1.0,), stats=None, reps=REPS, ks=READER_SEEDS, views=VIEWS, caches=None):
     """bank: {name: {'income': (n, 2), 'occupation': (n, 5)}} on MODEL_SELECT rows. Returns per cell (and FIT fraction): every
     release's winners (VALIDATION) with SCORE AUCs and the household-bootstrap draws of each winner's SCORE AUC."""
@@ -339,6 +362,10 @@ def evaluate_bank(bank, rel_seed, sex, unit, fracs=(1.0,), stats=None, reps=REPS
                 cres = {}
                 for name, rel in bank.items():
                     inc, occ = rel['income'], rel['occupation']
+                    if inc.ndim == 3 or occ.ndim == 3:            # randomized release: this cell's ONE draw per person
+                        r_draw = draw_for(rel.get('_draw_rule', {}), rep)
+                        inc = inc[r_draw] if inc.ndim == 3 else inc
+                        occ = occ[r_draw] if occ.ndim == 3 else occ
                     rd = {v: cell_readers(v, inc, occ, sex, unit, rel_seed, rep, k, frac, stats, sx, caches) for v in views}
                     w = winners(rd.get('income'), rd.get('occupation'), rd.get('pair'))
                     entry = {}
@@ -347,6 +374,11 @@ def evaluate_bank(bank, rel_seed, sex, unit, fracs=(1.0,), stats=None, reps=REPS
                         entry[view] = {'winner': w[view]['candidate'], 'origin': w[view]['origin'],
                                        'val_auc': w[view]['attack_validation_auc'], 'gap_to_runner_up': w[view]['gap_to_runner_up'],
                                        'near_tie': w[view]['AV_NEAR_TIE'], 'score_auc': float(auc(y, s)), 'boot': wauc_draws(y, s, W)}
+                    if EXTRAS:                    # reader-robustness extras: descriptive only, never a registered winner or decision
+                        ex, eb = RX.cell_extras(rd, inc, occ, sex, unit, rep, frac, W, views)
+                        for view in views:
+                            entry[view]['extras'] = ex[view]
+                            entry[view]['extras_boot'] = eb[view]
                     cres[name] = entry
                 res[cell] = cres
     return res, stats
@@ -368,7 +400,8 @@ def paired(res, cand, comp, views=VIEWS):
 
 
 def strip(res):
-    return {cell: {n: {v: {k: x for k, x in e.items() if k != 'boot'} for v, e in ent.items()} for n, ent in cres.items()}
+    return {cell: {n: {v: {k: x for k, x in e.items() if k not in ('boot', 'extras_boot')} for v, e in ent.items()}
+                   for n, ent in cres.items()}
             for cell, cres in res.items()}
 
 
@@ -381,6 +414,16 @@ def _check_prob(p, k, what, n=None):
     if (p.ndim != 2 or p.shape[1] != k or (n is not None and p.shape[0] != n) or not np.isfinite(p).all() or (p < 0).any()
             or not np.allclose(p.sum(1), 1, atol=1e-9, rtol=0)):
         raise ValueError(f'{what}: not a valid ({n}, {k}) probability-vector release')
+    return p
+
+
+def _check_stack(p, k, what, n=None):
+    """A randomized release: (R, n, k) stack of valid one-draw-per-person probability vectors."""
+    p = np.ascontiguousarray(np.asarray(p, dtype=np.float64))
+    if p.ndim != 3:
+        raise ValueError(f'{what}: a randomized release is an (R, n, k) stack')
+    for r in range(p.shape[0]):
+        _check_prob(p[r], k, f'{what} draw {r}', n)
     return p
 
 
@@ -426,10 +469,23 @@ def load_member(member, seed, n=N_MODEL_SELECT, row_id=None, roots=RELEASE_ROOTS
     elif t == 'nrm':
         from . import release as RL
         arr, rec = RL.load(member['family'], member['config'], seed, roles=('MODEL_SELECT',))
-        ms, d = arr['MODEL_SELECT'], int(member.get('draw', 0))
-        rel = {task: (ms[task][d] if ms[task].ndim == 3 else ms[task]) for task in C.TASKS}
+        ms = arr['MODEL_SELECT']
+        rule = {'draw': member.get('draw', 'rep'), 'draw_offset': int(member.get('draw_offset', 0))}
+        if rec.get('randomized'):                 # keep the stacks; each cell reads its own instance (draw_for)
+            rel = {task: ms[task] for task in C.TASKS}
+            for task in C.TASKS:
+                R = rel[task].shape[0]
+                reps_used = REPS if int(rule.get('draw_offset', 0)) else ALL_REPS
+                if max(draw_for(rule, rp) for rp in reps_used) >= R:
+                    raise ValueError(f'{member}: the draw rule needs more than the {R} stored instances')
+        else:
+            rel = {task: ms[task] for task in C.TASKS}
         prov = {'nrm_member': member, 'release_sha256': rec['release_sha256'], 'kind': rec['kind'],
-                'randomized': bool(rec.get('randomized')), 'draw': d if rec.get('randomized') else None}
+                'randomized': bool(rec.get('randomized')), 'draw_rule': rule if rec.get('randomized') else None}
+        if rec.get('randomized'):
+            rel = {**{t: _check_stack(rel[t], C.K[t], f'{t} release', n) for t in C.TASKS}, '_draw_rule': rule}
+            prov['wire_sha256'] = {t: [wire_sha(rel[t][r]) for r in range(rel[t].shape[0])] for t in C.TASKS}
+            return rel, prov
     elif t == 'witness':
         from tsz.evaluate import source_a1, h3_income
         rel, prov = {'income': h3_income(seed), 'occupation': source_a1(seed)}, {'witness': 'A1_PO_16 S<v> + H3 income S<v>'}
@@ -471,7 +527,8 @@ def aliases(provs):
     for task in C.TASKS:
         by = {}
         for name, pv in provs.items():
-            by.setdefault(pv['wire_sha256'][task], []).append(name)
+            w = pv['wire_sha256'][task]
+            by.setdefault(tuple(w) if isinstance(w, list) else w, []).append(name)
         out[task] = [sorted(v) for v in by.values() if len(v) > 1]
     return out
 
@@ -600,6 +657,11 @@ def run_bank(bank, sex, unit, spec, seed, out, provs=None, caches=None):
     boot = {f'{cell}__{n}__{v}': e['boot'] for cell, cres in res.items() for n, ent in cres.items() for v, e in ent.items()}
     with open(out / 'BOOT.npz', 'wb') as f:
         np.savez(f, **boot)
+    bx = {f'{cell}__{n}__{v}__{k}': b for cell, cres in res.items() for n, ent in cres.items() for v, e in ent.items()
+          for k, b in e.get('extras_boot', {}).items()}
+    if bx:
+        with open(out / 'BOOT_EXTRAS.npz', 'wb') as f:
+            np.savez(f, **bx)
     provs = provs or {}
     rec = {'schema': SCHEMA, 'bank_id': spec['bank_id'], 'seed': seed, 'spec': spec, 'grid_version': GRID_VERSION,
            'reps': list(reps), 'fractions': list(fracs), 'cells': strip(res), 'paired': pairs, 'winner_changes': winner_changes,
@@ -679,6 +741,33 @@ def selftest(n=1500):
     return chk
 
 
+def selftest_draws():
+    """Invented data, no reader fit: the per-cell draw rule of randomized releases and the stack checks."""
+    chk = {'rep_rule': [draw_for({'draw': 'rep'}, r) for r in ALL_REPS] == [0, 1, 6, 7],
+           'offset_rule': [draw_for({'draw': 'rep', 'draw_offset': 2}, r) for r in REPS] == [2, 3],
+           'fixed_rule': draw_for({'draw': 5}, 'R2') == 5}
+    try:
+        draw_for({'draw': 'rep', 'draw_offset': 2}, 'R3'); chk['offset_refused_on_robustness_reps'] = False
+    except ValueError:
+        chk['offset_refused_on_robustness_reps'] = True
+    rng = np.random.default_rng(3)
+    st = rng.dirichlet(np.ones(5), (8, 20))
+    chk['stack_ok'] = _check_stack(st, 5, 'x', 20).shape == (8, 20, 5)
+    try:
+        _check_stack(st[0], 5, 'x', 20); chk['stack_needs_3d'] = False
+    except ValueError:
+        chk['stack_needs_3d'] = True
+    bad = st.copy(); bad[3, 0, 0] += 0.5
+    try:
+        _check_stack(bad, 5, 'x', 20); chk['stack_rejects_invalid_draw'] = False
+    except ValueError:
+        chk['stack_rejects_invalid_draw'] = True
+    chk['aliases_hash_lists'] = aliases({'a': {'wire_sha256': {'income': ['x', 'y'], 'occupation': 'o'}},
+                                        'b': {'wire_sha256': {'income': ['x', 'y'], 'occupation': 'p'}}})['income'] == [['a', 'b']]
+    chk['all_ok'] = all(chk.values())
+    return chk
+
+
 def timing(n=8000):
     """Invented data at MODEL_SELECT size (no real data, no label): CPU of the 16 recipes for one release in one cell, per view and
     per recipe (planning the grid's CPU budget; run through the queue so the one-thread limit applies). n is even because _invented
@@ -704,6 +793,7 @@ def main(argv=None):
     sub = ap.add_subparsers(dest='cmd', required=True)
     sub.add_parser('manifest')
     sub.add_parser('selftest')
+    sub.add_parser('selftest_draws')
     sub.add_parser('timing')
     sub.add_parser('lock')
     r = sub.add_parser('run'); r.add_argument('--spec', required=True); r.add_argument('--seed', type=int, required=True)
@@ -717,6 +807,11 @@ def main(argv=None):
         chk = selftest()
         C.write_json(SELFTEST_PATH, {**chk, 'utc': C.now(), 'versions': versions()})
         print(json.dumps(chk, indent=1, default=str))
+        if not chk['all_ok']:
+            raise SystemExit(1)
+    elif a.cmd == 'selftest_draws':
+        chk = selftest_draws()
+        print(json.dumps(chk))
         if not chk['all_ok']:
             raise SystemExit(1)
     elif a.cmd == 'timing':

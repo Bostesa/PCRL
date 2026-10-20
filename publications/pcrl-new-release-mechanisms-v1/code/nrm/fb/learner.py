@@ -1,34 +1,36 @@
-"""Family B learner (torch, one thread): the task-only twin and the channel-aware continuation of the two task networks under the
-FSC channel (nrm.fb.channel), CALIBRATION temperatures, and the release of all family-B configurations of one version.
+"""Family B learner, revision FB1 (card FB_FSC_v1; torch, one thread): the task-only twin and the channel-aware joint learners
+under the FSC channel (nrm.fb.channel), CALIBRATION temperatures, and the release of all FB1 configurations of one version.
+(Revision FB2, the post-hoc channel on a frozen base, is nrm.fb.posthoc.)
 
 Census context: public-use ACS 2019 1-Year PUMS Florida person records; six raw fields -> admitted 145-column encoding X -> income (2)
 and occupation (5) probability vectors, one per recipient, decision = argmax of the emitted vector. SEX is read only on MODEL_FIT, as
 the label of the channel geometry (delta, Sigma_w); never a runtime input or output. CALIBRATION (no SEX) fits temperatures only.
 MODEL_SELECT labels are never read here (feedback only through nrm.evaluate / nrm.screen outputs).
 
-Per version v (both versions; seeds and the internal household split depend on v only):
-  stage 1   per task, network d-128-ReLU-128-ReLU-32-linear K (the U0 Recipe A shape, widened 2x); Adam lr 1e-3, batch 512, at most
-            40 epochs, early stopping (patience 5, min delta 1e-4) on a household-grouped 15% internal split of MODEL_FIT keyed by v;
-            refit from the same initialisation on ALL MODEL_FIT people for the selected epoch count (non-nested; actual training size
-            20,000 people / 13,337 households).
-  stage 2   every learner continues from the stage-1 networks for 6 epochs (Adam lr 3e-4, batch 512, both task losses summed):
-              'none'   task-only continuation (the equally trained twin);
-              'sex:Sj' the expected task loss of the EMITTED vectors under the FSC channel (mode 'sex', strength s_j): one training
-                       draw per example per step, reparameterised (gradient through the deterministic logits; the per-person noise
-                       operator is recomputed from the detached logits); the channel geometry is re-estimated at the start of every
-                       epoch from the current deterministic logits of all MODEL_FIT people (SEX labels);
-              'pca:Sj' the same with the SEX-blind direction (mode 'pca', same s_j: same second-order Fisher cost by construction).
-            The permutation stream and the training-noise stream are identical across the seven learners of a version (paired).
+Per version v (both versions; initialisation, internal household split, permutations and training noise depend on v only):
+  learners  'none', 'sex:S2', 'sex:S3', 'minf:S2', 'minf:S3', 'iso:S2' (fit_learner). Each is a JOINT FROM-SCRATCH fit of both task
+            networks (per task d-128-ReLU-128-ReLU-32-linear K, the U0 Recipe A shape widened 2x):
+              - Adam lr 1e-3, batch 512, at most 40 epochs, on the summed EMITTED task loss under the learner's own channel ('none' =
+                identity: the task-only twin);
+              - one training draw per example per step, reparameterised: the gradient flows through the deterministic logits, and
+                the per-person noise operator is recomputed from the detached logits;
+              - 'sex' re-estimates the channel geometry (delta, Sigma_w; MODEL_FIT SEX) at the start of every epoch;
+              - early stopping (patience 5, min delta 1e-4) on the summed emitted NLL of a household-grouped 15% internal split keyed
+                by v, with fixed validation draws;
+              - refit from the same initialisation on ALL MODEL_FIT people for the selected epoch count (non-nested; 20,000 people /
+                13,337 households).
+            All learners of a version share the initialisation, permutations and training-noise draws (paired). 'minf' and 'iso' never
+            use SEX (their geometry is SEX-free; evidence: the verifier's invariance check V3X_FB_INVARIANCE).
   release   geometry re-estimated on the final learner's MODEL_FIT logits and frozen; per-task temperatures fitted on CALIBRATION
             (golden section on log T in [log 0.5, log 3], two coordinate sweeps; randomized channels: mean emitted NLL over 8 keyed
             calibration draws; mean-vector construction: its exact NLL); emitted vectors for all six roles with R = 8 independent
             one-draw-per-person repetitions keyed by a private per-(config, version) key (nrm.fb.channel.release_key).
 
-Configurations of one version (8; 16 over both versions; the coordinator's allocation dropped the S1 strength):
-  FB_TWIN (twin), FB_SEX_S2/S3 (candidate), FB_PCA_S2/S3 (SEX-blind matched control), FB_SEX_S2_ID (identity channel of the S2
-  learner), FB_SEX_S2_MEAN (deterministic mean vector of the S2 channel), FB_POSTHOC_S2 (S2 channel on the twin learner, no
-  adaptation). Both the SEX and the PCA paths use the same coupled rank-1 draw, so their comparison isolates targeting; no
-  joint-design or coupling claim is made (an uncoupled control is not funded).
+Configurations of one version (9; 18 over both versions; coordinator decisions CARD_DECISIONS_V1):
+  FB_TWIN (twin), FB_SEX_S2/S3 (candidate), FB_MINF_S2/S3 (SEX-blind control path, G3), FB_ISO_S2 (strong SEX-blind control),
+  FB_SEX_S2_ID (identity channel of the S2 learner), FB_SEX_S2_MEAN (deterministic mean vector of the S2 channel), FB_POSTHOC_S2
+  (S2 channel on the twin learner, no adaptation). SEX and MINF use the same coupled rank-1 construction (comparison isolates
+  targeting); ISO is uncoupled. No joint-design or coupling claim is made.
 Model files (write-once, under runs/FB/MODELS/V<v>/, read by nrm.fb.release.predict): LEARNER_<learner>.pt, CHANNEL_<config>.json
 (frozen geometry, temperatures, strength, cap, feature names), RELEASE_ROOT.bin (private 32-byte root of the release keys).
 
@@ -64,15 +66,18 @@ SPEC = {
     'calibration': {'bounds_log_t': [float(np.log(0.5)), float(np.log(3.0))], 'sweeps': 2, 'golden_iters': 24, 'draws': 8},
     'release_draws': 8, 'cap': CH.CAP, 'strengths': STRENGTHS,
 }
-LEARNERS = ('none',) + tuple(f'{m}:{j}' for m in ('sex', 'pca') for j in STRENGTHS)
+LEARNERS = ('none',) + tuple(f'{m}:{j}' for m in ('sex', 'minf') for j in STRENGTHS) + ('iso:S2',)
 CONFIGS = {
     'FB_TWIN': {'learner': 'none', 'mode': 'none', 's': 0.0, 'kind': 'twin',
-                'description': 'task-only twin: stage-1 networks + 6 task-only continuation epochs; identity channel'},
+                'description': 'task-only twin: the same joint recipe under the identity channel'},
     **{f'FB_SEX_{j}': {'learner': f'sex:{j}', 'mode': 'sex', 's': s, 'kind': 'candidate',
                        'description': f'channel-aware learner + FSC channel, SEX-targeted direction, s = {s}'} for j, s in STRENGTHS.items()},
-    **{f'FB_PCA_{j}': {'learner': f'pca:{j}', 'mode': 'pca', 's': s, 'kind': 'control',
-                       'description': f'SEX-blind matched control: channel-aware learner + FSC channel, top-PC direction, s = {s}'}
-       for j, s in STRENGTHS.items()},
+    **{f'FB_MINF_{j}': {'learner': f'minf:{j}', 'mode': 'minf', 's': s, 'kind': 'control',
+                        'description': f'SEX-blind control path (G3): channel-aware learner + rank-1 coupled channel along each '
+                                       f'person\'s minimum-Fisher direction, s = {s}'} for j, s in STRENGTHS.items()},
+    'FB_ISO_S2': {'learner': 'iso:S2', 'mode': 'iso', 's': STRENGTHS['S2'], 'kind': 'control',
+                  'description': 'strong SEX-blind control: channel-aware learner + full-rank uncoupled Fisher-isotropic channel, '
+                                 f's = {STRENGTHS["S2"]}'},
     'FB_SEX_S2_ID': {'learner': 'sex:S2', 'mode': 'none', 's': 0.0, 'kind': 'ablation',
                      'description': 'identity channel of the FB_SEX_S2 learner (no noise)'},
     'FB_SEX_S2_MEAN': {'learner': 'sex:S2', 'mode': 'sex', 's': STRENGTHS['S2'], 'mean_vector': True, 'kind': 'ablation',
@@ -212,11 +217,13 @@ def fit_learner(X, ys, sex, unit, v, learner, spec=None):
     opt = torch.optim.Adam([p for t in TASKS for p in nets[t].parameters()], lr=sp['lr'])
     best, best_e, bad = float('inf'), 0, 0
     order_sha, first_sha = hashlib.sha256(), None
+    n_geom = 0
     for e in range(1, sp['max_epochs'] + 1):
         geom, tr, order = _train_epoch(nets, opt, Xt, yi, yo, fit_rows, X, sex, mode, s, v, 0, e, sp['batch'], H2t, H5t)
         order_sha.update(order.tobytes())
         first_sha = first_sha or hashlib.sha256(order.tobytes()).hexdigest()
         g_now = CH.geometry(logits_z(nets, X[fit_rows]), sex[fit_rows], mode) if mode in ('sex', 'pca') else {'mode': mode}
+        n_geom += 2 if mode == 'sex' else 0                  # epoch-start estimate + validation estimate
         val = _val_emitted_nll(nets, X, ys, g_now, mode, s, val_rows, v)
         log['search'].append({'epoch': e, 'train_emitted_loss': tr, 'val_emitted_nll': val, 'lda_delta2_fit_rows': g_now.get('lda_delta2')})
         if val < best - sp['min_delta']:
@@ -231,15 +238,17 @@ def fit_learner(X, ys, sex, unit, v, learner, spec=None):
     for e in range(1, best_e + 1):
         geom, tr, order = _train_epoch(nets, opt, Xt, yi, yo, all_rows, X, sex, mode, s, v, 1, e, sp['batch'], H2t, H5t)
         order_sha.update(order.tobytes())
+        n_geom += 1 if mode == 'sex' else 0
         log['refit'].append({'epoch': e, 'train_emitted_loss': tr, 'lda_delta2_at_epoch_start': geom.get('lda_delta2')})
     log.update({'selected_epochs': best_e, 'best_val_emitted_nll': best, 'order_stream_sha256': order_sha.hexdigest(),
+                'n_sex_geometry_estimates': n_geom,
                 'first_epoch_order_sha256': first_sha})
     return nets, log
 
 
 # ------------------------------------------------------------------ channel record, temperatures and emission
 def channel_for(nets, X_fit, sex_fit, cfg):
-    if cfg['mode'] in ('none', 'iso'):
+    if cfg['mode'] in ('none', 'iso', 'minf'):
         return {'mode': cfg['mode'], 's': cfg['s'], 'geom': {'mode': cfg['mode']}, 'cap': CH.CAP}
     return {'mode': cfg['mode'], 's': cfg['s'], 'geom': CH.geometry(logits_z(nets, X_fit), sex_fit, cfg['mode']), 'cap': CH.CAP}
 
@@ -349,9 +358,14 @@ def fit_version(v, card, root=None, spec=None, log=print):
         own = 0 if cid in ('FB_SEX_S2_ID', 'FB_SEX_S2_MEAN', 'FB_POSTHOC_S2') else 1      # derived configurations reuse a learner
         record = {
             'mechanism_card': card, 'kind': cfg['kind'], 'description': cfg['description'],
-            'n_model_fits': 2 * own, 'n_calibrator_fits': 1, 'n_crossfit_fits': 0, 'n_critic_fits': 0,
+            'n_model_fits': 2 * own, 'n_calibrator_fits': 1, 'n_crossfit_fits': 0,
+            'n_critic_fits': (logs[cfg['learner']]['n_sex_geometry_estimates'] * own) + (1 if chan['mode'] == 'sex' else 0),
+            'critic_note': 'critic = the closed-form LDA-type SEX geometry (delta, Sigma_w) on MODEL_FIT SEX with in-sample logits: '
+                           'epoch estimates of the sex learners (counted on the learner\'s own configuration) + the frozen release '
+                           'geometry',
             'roles_read': 'MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)',
-            'exposure': 'MODEL_FIT task labels reach the networks; MODEL_FIT SEX reaches only the channel geometry (and, through the '
+            'exposure': 'SEX-labelled exposure: delta and Sigma_w are a closed-form LDA-type critic on MODEL_FIT SEX with in-sample '
+                        'logits (sex modes only). MODEL_FIT task labels reach the networks; MODEL_FIT SEX reaches only the channel geometry (and, through the '
                         'channel-aware loss, the networks of the sex:* learners); CALIBRATION task labels reach only the two temperatures',
             'training_people': int(len(X)), 'training_households': int(len(np.unique(unit))),
             'fit_cpu_s': float(cpu.get(cfg['learner'], 0.0) * own + (time.process_time() - t0)),
@@ -359,12 +373,17 @@ def fit_version(v, card, root=None, spec=None, log=print):
             'seed_handling': ('emitted draw r of person i = Box-Muller of keyed BLAKE2b(key = private per-(config, version) key derived '
                               'from a private 32-byte root, message = "NRM-FB|<role>|r<r>|<row_id>"); independent of row order; R = 8 '
                               'repetitions = 8 independent one-draw-per-person release instances') if randomized else 'deterministic',
-            'noise_coupling': ('one scalar N(0,1) draw per person per repetition shared by the income and occupation recipients along '
-                               'the person\'s own rank-1 direction (maximal coupling)') if randomized else 'none',
+            'noise_coupling': ({'sex': 'one scalar N(0,1) draw per person per repetition shared by the income and occupation '
+                                       'recipients along the person\'s own rank-1 direction (maximal coupling)',
+                                'minf': 'one scalar N(0,1) draw per person per repetition along the person\'s minimum-Fisher direction '
+                                        '(same coupled rank-1 construction; the direction generically lies in one recipient\'s block)',
+                                'iso': 'uncoupled: five independent N(0,1) draws per person per repetition (1 income, 4 occupation '
+                                       'coordinates) through F^-1/2 / sqrt(5)'}[chan['mode']]) if randomized else 'none',
             'channel': {'mode': chan['mode'], 's': chan['s'], 'cap': CH.CAP, 'mean_vector': mv, 'temperatures': list(temps),
                         'geometry': chan['geom']},
             'learner': cfg['learner'], 'training_log': logs[cfg['learner']], 'spec': sp, 'model_files_sha256': model_sha,
-            'coupling_claim': 'none (SEX and PCA paths share the coupled rank-1 draw; the comparison isolates targeting)',
+            'coupling_claim': 'none (SEX and MINF share the coupled rank-1 construction, so their comparison isolates targeting; '
+                              'ISO is uncoupled)',
             'fit_time_diagnostics_MODEL_FIT_in_sample': {'emitted': fit_diag, 'twin_identity': twin_fit,
                                                          'lda_delta2_one_draw': d2},
             'schema': SCHEMA,
@@ -442,10 +461,17 @@ def selftest():
         with tempfile.TemporaryDirectory(prefix='nrm_fb_selftest_') as tmp:
             res = fit_version(0, 'results/pcrl_new_release_mechanisms_v1/cards/FB_SELFTEST.md', root=tmp, spec=tiny, log=lambda s: None)
             checks['all_configurations_saved'] = sorted(store) == sorted(CONFIGS)
-            checks['allocation_16'] = len(CONFIGS) == 8 and 'FB_SEX_S1' not in CONFIGS and 'FB_PCA_S1' not in CONFIGS
-            checks['randomized_flags'] = all(store[c]['record']['randomized'] == (c in ('FB_SEX_S2', 'FB_SEX_S3', 'FB_PCA_S2', 'FB_PCA_S3',
-                                                                                         'FB_POSTHOC_S2'))
+            checks['allocation_18'] = sorted(CONFIGS) == sorted(['FB_TWIN', 'FB_SEX_S2', 'FB_SEX_S3', 'FB_MINF_S2', 'FB_MINF_S3',
+                                                                 'FB_ISO_S2', 'FB_SEX_S2_ID', 'FB_SEX_S2_MEAN', 'FB_POSTHOC_S2'])
+            checks['randomized_flags'] = all(store[c]['record']['randomized'] == (c in ('FB_SEX_S2', 'FB_SEX_S3', 'FB_MINF_S2', 'FB_MINF_S3',
+                                                                                         'FB_ISO_S2', 'FB_POSTHOC_S2'))
                                              for c in CONFIGS)
+            checks['critic_counts'] = all(store[c]['record']['n_critic_fits'] == 0 for c in ('FB_TWIN', 'FB_MINF_S2', 'FB_MINF_S3', 'FB_ISO_S2',
+                                                                                            'FB_SEX_S2_ID')) and \
+                store['FB_POSTHOC_S2']['record']['n_critic_fits'] == 1 and store['FB_SEX_S2_MEAN']['record']['n_critic_fits'] == 1 and \
+                store['FB_SEX_S2']['record']['n_critic_fits'] > 1
+            checks['minf_iso_geometry_sex_free'] = all(store[c]['record']['channel']['geometry'] == {'mode': m}
+                                                       for c, m in (('FB_MINF_S2', 'minf'), ('FB_MINF_S3', 'minf'), ('FB_ISO_S2', 'iso')))
             checks['randomized_stack_shape'] = store['FB_SEX_S2']['arrays']['MODEL_SELECT']['occupation'].shape == (8, 300, 5)
             checks['label_reads_policy'] = len(calls) == 2 and \
                 calls[0] == {'role': 'MODEL_FIT', 'operation': 'fit', 'labels': ['income', 'occupation', 'sex'], 'card': calls[0]['card']} and \
@@ -476,12 +502,13 @@ def selftest():
                       'deterministic_with_keys': (lambda: RL.predict('FB_TWIN', 0, Wd['X'], Wd['feature_names'],
                                                                      keys={'role': 'DEV_REPORT', 'row_id': Wd['row_id']}), PermissionError),
                       'deterministic_draw_1': (lambda: RL.predict('FB_SEX_S2_MEAN', 0, Wd['X'], Wd['feature_names'], draw=1), ValueError),
-                      'short_keys': (lambda: RL.predict('FB_PCA_S3', 0, Wd['X'], Wd['feature_names'],
+                      'short_keys': (lambda: RL.predict('FB_MINF_S3', 0, Wd['X'], Wd['feature_names'],
                                                         keys={'role': 'DEV_REPORT', 'row_id': Wd['row_id'][:-1]}), PermissionError),
                       'reordered_names': (lambda: RL.predict('FB_TWIN', 0, Wd['X'], tuple(sw)), ValueError),
                       'non_finite': (lambda: RL.predict('FB_TWIN', 0, nan, Wd['feature_names']), ValueError),
                       'wrong_width': (lambda: RL.predict('FB_TWIN', 0, Wd['X'][:, :-1], Wd['feature_names'][:-1]), ValueError),
-                      'dropped_config_S1': (lambda: RL.predict('FB_SEX_S1', 0, Wd['X'], Wd['feature_names']), ValueError)}
+                      'dropped_config_S1': (lambda: RL.predict('FB_SEX_S1', 0, Wd['X'], Wd['feature_names']), ValueError),
+                      'dropped_config_PCA': (lambda: RL.predict('FB_PCA_S2', 0, Wd['X'], Wd['feature_names']), ValueError)}
             pr = {}
             for k_, (f, exc) in probes.items():
                 try:
@@ -500,7 +527,7 @@ def selftest():
             checks['twin_and_s2_learners_differ'] = not np.array_equal(store['FB_TWIN']['arrays']['MODEL_SELECT']['occupation'],
                                                                        store['FB_SEX_S2_ID']['arrays']['MODEL_SELECT']['occupation'])
             checks['geometry_frozen_in_record'] = store['FB_SEX_S2']['record']['channel']['geometry']['mode'] == 'sex' and \
-                store['FB_PCA_S2']['record']['channel']['geometry']['mode'] == 'pca'
+                store['FB_POSTHOC_S2']['record']['channel']['geometry']['mode'] == 'sex'
             checks['temperatures_in_bounds'] = all(0.5 - 1e-9 <= t <= 3.0 + 1e-9 for c in CONFIGS for t in store[c]['record']['channel']['temperatures'])
             info['fit_time_diagnostics'] = {c: {'nll': {t: round(store[c]['record']['fit_time_diagnostics_MODEL_FIT_in_sample']['emitted'][t]['nll'], 4)
                                                         for t in TASKS},

@@ -104,7 +104,15 @@ def build(name, v, out):
     out = Path(out); out.mkdir(parents=True, exist_ok=False)
     enc = json.loads(OD.C.admitted(f'admitted/packages/T_TREE_S{v}/PACKAGE.json').read_text())['encoder']
     mod = family_module(family)
-    deps = {f'NRM::{Path(p).resolve().relative_to(C.RUNS)}': C.sha(p) for p in mod.model_paths(config, v)}
+    deps = {}
+    for p in mod.model_paths(config, v):              # campaign runs keyed NRM::; other repository files (frozen bases) keyed REPO::
+        rp = Path(p).resolve()
+        if rp.is_relative_to(C.RUNS.resolve()):
+            deps[f'NRM::{rp.relative_to(C.RUNS.resolve())}'] = C.sha(rp)
+        elif rp.is_relative_to(C.ROOT.resolve()):
+            deps[f'REPO::{rp.relative_to(C.ROOT.resolve())}'] = C.sha(rp)
+        else:
+            raise PermissionError(f'{p}: package dependencies must lie inside the repository')
     st = store_dir() / _fname(name, v)
     deps[f'NRM::{st.relative_to(C.RUNS)}'] = C.sha(st)
     code = set(CODE_BASE) | {mod.__name__} | {m for m in getattr(mod, 'CODE_MODULES', ())}
@@ -126,6 +134,8 @@ def _code_path(module):
 def _resolve_dep(key):
     if key.startswith('NRM::'):
         return C.RUNS / key[5:]
+    if key.startswith('REPO::'):
+        return C.ROOT / key[6:]
     if key.startswith('CODE::'):
         return _code_path(key[6:])
     raise KeyError(key)

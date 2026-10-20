@@ -79,9 +79,17 @@ def reference(name, v):
     rel = {t: np.asarray(rel[t], dtype=np.float64) for t in V.TASKS}
     exp = admitted_wire(short, v)
     wires = {t: V.wire_sha(rel[t]) for t in V.TASKS}
+    if exp is None and short in COMPONENTS:                 # combined references: each task's wire from its admitted component
+        inc_ref, occ_ref = COMPONENTS[short]
+        exp = {'income': admitted_wire(inc_ref, v)['income'], 'occupation': admitted_wire(occ_ref, v)['occupation']}
     prov = {'name': name, 'wire_sha256': wires, 'admitted_wire_sha256': {t: exp[t] for t in V.TASKS} if exp else None,
             'wire_equals_admission': (all(wires[t] == exp[t] for t in V.TASKS) if exp else None), **bprov}
     return rel, prov
+
+
+# combined references (TR100 = H3 income + TASK_REFIT occupation, TT100 = H3 income + T_TREE occupation): the admitted component
+# wires (H3 income = SUCC's income wire; occupation = the frozen bank member's occupation wire)
+COMPONENTS = {'H3+TASK_REFIT': ('SUCC', 'TASK_REFIT'), 'H3+T_TREE': ('SUCC', 'T_TREE')}
 
 
 def release(family, config, v, roles=('MODEL_SELECT',)):

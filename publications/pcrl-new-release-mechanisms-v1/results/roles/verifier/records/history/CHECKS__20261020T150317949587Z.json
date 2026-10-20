@@ -1,0 +1,80 @@
+{
+ "schema": "NRM1-verifier-checks-v1",
+ "campaign": "pcrl_new_release_mechanisms_v1",
+ "role": "independent verifier (own code under roles/verifier/code/; labels only via nrm.common.load, operation verify, logged)",
+ "rules": [
+  "append-only: an entry is never edited or removed; each written version is snapshotted to records/history/ and the hashes of all earlier entries are re-checked before every write",
+  "numerical_status (own code recomputes a recorded number) and procedural_status (process, access, record evidence) are recorded separately; values PASS, FAIL, ATTENTION, NOT_APPLICABLE, NOT_RUN",
+  "an acceptance rule is never widened after a failure; a corrected check gets a new id and an entry in CHECK_CHANGES.json (before, after, cause, adjudication request); the earlier result is kept"
+ ],
+ "checks": [
+  {
+   "id": "V0.VLIB.SELFTEST__V1",
+   "what": "verifier library self-test on invented data (AUC, weighted AUC, clustered and subgroup SEs, household folds, losses, decisions, wire / array hashes, clause table and draw averaging, reserve edges, winner pick, bootstrap multiplicities, cache key, reader seeds)",
+   "inputs": {
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/vlib.py": "16ee20c879b665c315e1bea1dc88d7111d3f0f486b75a0e01c347e9152d6ca2e",
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/v0_selftest.py": "982f175a1acf627229a52a6859ad352852b0e617082d6740f0ecd6da7aced61d"
+   },
+   "result": {
+    "auc_ties_brute": true,
+    "auc_expanded_brute_weighted": true,
+    "auc_perfect": true,
+    "auc_all_tied_half": true,
+    "cluster_se_brute": true,
+    "subgroup_se_brute": true,
+    "subgroup_all_equals_cluster": true,
+    "cluster_se_singletons_iid": true,
+    "folds_whole_households": true,
+    "folds_balanced_households": true,
+    "folds_equal_argsort_formulation": true,
+    "reader_roles_partition": true,
+    "losses_err_first_max": true,
+    "losses_nll_floor": true,
+    "losses_brier": true,
+    "argmax_first_equals_numpy": true,
+    "wire_sha_definition": true,
+    "arr_sha_definition": true,
+    "identical_to_U0_zero": true,
+    "constant_draws_equal_deterministic": true,
+    "draw_average": true,
+    "accuracy_loss_sign": true,
+    "reserve_inclusive": true,
+    "reserve_fail_just_below": true,
+    "reserve_floor_scale": true,
+    "reserve_zero_floor_refused": true,
+    "pick_tie_to_earlier": true,
+    "pick_clear": true,
+    "boot_household_shared": true,
+    "boot_reproducible": true,
+    "cache_key_text": true,
+    "reader_seeds": true,
+    "pair_candidate_order": true
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:03:17+00:00",
+   "unit_id": "VER_SELFTEST_V1"
+  }
+ ],
+ "entry_sha256": [
+  "aa6ccbdcebe4f48a4534114c0cd5f1b01c70cf73e05e813fce551423a63658c4"
+ ],
+ "summary": {
+  "n_checks": 1,
+  "numerical": {
+   "PASS": 1,
+   "FAIL": 0,
+   "ATTENTION": 0,
+   "NOT_APPLICABLE": 0,
+   "NOT_RUN": 0
+  },
+  "procedural": {
+   "PASS": 0,
+   "FAIL": 0,
+   "ATTENTION": 0,
+   "NOT_APPLICABLE": 1,
+   "NOT_RUN": 0
+  },
+  "updated_utc": "2026-10-20T15:03:17+00:00"
+ }
+}

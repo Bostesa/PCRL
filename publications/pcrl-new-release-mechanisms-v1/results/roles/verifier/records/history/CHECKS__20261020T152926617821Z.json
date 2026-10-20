@@ -1,0 +1,4423 @@
+{
+ "schema": "NRM1-verifier-checks-v1",
+ "campaign": "pcrl_new_release_mechanisms_v1",
+ "role": "independent verifier (own code under roles/verifier/code/; labels only via nrm.common.load, operation verify, logged)",
+ "rules": [
+  "append-only: an entry is never edited or removed; each written version is snapshotted to records/history/ and the hashes of all earlier entries are re-checked before every write",
+  "numerical_status (own code recomputes a recorded number) and procedural_status (process, access, record evidence) are recorded separately; values PASS, FAIL, ATTENTION, NOT_APPLICABLE, NOT_RUN",
+  "an acceptance rule is never widened after a failure; a corrected check gets a new id and an entry in CHECK_CHANGES.json (before, after, cause, adjudication request); the earlier result is kept"
+ ],
+ "checks": [
+  {
+   "id": "V0.VLIB.SELFTEST__V1",
+   "what": "verifier library self-test on invented data (AUC, weighted AUC, clustered and subgroup SEs, household folds, losses, decisions, wire / array hashes, clause table and draw averaging, reserve edges, winner pick, bootstrap multiplicities, cache key, reader seeds)",
+   "inputs": {
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/vlib.py": "16ee20c879b665c315e1bea1dc88d7111d3f0f486b75a0e01c347e9152d6ca2e",
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/v0_selftest.py": "982f175a1acf627229a52a6859ad352852b0e617082d6740f0ecd6da7aced61d"
+   },
+   "result": {
+    "auc_ties_brute": true,
+    "auc_expanded_brute_weighted": true,
+    "auc_perfect": true,
+    "auc_all_tied_half": true,
+    "cluster_se_brute": true,
+    "subgroup_se_brute": true,
+    "subgroup_all_equals_cluster": true,
+    "cluster_se_singletons_iid": true,
+    "folds_whole_households": true,
+    "folds_balanced_households": true,
+    "folds_equal_argsort_formulation": true,
+    "reader_roles_partition": true,
+    "losses_err_first_max": true,
+    "losses_nll_floor": true,
+    "losses_brier": true,
+    "argmax_first_equals_numpy": true,
+    "wire_sha_definition": true,
+    "arr_sha_definition": true,
+    "identical_to_U0_zero": true,
+    "constant_draws_equal_deterministic": true,
+    "draw_average": true,
+    "accuracy_loss_sign": true,
+    "reserve_inclusive": true,
+    "reserve_fail_just_below": true,
+    "reserve_floor_scale": true,
+    "reserve_zero_floor_refused": true,
+    "pick_tie_to_earlier": true,
+    "pick_clear": true,
+    "boot_household_shared": true,
+    "boot_reproducible": true,
+    "cache_key_text": true,
+    "reader_seeds": true,
+    "pair_candidate_order": true
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:03:17+00:00",
+   "unit_id": "VER_SELFTEST_V1"
+  },
+  {
+   "id": "V0.STRUCT.READER_SPLITS__V1",
+   "what": "label-free rebuild of the frozen reader splits R1..R4 (FIT / VALIDATION / SCORE), screening halves, household-set hashes, counts, disjointness, overlaps (between repetitions and with OHN1 / TSZ1 splits), reader seeds, bootstrap rule and recipes, against READER_SPLITS.json",
+   "inputs": {
+    "results/pcrl_new_release_mechanisms_v1/READER_SPLITS.json": "42ab5f93c0a3e09fa4850f2f795a0db8ca0bcfabbdde54325d01c9a1bf8ab443",
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/vlib.py": "16ee20c879b665c315e1bea1dc88d7111d3f0f486b75a0e01c347e9152d6ca2e",
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/v0_struct.py": "043d2859703c234501c0378eaf6aa77fdd2420f69bfa9edcea7d5f8895536d00",
+    "MODEL_SELECT unit array_sha256": "4cb7eb0eb64ba54280b32b62a1928c4850e98f08507758c02cbf44506853c104"
+   },
+   "result": {
+    "n_differences": 0,
+    "differences": [],
+    "people": 8001,
+    "households": 5306,
+    "reader_seeds": {
+     "V0k0": 2026101805,
+     "V0k1": 2026101806,
+     "V0k2": 2026101807,
+     "V0k3": 2026101808,
+     "V1k0": 2026101815,
+     "V1k1": 2026101816,
+     "V1k2": 2026101817,
+     "V1k3": 2026101818
+    },
+    "cells": [
+     "S0R1k0",
+     "S0R1k1",
+     "S0R2k0",
+     "S0R2k1",
+     "S1R1k0",
+     "S1R1k1",
+     "S1R2k0",
+     "S1R2k1"
+    ]
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:03:18+00:00",
+   "unit_id": "VER_STRUCT_V1"
+  },
+  {
+   "id": "V1.ACCESS_AUDIT_SELFTEST__V2",
+   "what": "access-log audit rules on invented logs: a clean log gives no finding and every planted violation (R2-R9) is flagged",
+   "inputs": {
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/v1_access.py": "c15fb3331edef3546ca5fc3abad194cad5cccf0f9fa0ab1ed9854a8ca5f88ade"
+   },
+   "result": {
+    "clean_log_no_findings": true,
+    "flags_R2_read_before_receipt": true,
+    "flags_R3_closed_role": true,
+    "flags_R4_entry_point_not_authorized": true,
+    "flags_R5_model_select_by_other_entry": true,
+    "flags_R6_card_committed_after_read": true,
+    "flags_R6_card_missing_or_outside_cards": true,
+    "flags_R7_read_outside_unit_interval": true,
+    "flags_R7_null_unit_id": true,
+    "flags_R8_row_set_differs": true,
+    "flags_R9_uncommitted_code_at_launch": true,
+    "all_ok": true
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:09:06+00:00",
+   "unit_id": "VER_ACCESS_SELFTEST_V2"
+  },
+  {
+   "id": "V2.UTILITY_SELFTEST__V2",
+   "what": "utility replay comparison logic on invented data (self-consistency, planted value / SE / reserve / guard / distinct-vector / MC-SE mismatches flagged, identical paired costs zero)",
+   "inputs": {
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/v2_utility.py": "c92c41d96fecce868b4de2ed5f9bb8ac75322371fc8be4b4d0b9451731730c92",
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/vlib.py": "8048063b4534368f43cf1fc3d316c7a76c63926923d4b6121c2b1969c0c7a8e0"
+   },
+   "result": {
+    "self_consistent": true,
+    "flags_value": true,
+    "flags_se": true,
+    "flags_reserve": true,
+    "flags_missing_guard": true,
+    "flags_distinct": true,
+    "randomized_self_consistent": true,
+    "randomized_flags_se_mc": true,
+    "paired_identical_zero": true,
+    "all_ok": true
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:09:07+00:00",
+   "unit_id": "VER_UTILITY_SELFTEST_V2"
+  },
+  {
+   "id": "V5.REFIT_SELFTEST__V1",
+   "what": "own reader refits on invented data: a leaky occupation vector reads high, a SEX-independent one near 0.5, a finite SEX-dependent income code is read by the frequency table",
+   "inputs": {
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/v5_refit.py": "67e0b310feba3e456ec8aefd4d9997ad4f3501a66bd5a92700c633d869fec55b",
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/vlib.py": "8048063b4534368f43cf1fc3d316c7a76c63926923d4b6121c2b1969c0c7a8e0"
+   },
+   "result": {
+    "leaky_pair_auc_high": true,
+    "safe_pair_auc_near_half": true,
+    "leaky_beats_safe": true,
+    "finite_income_table_reads": true,
+    "all_ok": true,
+    "values": {
+     "leaky": 0.6461123067113024,
+     "safe": 0.5108102183963016,
+     "finite_tab": 0.8838474414155906
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:13:03+00:00",
+   "unit_id": "VER_REFIT_SELFTEST_V1"
+  },
+  {
+   "id": "V6.SELECT_SELFTEST__V1",
+   "what": "own re-implementation of the NRM1 aggregate screen, recipient gate, old every-cell rule, claims, tiers, frontier bracketing and selection on invented known-answer cases",
+   "inputs": {
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/v6_select.py": "036798b82e784962d669d4135980eb7046214dde7e2e591731fc87042b9c6155",
+    "results/pcrl_new_release_mechanisms_v1/roles/statistical_reviewer/RULES.json": "84f187768817e79ef9f2bb36151bea81f00b8f62d9179c8cd523069550674652"
+   },
+   "result": {
+    "agg_constant_mean": true,
+    "agg_positive": true,
+    "agg_point_only": true,
+    "agg_version_disagrees": true,
+    "alias_zero": true,
+    "floor_binds": true,
+    "incomplete": true,
+    "se_rs": true,
+    "target_resolved": true,
+    "target_alias_not_met": true,
+    "recipient_resolved": true,
+    "recipient_edge": true,
+    "recipient_point_failed": true,
+    "recipient_worse": true,
+    "old_stable": true,
+    "mc_component": true,
+    "select_tie_break_fewer_components": true,
+    "select_output_mismatch": true,
+    "select_alias_earlier": true,
+    "select_infeasible_below_tier": true,
+    "select_weak_below_tier": true,
+    "claims_tiers": true,
+    "claims_grid_unknown": true,
+    "claims_useful_component": true,
+    "select_needs_reference_wires": true,
+    "select_alias_reference": true,
+    "frontier_bracket_dominates": true,
+    "frontier_spends_more": true,
+    "all_ok": true
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:17:11+00:00",
+   "unit_id": "VER_SELECT_SELFTEST_V1"
+  },
+  {
+   "id": "V6.RULES_AGREEMENT_INVENTED__V1",
+   "what": "agreement of the verifier rule implementation with nrm.rules on invented grid entries (3,000: benefit, target, recipient labels, aggregate numbers, old every-cell flag) and 150 invented ledgers (claims, tiers, scores, statuses, selection); invented data only",
+   "inputs": {
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/v6_agree.py": "7484159ba76e52a9f7288f4850095b3cb00cc15d1764519df664abc879ff4b0b",
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/v6_select.py": "036798b82e784962d669d4135980eb7046214dde7e2e591731fc87042b9c6155",
+    "nrm/rules.py": "d5df868678d483a3452e251d8f24575932d23f0e5d22e3ef1ca3627a35030df1",
+    "results/pcrl_new_release_mechanisms_v1/roles/statistical_reviewer/RULES.json": "84f187768817e79ef9f2bb36151bea81f00b8f62d9179c8cd523069550674652"
+   },
+   "result": {
+    "n_entries": 3000,
+    "n_ledgers": 150,
+    "n_ledgers_with_selection": 109,
+    "disagreements": [],
+    "n_disagreements": 0
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:17:14+00:00",
+   "unit_id": "VER_RULES_AGREE_V1"
+  },
+  {
+   "id": "V1.SOURCE_ADMISSION__V1",
+   "what": "source admission replayed label-free with own calls: remote pin, branch base, published results / code vs local copies (exact or after the source sanitiser), private copies vs the source worktree, admitted mirror hashes, 22 reference wires, interpreter versions",
+   "inputs": {
+    "results/pcrl_new_release_mechanisms_v1/SOURCE_ADMISSION.json": "da02c03364162e35846a3e9633d51aec2961d418229a19904165c6afbc890d3e",
+    "results/pcrl_occupation_headroom_overnight_v1/SOURCE_ADMISSION.json": "a588f46fd90b8f7ff612a0dbb94298ae82880c82a0412d6432aa3ca7ef95d703",
+    "results/pcrl_acs_frozen_hybrids_v1/FROZEN_BANK_MANIFEST.json": "d8006b2d51ec1328160ffdc779d42e59769c773611ac712593c345fa33760d60"
+   },
+   "result": {
+    "remote_pin": "ed7bc1ccd550f452c112ba3144a9d64b014c52fd",
+    "tip_ancestor_of_HEAD": true,
+    "published_results": {
+     "identical": 199,
+     "identical_after_source_sanitiser": 23,
+     "differ": [],
+     "missing_locally": [],
+     "files": 222
+    },
+    "published_code": {
+     "identical": 27,
+     "identical_after_source_sanitiser": 1,
+     "differ": [],
+     "missing_locally": [],
+     "files": 28
+    },
+    "private_copies": {
+     "files": 2618,
+     "bitwise_identical_to_source_worktree": 2618,
+     "problems": []
+    },
+    "admitted_mirror_copies": {
+     "n": 201,
+     "hash_mismatch_or_missing": []
+    },
+    "reference_wires_equal_admission": {
+     "W/S0": true,
+     "W/S1": true,
+     "REF:NEURAL_RAW/S0": true,
+     "REF:NEURAL_RAW/S1": true,
+     "REF:H_LJ/S0": true,
+     "REF:H_LJ/S1": true,
+     "REF:B2TWIN/S0": true,
+     "REF:B2TWIN/S1": true,
+     "REF:RETIRED_B3CTL/S0": true,
+     "REF:RETIRED_B3CTL/S1": true,
+     "REF:SUCC/S0": true,
+     "REF:SUCC/S1": true,
+     "REF:TWJ/S0": true,
+     "REF:TWJ/S1": true,
+     "REF:U0/S0": true,
+     "REF:U0/S1": true,
+     "REF:Ucal/S0": true,
+     "REF:Ucal/S1": true,
+     "REF:TASK_REFIT/S0": true,
+     "REF:TASK_REFIT/S1": true,
+     "REF:T_TREE/S0": true,
+     "REF:T_TREE/S1": true
+    },
+    "python3_versions": {
+     "numpy": "2.4.4",
+     "scipy": "1.17.1",
+     "scikit-learn": "1.8.0"
+    },
+    "admission_ok_flag": true,
+    "problems": []
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:18:52+00:00",
+   "unit_id": "VER_ADMISSION_V1"
+  },
+  {
+   "id": "V1.RECEIPT__V1",
+   "what": "registration receipt re-verified with own git calls (R1): record, remote tip at verification, files unchanged and committed, research commit ancestor and earlier, published copies equal to research bytes",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/access/REGISTRATION_RECEIPT_VERIFIED.json": "91a84afe15fade11049bf4637494d15e4a3bbc656a8b1dc553433d97550daad9",
+    ".private/pcrl_new_release_mechanisms_v1/access/RECEIPT_ATTEMPTS.jsonl": "6acf581309a3826286f73865ec17b0baefef78574d368765ad7040070e5a5512",
+    "results/pcrl_new_release_mechanisms_v1/PROTOCOL.md": "ed72734940af49620f358e4f3d73f6263e33caefb83207f9d2f9b014fdb1f231",
+    "results/pcrl_new_release_mechanisms_v1/EXPOSURE_MAP.md": "aa11659e1d09d66b9b01a3458aac788daeced5a2e9786ad0b2a1ac42b9f8e841",
+    "results/pcrl_new_release_mechanisms_v1/ACCESS_POLICY.json": "c5029d4a4caa879c8633cbccd40bfcc8cea2e465063590eb881ce7b0d23499b8",
+    "results/pcrl_new_release_mechanisms_v1/SOURCE_ADMISSION.json": "da02c03364162e35846a3e9633d51aec2961d418229a19904165c6afbc890d3e",
+    "results/pcrl_new_release_mechanisms_v1/READER_SPLITS.json": "42ab5f93c0a3e09fa4850f2f795a0db8ca0bcfabbdde54325d01c9a1bf8ab443",
+    "results/pcrl_new_release_mechanisms_v1/FAILURE_MAP.md": "7cbbedde403c23e3d666418e4191537d07f81f4ab4dc68377f35a5488ff07cec",
+    "results/pcrl_new_release_mechanisms_v1/roles/statistical_reviewer/RULES.md": "157a9e421f6ce9db827769adad00679553de0864853cf8a695beccc67ad326a6",
+    "results/pcrl_new_release_mechanisms_v1/roles/statistical_reviewer/RULES.json": "84f187768817e79ef9f2bb36151bea81f00b8f62d9179c8cd523069550674652"
+   },
+   "result": {
+    "record_exists": true,
+    "remote_sha_verified": true,
+    "remote_sha_equals_receipt_commit": true,
+    "receipt_commit": "301b9459ec387c86a35b487a7ff5ffecd905366b",
+    "research_commit": "67b70af6d",
+    "verified_utc": "2026-10-20T15:14:43+00:00",
+    "files_sha256_equal_now": true,
+    "files_committed_unchanged": true,
+    "research_commit_ancestor_of_HEAD": true,
+    "research_commit_utc": "2026-10-20T11:14:08-04:00",
+    "research_commit_before_verification": true,
+    "research_commit_bytes_equal_receipt": true,
+    "receipt_commit_available_locally": true,
+    "published_bytes_equal_research": {
+     "PROTOCOL.md": true,
+     "EXPOSURE_MAP.md": true,
+     "ACCESS_POLICY.json": true,
+     "SOURCE_ADMISSION.json": true,
+     "READER_SPLITS.json": true,
+     "FAILURE_MAP.md": true,
+     "roles/statistical_reviewer/RULES.md": true,
+     "roles/statistical_reviewer/RULES.json": true
+    },
+    "receipt_commit_utc": "2026-10-20T11:14:30-04:00",
+    "remote_tip_now": "301b9459ec387c86a35b487a7ff5ffecd905366b",
+    "attempts": [
+     {
+      "outcome": "verified",
+      "verified_utc": "2026-10-20T15:14:43+00:00",
+      "problems": []
+     }
+    ]
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:20:23+00:00",
+   "unit_id": "VER_ACCESS_V1"
+  },
+  {
+   "id": "V1.ACCESS_POLICY_CODE__V1",
+   "what": "nrm.common POLICY / ENTRY_POINTS equal the registered ACCESS_POLICY.json",
+   "inputs": {
+    "results/pcrl_new_release_mechanisms_v1/ACCESS_POLICY.json": "c5029d4a4caa879c8633cbccd40bfcc8cea2e465063590eb881ce7b0d23499b8",
+    "nrm/common.py": "53431614c39095a2e9a8de432bdc4e5daf2c986b3511a11885a34ea9ad6a7bf4"
+   },
+   "result": {
+    "differences": []
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:20:23+00:00",
+   "unit_id": "VER_ACCESS_V1"
+  },
+  {
+   "id": "V1.ACCESS_LOG__V1",
+   "what": "label-access log audit R2-R9 (receipt order, closed roles, policy, MODEL_SELECT entry points, cards committed before fitting reads, unit intervals, row sets, committed code at launch)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "95fb66f71d6a3d3a1566bd0bfd18474c32631a7aecaa040e4b6217a15d6f50ce",
+    ".private/pcrl_new_release_mechanisms_v1/compute/ledger.jsonl": "76e4528e9085cfb6c92359e421df4c10178f8a4e8a1df7fb7c5f6c2160419c4c",
+    ".private/pcrl_new_release_mechanisms_v1/access/REGISTRATION_RECEIPT_VERIFIED.json": "91a84afe15fade11049bf4637494d15e4a3bbc656a8b1dc553433d97550daad9",
+    "n_events": 6
+   },
+   "result": {
+    "summary": {
+     "n_events": 6,
+     "first_utc": "2026-10-20T15:14:57+00:00",
+     "last_utc": "2026-10-20T15:15:18+00:00",
+     "by_operation_role": {
+      "benchmark|MODEL_SELECT|income,occupation,sex|nrm.evaluate": 1,
+      "screen|MODEL_SELECT|sex|nrm.screen": 5
+     },
+     "units_with_reads": [
+      "NRM_REF_EVAL_V1",
+      "NRM_REF_SCREEN_H_LJ_V1",
+      "NRM_REF_SCREEN_NEURAL_RAW_V1",
+      "NRM_REF_SCREEN_RETIRED_B3CTL_V1",
+      "NRM_REF_SCREEN_U0_V1",
+      "NRM_REF_SCREEN_W_V1"
+     ]
+    },
+    "findings_by_rule": {},
+    "fail_examples": [],
+    "attention_examples": [],
+    "receipt_verified_utc": "2026-10-20T15:14:43+00:00"
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:20:23+00:00",
+   "unit_id": "VER_ACCESS_V1"
+  },
+  {
+   "id": "V1.ROW_SETS__V1",
+   "what": "logged row-set hashes, people and households equal the admitted roles (label-free rebuild, R8)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "95fb66f71d6a3d3a1566bd0bfd18474c32631a7aecaa040e4b6217a15d6f50ce"
+   },
+   "result": {
+    "n_events": 6,
+    "row_set_failures": []
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:20:23+00:00",
+   "unit_id": "VER_ACCESS_V1"
+  },
+  {
+   "id": "V2.UTILITY.REF.REF_B2TWIN__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics and distinct vectors of reference REF:B2TWIN (both versions) vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/REFERENCES/EVAL_MS.json": "2982877a4f8ff18888b1412b0d93dba7e5c6bdedd8525165e34dd0943dc414e0",
+    "wires": {
+     "0": {
+      "income": "25bf1c8d580dba6c5bbfa201e9bbb134458310bf2790fca10771dc6b280147b5",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "1": {
+      "income": "03955dd1305d2ccdce1bc789f763203097bf2a8932956f93fadde5066bbabc98",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     }
+    },
+    "frozen_bank_sha256": {
+     "0": "ce3c713036eb4f37f7481ac64675e536b4014a9b162cba9883e6aff5bbc784a6",
+     "1": "f98a7360a0f1b93d299709c6f2d0501bbd1f2b40f399c74431450a58620c76b9"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.97758476261356e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 0.3212259380172857,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.3212259380172857,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.3530843112619095e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 0.6244343872131651,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.6244343872131651,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:20:29+00:00",
+   "unit_id": "VER_UTILITY_REFS_V1"
+  },
+  {
+   "id": "V2.UTILITY.REF.REF_H_LJ__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics and distinct vectors of reference REF:H_LJ (both versions) vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/REFERENCES/EVAL_MS.json": "2982877a4f8ff18888b1412b0d93dba7e5c6bdedd8525165e34dd0943dc414e0",
+    "wires": {
+     "0": {
+      "income": "63bf93b2795d03820c86fabafe59b18cef51d5a143f68ef1975271056a79c7d4",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "1": {
+      "income": "bb58a741754397c93f858f45855df0d0d081020311234d15cc9723c9fba83afc",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     }
+    },
+    "frozen_bank_sha256": {
+     "0": "ce3c713036eb4f37f7481ac64675e536b4014a9b162cba9883e6aff5bbc784a6",
+     "1": "f98a7360a0f1b93d299709c6f2d0501bbd1f2b40f399c74431450a58620c76b9"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.97758476261356e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 0.3212259380172857,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.3212259380172857,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.205632815803881e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 0.6244343872131651,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.6244343872131651,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:20:29+00:00",
+   "unit_id": "VER_UTILITY_REFS_V1"
+  },
+  {
+   "id": "V2.UTILITY.REF.REF_NEURAL_RAW__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics and distinct vectors of reference REF:NEURAL_RAW (both versions) vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/REFERENCES/EVAL_MS.json": "2982877a4f8ff18888b1412b0d93dba7e5c6bdedd8525165e34dd0943dc414e0",
+    "wires": {
+     "0": {
+      "income": "f4de1c9f2c2ec9048435f9b3c9e2fc96a301c5d529a3ab52b0a1b9118505781d",
+      "occupation": "8311ca98c5e32f237d7fd34fe6a4538853d12a908771e2b0fde66a48784c1a1b"
+     },
+     "1": {
+      "income": "4456081555060788171a4360bd4f5dc5d8c0c76bf48596457e2fdb45bec9ef37",
+      "occupation": "1c6d084053ae16cdcb279044c35fe95772d05da78e576cd97cbfbe32628f91be"
+     }
+    },
+    "frozen_bank_sha256": {
+     "0": "ce3c713036eb4f37f7481ac64675e536b4014a9b162cba9883e6aff5bbc784a6",
+     "1": "f98a7360a0f1b93d299709c6f2d0501bbd1f2b40f399c74431450a58620c76b9"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.2750217548429532e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 1.9473360473873678,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 1.9473360473873678,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.7824283715661693e-16,
+     "max_abs_se_diff": 0.0,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 1.557538441245061,
+     "binding": "income|U0|brier_excess",
+     "occ_side_met": false,
+     "min_occ_ratio": 1.7791877014205306,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:20:29+00:00",
+   "unit_id": "VER_UTILITY_REFS_V1"
+  },
+  {
+   "id": "V2.UTILITY.REF.REF_RETIRED_B3CTL__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics and distinct vectors of reference REF:RETIRED_B3CTL (both versions) vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/REFERENCES/EVAL_MS.json": "2982877a4f8ff18888b1412b0d93dba7e5c6bdedd8525165e34dd0943dc414e0",
+    "wires": {
+     "0": {
+      "income": "fb9e28d3dc54283dc2c8b83efaa3406cc97f954869528f6c5ed7766ab69d53b2",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "1": {
+      "income": "73ad209aaede370c2ba546a5bb87a035ca381432205346510ea533a9e49b980c",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     }
+    },
+    "frozen_bank_sha256": {
+     "0": "ce3c713036eb4f37f7481ac64675e536b4014a9b162cba9883e6aff5bbc784a6",
+     "1": "f98a7360a0f1b93d299709c6f2d0501bbd1f2b40f399c74431450a58620c76b9"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.97758476261356e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 0.3212259380172857,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.3212259380172857,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 9.150666335777657e-17,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 0.34886918959776975,
+     "binding": "income|Ucal|brier_excess",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.6244343872131651,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:20:29+00:00",
+   "unit_id": "VER_UTILITY_REFS_V1"
+  },
+  {
+   "id": "V2.UTILITY.REF.REF_SUCC__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics and distinct vectors of reference REF:SUCC (both versions) vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/REFERENCES/EVAL_MS.json": "2982877a4f8ff18888b1412b0d93dba7e5c6bdedd8525165e34dd0943dc414e0",
+    "wires": {
+     "0": {
+      "income": "067a21bbda07f398404c3b44b319c031b7c5a233e37361523a4388c8e52f1d83",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "1": {
+      "income": "1e028f72aed7fbbfc739508db9e965acda92dee2f38db32af8d6ec70bd6a5d52",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     }
+    },
+    "frozen_bank_sha256": {
+     "0": "ce3c713036eb4f37f7481ac64675e536b4014a9b162cba9883e6aff5bbc784a6",
+     "1": "f98a7360a0f1b93d299709c6f2d0501bbd1f2b40f399c74431450a58620c76b9"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.97758476261356e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 0.3212259380172857,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.3212259380172857,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.682681771697503e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 0.6244343872131651,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.6244343872131651,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:20:29+00:00",
+   "unit_id": "VER_UTILITY_REFS_V1"
+  },
+  {
+   "id": "V2.UTILITY.REF.REF_TASK_REFIT__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics and distinct vectors of reference REF:TASK_REFIT (both versions) vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/REFERENCES/EVAL_MS.json": "2982877a4f8ff18888b1412b0d93dba7e5c6bdedd8525165e34dd0943dc414e0",
+    "wires": {
+     "0": {
+      "income": "0ca4afeea53695ef7b6ba34f0fad8974186c32f3186b3fa3a2d276c73469ac4e",
+      "occupation": "fb25885ef678c956eeaf210c60c8e734286eba76bf7c6dfe99957bed64c9c784"
+     },
+     "1": {
+      "income": "0cd0daf3da5a02775dd683e15f2510dfb83c1ce979d7ff4987e51895ea1bc1a2",
+      "occupation": "3de7490b23fb8d339b14d01c2ee8c00c0a1319d7abf55dbba558e05aa87aacaa"
+     }
+    },
+    "frozen_bank_sha256": {
+     "0": "ce3c713036eb4f37f7481ac64675e536b4014a9b162cba9883e6aff5bbc784a6",
+     "1": "f98a7360a0f1b93d299709c6f2d0501bbd1f2b40f399c74431450a58620c76b9"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 2.0122792321330962e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": true,
+     "min_whole_ratio": 3.4116676201851663,
+     "binding": "guard|sex0",
+     "occ_side_met": true,
+     "min_occ_ratio": 3.4116676201851663,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.249000902703301e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": true,
+     "min_whole_ratio": 2.9558543809474176,
+     "binding": "income|U0|accuracy_loss",
+     "occ_side_met": true,
+     "min_occ_ratio": 3.1861446346889877,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:20:29+00:00",
+   "unit_id": "VER_UTILITY_REFS_V1"
+  },
+  {
+   "id": "V2.UTILITY.REF.REF_TWJ__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics and distinct vectors of reference REF:TWJ (both versions) vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/REFERENCES/EVAL_MS.json": "2982877a4f8ff18888b1412b0d93dba7e5c6bdedd8525165e34dd0943dc414e0",
+    "wires": {
+     "0": {
+      "income": "0ef5b6bb7cd7cf03da836b2115b40c00c049db355139aab50995814c375539bb",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "1": {
+      "income": "57e25911d064c3997d760985af15c7b054dd60b1992cc0fde62553325760783b",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     }
+    },
+    "frozen_bank_sha256": {
+     "0": "ce3c713036eb4f37f7481ac64675e536b4014a9b162cba9883e6aff5bbc784a6",
+     "1": "f98a7360a0f1b93d299709c6f2d0501bbd1f2b40f399c74431450a58620c76b9"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.97758476261356e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 0.3212259380172857,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.3212259380172857,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 9.150666335777657e-17,
+     "max_abs_se_diff": 8.673617379884035e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 0.6244343872131651,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.6244343872131651,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:20:29+00:00",
+   "unit_id": "VER_UTILITY_REFS_V1"
+  },
+  {
+   "id": "V2.UTILITY.REF.REF_T_TREE__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics and distinct vectors of reference REF:T_TREE (both versions) vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/REFERENCES/EVAL_MS.json": "2982877a4f8ff18888b1412b0d93dba7e5c6bdedd8525165e34dd0943dc414e0",
+    "wires": {
+     "0": {
+      "income": "38261e0ee6a1cb4c3983c472a31e5fae65c4d77a804aa53d5130009a95f624f8",
+      "occupation": "d25e553bee94c34815b207549e0e1c69dc9a7b92f44c0bfef9777bf1050869ca"
+     },
+     "1": {
+      "income": "4afb951e7b59c27f4f898d19a215f74e4caed47c796fdc2062e7509eb8c068ec",
+      "occupation": "dc430989262545b7cd9c54dba0b20b1179a7cf3ae8b46dc84466952c10473b04"
+     }
+    },
+    "frozen_bank_sha256": {
+     "0": "ce3c713036eb4f37f7481ac64675e536b4014a9b162cba9883e6aff5bbc784a6",
+     "1": "f98a7360a0f1b93d299709c6f2d0501bbd1f2b40f399c74431450a58620c76b9"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.1622647289044608e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": true,
+     "min_whole_ratio": 3.3255833184169368,
+     "binding": "guard|sex0",
+     "occ_side_met": true,
+     "min_occ_ratio": 3.3255833184169368,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.7954387976359953e-16,
+     "max_abs_se_diff": 0.0,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": true,
+     "min_whole_ratio": 2.5999462814046392,
+     "binding": "guard|sex0",
+     "occ_side_met": true,
+     "min_occ_ratio": 2.5999462814046392,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:20:29+00:00",
+   "unit_id": "VER_UTILITY_REFS_V1"
+  },
+  {
+   "id": "V2.UTILITY.REF.REF_U0__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics and distinct vectors of reference REF:U0 (both versions) vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/REFERENCES/EVAL_MS.json": "2982877a4f8ff18888b1412b0d93dba7e5c6bdedd8525165e34dd0943dc414e0",
+    "wires": {
+     "0": {
+      "income": "32200386e45cadad7315272aadac98d468be5f73e0a982230a0e87b1dbafda2e",
+      "occupation": "7d54173bad3e67f3159bb8b239fc4d659d7ee57c1b79d29c290abf87e7acb242"
+     },
+     "1": {
+      "income": "a93d957d85c0259a92e9252c33a353af29b9dc851e3d918e7c110dc7d18235a4",
+      "occupation": "cd203cfb7936ac26b3922e804c0d04b898d96e3d6b40b67f5d76ac0be137da8e"
+     }
+    },
+    "frozen_bank_sha256": {
+     "0": "ce3c713036eb4f37f7481ac64675e536b4014a9b162cba9883e6aff5bbc784a6",
+     "1": "f98a7360a0f1b93d299709c6f2d0501bbd1f2b40f399c74431450a58620c76b9"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 2.1217836515541322e-16,
+     "max_abs_se_diff": 0.0,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": true,
+     "min_whole_ratio": 2.7566685400832585,
+     "binding": "guard|sex0",
+     "occ_side_met": true,
+     "min_occ_ratio": 2.7566685400832585,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 6.24009172242243e-17,
+     "max_abs_se_diff": 1.3552527156068805e-20,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": true,
+     "min_whole_ratio": 2.8221540849816917,
+     "binding": "occupation|U0|accuracy_loss",
+     "occ_side_met": true,
+     "min_occ_ratio": 2.8221540849816917,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:20:29+00:00",
+   "unit_id": "VER_UTILITY_REFS_V1"
+  },
+  {
+   "id": "V2.UTILITY.REF.REF_Ucal__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics and distinct vectors of reference REF:Ucal (both versions) vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/REFERENCES/EVAL_MS.json": "2982877a4f8ff18888b1412b0d93dba7e5c6bdedd8525165e34dd0943dc414e0",
+    "wires": {
+     "0": {
+      "income": "57639bebdfdf16aa55015b9247c8595d6bc5700a8128043cd8bed833a623a94a",
+      "occupation": "4357bf8c20fe273aa7c1a009bb700b129a81e1b8b0029b07202fa658e92c7c79"
+     },
+     "1": {
+      "income": "866c559f2b0d4c0e21241aedefa4ca919dd2e876f122e56aea783a73af31410b",
+      "occupation": "46118ff04e3cc8ba8904a78f6c3c7a85a17b75925429b87871bd483e2060370f"
+     }
+    },
+    "frozen_bank_sha256": {
+     "0": "ce3c713036eb4f37f7481ac64675e536b4014a9b162cba9883e6aff5bbc784a6",
+     "1": "f98a7360a0f1b93d299709c6f2d0501bbd1f2b40f399c74431450a58620c76b9"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 2.1217836515541322e-16,
+     "max_abs_se_diff": 0.0,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": true,
+     "min_whole_ratio": 2.2976713434836853,
+     "binding": "guard|sex1",
+     "occ_side_met": true,
+     "min_occ_ratio": 2.2976713434836853,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 6.24009172242243e-17,
+     "max_abs_se_diff": 1.3552527156068805e-20,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": true,
+     "min_whole_ratio": 2.7492845825774923,
+     "binding": "guard|sex1",
+     "occ_side_met": true,
+     "min_occ_ratio": 2.7492845825774923,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:20:29+00:00",
+   "unit_id": "VER_UTILITY_REFS_V1"
+  },
+  {
+   "id": "V2.UTILITY.REF.W__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics and distinct vectors of reference W (both versions) vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/REFERENCES/EVAL_MS.json": "2982877a4f8ff18888b1412b0d93dba7e5c6bdedd8525165e34dd0943dc414e0",
+    "wires": {
+     "0": {
+      "income": "067a21bbda07f398404c3b44b319c031b7c5a233e37361523a4388c8e52f1d83",
+      "occupation": "0db3238d45b3c8e950e524efd9a9f3015fa57c4eb2482f160aa9ee4a08d0a369"
+     },
+     "1": {
+      "income": "1e028f72aed7fbbfc739508db9e965acda92dee2f38db32af8d6ec70bd6a5d52",
+      "occupation": "10eb87e58575a00d8af6790bd5e6252a9da50c85f84bd8305a06f0b632b0d5df"
+     }
+    },
+    "frozen_bank_sha256": {
+     "0": "ce3c713036eb4f37f7481ac64675e536b4014a9b162cba9883e6aff5bbc784a6",
+     "1": "f98a7360a0f1b93d299709c6f2d0501bbd1f2b40f399c74431450a58620c76b9"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.5872719805187785e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": true,
+     "min_whole_ratio": 3.511132467535578,
+     "binding": "income|U0|accuracy_loss",
+     "occ_side_met": true,
+     "min_occ_ratio": 4.8814643846635155,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.682681771697503e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": true,
+     "min_whole_ratio": 2.8619483139645285,
+     "binding": "income|U0|accuracy_loss",
+     "occ_side_met": true,
+     "min_occ_ratio": 4.299044124207418,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:20:29+00:00",
+   "unit_id": "VER_UTILITY_REFS_V1"
+  },
+  {
+   "id": "V1.ACCESS_AUDIT_SELFTEST__V3",
+   "what": "access-log audit rules on invented logs: a clean log gives no finding and every planted violation (R2-R9) is flagged",
+   "inputs": {
+    "results/pcrl_new_release_mechanisms_v1/roles/verifier/code/v1_access.py": "b7e9dadefaf54c90f7a8005c57ad7bfa582b4e53167c982b973bccd27522f76a"
+   },
+   "result": {
+    "clean_log_no_findings": true,
+    "flags_R2_read_before_receipt": true,
+    "flags_R3_closed_role": true,
+    "flags_R4_entry_point_not_authorized": true,
+    "flags_R5_model_select_by_other_entry": true,
+    "flags_R6_card_committed_after_read": true,
+    "flags_R6_card_missing_or_outside_cards": true,
+    "flags_R7_read_outside_unit_interval": true,
+    "flags_R7_null_unit_id": true,
+    "flags_R8_row_set_differs": true,
+    "flags_R9_uncommitted_code_at_launch": true,
+    "flags_R10_unit_main_module_differs_from_operation": true,
+    "flags_R10_fit_stage_unit_read_model_select": true,
+    "all_ok": true
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:24:16+00:00",
+   "unit_id": "VER_ACCESS_SELFTEST_V3"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_ISO_S2.V0__FB1",
+   "what": "transmitted outputs of FB/FB_ISO_S2/V0: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_ISO_S2/V0/RELEASE.npz": "f1bf3d5993f8c862a48c98e42b40dcab04490ea6d1d13948107c1f337dda36ba",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_ISO_S2/V0/RELEASE.json": "49b4b8642eb31347e370e6d1a6e2712e022cbb6394fcc9421ad7edf2fe0755d5"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "1230e4d249a8b2038a884d018543c4304ac05d50be58b45d505e4919b239c622",
+       "occupation": "47e75aa7beb185e0259ecd1cb6d704f2ff864f1561aae6494dbc8e40b69900ac"
+      }
+     },
+     "people_per_value_draw0": {},
+     "draw1": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "344b45dc00f84d0fa14849a505c3f7291f751a4fb0ad64220c489ce998c8afb4",
+       "occupation": "0f7c40b42c917aea713c37da6ef5cea5123869e4821605a40e8abca1f98fc9ef"
+      }
+     },
+     "draw2": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "2789568a42534801c233b36c1b06bd66f73d4c6e9c83c3dfda08390b4830bd30",
+       "occupation": "2df9e6c75a5e78d0018e098837e1b434e01eb3006fc3f43297114385e27d96c3"
+      }
+     }
+    },
+    "max_row_sum_dev": 4.440892098500626e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_ISO_S2.V0__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_ISO_S2/V0 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_ISO_S2/V0/RELEASE.json": "49b4b8642eb31347e370e6d1a6e2712e022cbb6394fcc9421ad7edf2fe0755d5",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V0",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_ISO_S2.V1__FB1",
+   "what": "transmitted outputs of FB/FB_ISO_S2/V1: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_ISO_S2/V1/RELEASE.npz": "238edede8f99423907cc450b7b035f0018d9b06e51aedd848cf853c490bbc2f6",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_ISO_S2/V1/RELEASE.json": "3d471beea50a093e42b99dd7d934d19ee63c267d719ef762fb3729e027a65298"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "39f0e6422f1671df17a9f86e45a43db87533c896841537ed0d2e3fbbf0f78aaa",
+       "occupation": "0e688b8d04f4b220ce38b1b87d2fc212d674aa1e6059c0195aea810cf70197b2"
+      }
+     },
+     "people_per_value_draw0": {},
+     "draw1": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "3fbf1d8a5a9301c8c6cf2df032fea74fc59d044112b1b692103207f27c582b38",
+       "occupation": "9931354a7b6a4a57490cba9a4edb2c090a3787ee7f38e666017e2cd6169d88b7"
+      }
+     },
+     "draw2": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "12cbd06ac4972026db5c69f26dc39511c164699e21a3bc20da0312e2e47fca70",
+       "occupation": "fff22d74285e4d3c924860eee9d5a3d0ff181dc4e3e0eade1ef24bf7729d8207"
+      }
+     }
+    },
+    "max_row_sum_dev": 4.440892098500626e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_ISO_S2.V1__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_ISO_S2/V1 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_ISO_S2/V1/RELEASE.json": "3d471beea50a093e42b99dd7d934d19ee63c267d719ef762fb3729e027a65298",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V1",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_MINF_S2.V0__FB1",
+   "what": "transmitted outputs of FB/FB_MINF_S2/V0: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S2/V0/RELEASE.npz": "48dc333a8dc217421ab8861539f1678ac141dfa625fa4246d5b6a9c07fa76922",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S2/V0/RELEASE.json": "2064c442ac2231e69a4c5e04801683c17a4f712cbd0c2ea0e1764d09f7afcf45"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 7505,
+      "occupation": 7996,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "c0f4310f463a721991b2ce4de932df96ebe6b6b686453a860a60f30f6e89fcd8",
+       "occupation": "2601f11329c048fe0b36b636deb3effe6217b9a6c3dac77751bd585c62ee4f40"
+      }
+     },
+     "people_per_value_draw0": {},
+     "draw1": {
+      "income": 7505,
+      "occupation": 7996,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "e5bdcc19b6e6b213c3aab4a0f544db5b1c3609f1dd2d3ba138fa279220c7bb54",
+       "occupation": "7d5c79a46f8b0ddb91079b86082c7446e181f7a35a0a9524fdcb49a9e5891e42"
+      }
+     },
+     "draw2": {
+      "income": 7505,
+      "occupation": 7996,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "45ca58636a0a4fec1fb23eaa3004b01b482b2ce63ace20b296e7d06ae842315d",
+       "occupation": "238a31907788883f276204bd78af4b4eff4b34197592278149f828fcb63425e8"
+      }
+     }
+    },
+    "max_row_sum_dev": 5.551115123125783e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_MINF_S2.V0__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_MINF_S2/V0 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S2/V0/RELEASE.json": "2064c442ac2231e69a4c5e04801683c17a4f712cbd0c2ea0e1764d09f7afcf45",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V0",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_MINF_S2.V1__FB1",
+   "what": "transmitted outputs of FB/FB_MINF_S2/V1: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S2/V1/RELEASE.npz": "5f77b6f142a80e971f27b1d07804c6ebf18434cbaef00c39f7ee5c4debebffd4",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S2/V1/RELEASE.json": "154d5a98a5442e625cde7b6778d14681b749c9a0e12fff3b61d44754e58906c8"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 7502,
+      "occupation": 7999,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "71f3e3355fd7f894d15d1b4bab6b7b997bc29ca4e501def1014c55335ded9ae2",
+       "occupation": "1b559efad35cf1f2d771af66e9566f45071d6c83c2bd6be4abd2fa12168d921a"
+      }
+     },
+     "people_per_value_draw0": {},
+     "draw1": {
+      "income": 7502,
+      "occupation": 7999,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "7156caaa6f560225ab2d7547d91efabbb63cd75762b68af582129b4ccece1076",
+       "occupation": "2862a1cebac77f3d0a0199d260d8785c6b32c01f67c5e4e4f924886ae3a43ca4"
+      }
+     },
+     "draw2": {
+      "income": 7502,
+      "occupation": 7999,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "a8b2c5582627aa4ff94b5c9828d526bdc2a70f4fdb3fdd21c63a93b669bf6417",
+       "occupation": "60240377c51e97fc3921e3530de900955fd0430cdfa71258215e34372de3a0ce"
+      }
+     }
+    },
+    "max_row_sum_dev": 5.551115123125783e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_MINF_S2.V1__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_MINF_S2/V1 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S2/V1/RELEASE.json": "154d5a98a5442e625cde7b6778d14681b749c9a0e12fff3b61d44754e58906c8",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V1",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_MINF_S3.V0__FB1",
+   "what": "transmitted outputs of FB/FB_MINF_S3/V0: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S3/V0/RELEASE.npz": "f35cd89b8996e75696c41dbabf0520d9eb08a066472738dc00c00faa021b36d2",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S3/V0/RELEASE.json": "47db86b51282f367cb8d3ac33b2454c756669ee10f2e39ac84c9b9592476dd97"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 7505,
+      "occupation": 7996,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "4814a0133811798a0a6f9dda6ce5f7b464ef2e0f09be3306202ff73d81ba5be9",
+       "occupation": "c35fa31e745ad0db3c0304b4c3e7ff334fe25bd4456f04454993d8ad26561575"
+      }
+     },
+     "people_per_value_draw0": {},
+     "draw1": {
+      "income": 7505,
+      "occupation": 7996,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "ff64d0c6adb83116846a83fceba7c9f7cb7c2f7c93ff4d328121968c5c87c125",
+       "occupation": "74c52987116418ebe017dbd49afa788c8743f055d4ba850641bb99e167e69db2"
+      }
+     },
+     "draw2": {
+      "income": 7505,
+      "occupation": 7996,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "a54f075ec30600f380629bd6f78127342e8f62143a91f875ef9622ea10a7121a",
+       "occupation": "b45a63786ba0a2e16ee9015d10394b88119ea11b4e93a20a013fca050c270a12"
+      }
+     }
+    },
+    "max_row_sum_dev": 4.440892098500626e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_MINF_S3.V0__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_MINF_S3/V0 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S3/V0/RELEASE.json": "47db86b51282f367cb8d3ac33b2454c756669ee10f2e39ac84c9b9592476dd97",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V0",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_MINF_S3.V1__FB1",
+   "what": "transmitted outputs of FB/FB_MINF_S3/V1: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S3/V1/RELEASE.npz": "d2f5e2b44f2fecb71533156386aebd2f4be618ccffb7409f389c3453fbb077ac",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S3/V1/RELEASE.json": "b24ddde4a3cb2cdf7da234aeb89b3d45b285292091b1873d59b80d96cf41d5cb"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 7502,
+      "occupation": 7999,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "496d0c0a3ec245fceede510e54430bc47cd30a4fbc8e240decaddf40b963e3c0",
+       "occupation": "84ca749ee275eb45fd06b5d165d2d8d03a230941c38a36709b9cdae368313e3b"
+      }
+     },
+     "people_per_value_draw0": {},
+     "draw1": {
+      "income": 7502,
+      "occupation": 7999,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "1d81779fbf35e136cb28bd3d8190361262885a5076c771c46896b447b68dab5c",
+       "occupation": "62ed8f49b8afa9d6d322e52efe9b32f7249472b53aaae63ac7a1838887e77491"
+      }
+     },
+     "draw2": {
+      "income": 7502,
+      "occupation": 7999,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "4c0ce473049001978232765bd22343237a1fb99646c07eb1a21fd129c978d8ad",
+       "occupation": "c4ccdea4629d5afbade52c3fbbdaa354cf46c1d508c156200c047d0090f791af"
+      }
+     }
+    },
+    "max_row_sum_dev": 5.551115123125783e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_MINF_S3.V1__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_MINF_S3/V1 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S3/V1/RELEASE.json": "b24ddde4a3cb2cdf7da234aeb89b3d45b285292091b1873d59b80d96cf41d5cb",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V1",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_POSTHOC_S2.V0__FB1",
+   "what": "transmitted outputs of FB/FB_POSTHOC_S2/V0: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_POSTHOC_S2/V0/RELEASE.npz": "a4e59902ac8b4b1a243b423f137f4e5facdd005d8f4d6c0a3601393b6d94e01c",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_POSTHOC_S2/V0/RELEASE.json": "44ea73eeec6542a40a894df6d4a15f72f8b4ea5539bffc521dce2faa24c85e4b"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "70ccde481ec2296541fec89ebbeebc7d24c3f7d8e64ee45ef4eae99df89f2927",
+       "occupation": "c5adce778bcbc3a55d32669b4533370bc13a0d060af1dfff1edc594216408baf"
+      }
+     },
+     "people_per_value_draw0": {},
+     "draw1": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "106a84603bd9fb8cc3bf3e19238ffd3302e9e1e32948b0643a2667ff14bcd961",
+       "occupation": "b142b305ce20485130aaf98d89b2c1e4b2d575495db2fc48dfd352ab65a2a24f"
+      }
+     },
+     "draw2": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "8003fb0eeee9d2c8de292102d0e0c9f853953874134a6ea53c2c3ded912706b9",
+       "occupation": "48ebbcbd10a123e38dd6b61e0ffb26e42583fa4abfead32f76ec421a22e4e7ab"
+      }
+     }
+    },
+    "max_row_sum_dev": 4.440892098500626e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_POSTHOC_S2.V0__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_POSTHOC_S2/V0 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_POSTHOC_S2/V0/RELEASE.json": "44ea73eeec6542a40a894df6d4a15f72f8b4ea5539bffc521dce2faa24c85e4b",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V0",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_POSTHOC_S2.V1__FB1",
+   "what": "transmitted outputs of FB/FB_POSTHOC_S2/V1: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_POSTHOC_S2/V1/RELEASE.npz": "d9a86a7c861800194c328ca0ba44182b0b9c02521fad71358616b7592d0c33c8",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_POSTHOC_S2/V1/RELEASE.json": "519fea37b4e20c9c318f42a49bf43a17cfc2707ff06298e8da5e099d75649bea"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "a36c968aaccf628a2cbfb344be00af95ac0c3b2cda9cf2803311f47e752dce01",
+       "occupation": "a6e16104e9d9bc20b6b866604d255d966009074cf6efc80cfd550095feb60521"
+      }
+     },
+     "people_per_value_draw0": {},
+     "draw1": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "a7a9a001a1be63c8fb9b00b9163ba644b6be8eb0e2ec0e9e9cfe19e1afbb81d2",
+       "occupation": "cc9970bc462ec1b4da51b3ccc58310c4d3e47656c8a55421b4e19aa99c47342f"
+      }
+     },
+     "draw2": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "15c883cf0fa8dc1c0955d9cdfece6c1895feebf645f41ad230843c0befff8595",
+       "occupation": "440058f6fe5f852a52b96db7e5f2049a03665c74a28666fc30e26232108ac1cb"
+      }
+     }
+    },
+    "max_row_sum_dev": 5.551115123125783e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_POSTHOC_S2.V1__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_POSTHOC_S2/V1 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_POSTHOC_S2/V1/RELEASE.json": "519fea37b4e20c9c318f42a49bf43a17cfc2707ff06298e8da5e099d75649bea",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V1",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_SEX_S2.V0__FB1",
+   "what": "transmitted outputs of FB/FB_SEX_S2/V0: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2/V0/RELEASE.npz": "1896d0ad93c510ba4976abbe5ad6bb9db757bde0dc463599cfd5fd218a8ebafa",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2/V0/RELEASE.json": "e61d9f2837cde174066b97ecfa67b99e759d71a31897486da6155e0c8bf65c2d"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "00c69aa753e88aa53b9a40249be1e2d76f4f7ed678246dc01f02b370404d971b",
+       "occupation": "5cee2afc3f6413136969512f2834aa61fbb23c94925e432b5f6e3d719db19ddf"
+      }
+     },
+     "people_per_value_draw0": {},
+     "draw1": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "eea4ab06a992d0a4aebfc12a805a236d6b8dc0112b228dd08f639b6174be4bf9",
+       "occupation": "47cb8527512106044df92f850ef8588d16fe3552dac8e1f9345a20376c7fa8b7"
+      }
+     },
+     "draw2": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "5cec1a0593a6def815e020fc18d014e914d4e006caa283bad493bad256b3f540",
+       "occupation": "df149950c6785a785a18440d1d759a385fbf09aa4952d75befb6731cf609b545"
+      }
+     }
+    },
+    "max_row_sum_dev": 4.440892098500626e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_SEX_S2.V0__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_SEX_S2/V0 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2/V0/RELEASE.json": "e61d9f2837cde174066b97ecfa67b99e759d71a31897486da6155e0c8bf65c2d",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V0",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_SEX_S2.V1__FB1",
+   "what": "transmitted outputs of FB/FB_SEX_S2/V1: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2/V1/RELEASE.npz": "f335ce0ea97f1cfdb34bb16f95833c7250ba8903779c34babcc2f9d84e9e47f6",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2/V1/RELEASE.json": "37b6606439e008d520e191e55b60b0a80653ca52580295624bdedb928412f170"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "d28a6cb1faf2cf6e316e91204890eb1cc04dec2b44fc72f34b24dd65d4d92cf8",
+       "occupation": "f3474fe9a93016cc815a82463f91eaee26cee4a3af6d957a2f2e6b93cbfc5a7a"
+      }
+     },
+     "people_per_value_draw0": {},
+     "draw1": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "b9012ce7694477e24d15e9e2d46c01feb024e4b812d21afc603500d7ebc7cae6",
+       "occupation": "f5bbef02c57fd7c18296d381e5dd673ce301f72744c2cee0506cdbdd038e6ce0"
+      }
+     },
+     "draw2": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "dec6d660aa84186d0d063f1dc4e5b0e0339b984c76988a242b04ef619f8a3088",
+       "occupation": "9a05e677b50be008d40fe9ec7ebb2e4e99ba49e13ffcd031addad6a98ef20a6d"
+      }
+     }
+    },
+    "max_row_sum_dev": 5.551115123125783e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_SEX_S2.V1__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_SEX_S2/V1 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2/V1/RELEASE.json": "37b6606439e008d520e191e55b60b0a80653ca52580295624bdedb928412f170",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V1",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_SEX_S2_ID.V0__FB1",
+   "what": "transmitted outputs of FB/FB_SEX_S2_ID/V0: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_ID/V0/RELEASE.npz": "c6b0c07e9ef61e3d2dffaedaa782cb5cd6c14480fa5dad43667d303be0525981",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_ID/V0/RELEASE.json": "a09106c564fbe151fade67266aced9f603483b23e2a289c8b25a5356808293ba"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 7500,
+      "occupation": 7500,
+      "pair": 7500,
+      "wire_sha256": {
+       "income": "efd8c1ad8e87a3f6381d4cfcaad6c6bc3de192867ee8ee6a0c4fcf2eeaa924b0",
+       "occupation": "b0f5d65c849c40a9bd7425935e24c32eee01c49dab410fdcdc4986485ee471fa"
+      }
+     },
+     "people_per_value_draw0": {}
+    },
+    "max_row_sum_dev": 4.440892098500626e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_SEX_S2_ID.V0__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_SEX_S2_ID/V0 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_ID/V0/RELEASE.json": "a09106c564fbe151fade67266aced9f603483b23e2a289c8b25a5356808293ba",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V0",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_SEX_S2_ID.V1__FB1",
+   "what": "transmitted outputs of FB/FB_SEX_S2_ID/V1: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_ID/V1/RELEASE.npz": "a43b31e3267da52c23a76107953dc9c05133f2b10bd56dfdeec7b5dcfee131a6",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_ID/V1/RELEASE.json": "4b1a323c69c76ff06c2b3e73e92d90f3713e0da66ea10792281199b3f0fae4c3"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 7500,
+      "occupation": 7500,
+      "pair": 7500,
+      "wire_sha256": {
+       "income": "03cbf3822cb52fb0419df4b40c3ec9b046c9734b7ec7dc7bf3ef514aa4f36995",
+       "occupation": "a75da44ba0cc6e3ce1790533a37a45cca53e359dfb741439253830a73c7580d0"
+      }
+     },
+     "people_per_value_draw0": {}
+    },
+    "max_row_sum_dev": 4.440892098500626e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_SEX_S2_ID.V1__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_SEX_S2_ID/V1 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_ID/V1/RELEASE.json": "4b1a323c69c76ff06c2b3e73e92d90f3713e0da66ea10792281199b3f0fae4c3",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V1",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_SEX_S2_MEAN.V0__FB1",
+   "what": "transmitted outputs of FB/FB_SEX_S2_MEAN/V0: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_MEAN/V0/RELEASE.npz": "e2d0a255b615f3615ce9cb2fb9e2cb7bef96b316085c40490e6e0aa7e19e6b70",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_MEAN/V0/RELEASE.json": "ab3700057beb912e7678db2dd3317235d9ca5d25cf5cabfe2aba748d43567659"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 7500,
+      "occupation": 7500,
+      "pair": 7500,
+      "wire_sha256": {
+       "income": "3dcb3cd73a0f373c602f1e9ca83b91c89df75239be4e35287146e0d4a11c90fb",
+       "occupation": "57b09a7a54a2e219dbe7151dbfaf7462bac7e1bb5ddbe61461f5855955c3b67f"
+      }
+     },
+     "people_per_value_draw0": {}
+    },
+    "max_row_sum_dev": 6.661338147750939e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_SEX_S2_MEAN.V0__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_SEX_S2_MEAN/V0 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_MEAN/V0/RELEASE.json": "ab3700057beb912e7678db2dd3317235d9ca5d25cf5cabfe2aba748d43567659",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V0",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_SEX_S2_MEAN.V1__FB1",
+   "what": "transmitted outputs of FB/FB_SEX_S2_MEAN/V1: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_MEAN/V1/RELEASE.npz": "3abff776b688950315bcdcce9a7c01f3e536294b496f2032894e20d7b28ee488",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_MEAN/V1/RELEASE.json": "a16b3ca21d58ee81ef8ad72dd68526c7f54d3a61e43e915416dd50ef4b868fee"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 7500,
+      "occupation": 7500,
+      "pair": 7500,
+      "wire_sha256": {
+       "income": "43d333392361ac9054ca5e00489b043856015b3bdc5a4aa6448a8cb0d313efae",
+       "occupation": "27aef9bc6be435e981fd2b919e5354f409ff37fba535f95163816fd73853d9fa"
+      }
+     },
+     "people_per_value_draw0": {}
+    },
+    "max_row_sum_dev": 6.661338147750939e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_SEX_S2_MEAN.V1__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_SEX_S2_MEAN/V1 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_MEAN/V1/RELEASE.json": "a16b3ca21d58ee81ef8ad72dd68526c7f54d3a61e43e915416dd50ef4b868fee",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V1",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_SEX_S3.V0__FB1",
+   "what": "transmitted outputs of FB/FB_SEX_S3/V0: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S3/V0/RELEASE.npz": "f6c7522b053a07de70138e381aca0cf5636d5fba60f57b93e632824d167c28b1",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S3/V0/RELEASE.json": "aa6c811c6838d4341c8c67436a7e2c45cecc77fb38f0d04e077e1b13dcf04e1b"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "d50b70e88840474f9b90c9b52a8b7b6e8a84500272b5bf4ae9d67601e90fa730",
+       "occupation": "705a94f80a3cc21ebbb18c445075f15d95a8362ae6c5b6891ce4cf8f65d4ffc1"
+      }
+     },
+     "people_per_value_draw0": {},
+     "draw1": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "8c5ba019aa24697d51f790dfa7722ff76ae9d7734e090b12ef185d516baadb33",
+       "occupation": "45614fd1f4f9d875b4807a10b7b3c04da263a7e144fd0316e9acf93215123897"
+      }
+     },
+     "draw2": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "b5d0ef143ff00ab63aac04c63cfcbc0f0ce37228a37fd62174f2b55756495cf0",
+       "occupation": "43f28bfc5deb866b70692c822ccda8e66a61919c139864a8f3363d32b558c42b"
+      }
+     }
+    },
+    "max_row_sum_dev": 4.440892098500626e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_SEX_S3.V0__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_SEX_S3/V0 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S3/V0/RELEASE.json": "aa6c811c6838d4341c8c67436a7e2c45cecc77fb38f0d04e077e1b13dcf04e1b",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V0",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_SEX_S3.V1__FB1",
+   "what": "transmitted outputs of FB/FB_SEX_S3/V1: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S3/V1/RELEASE.npz": "d35342df8367060c45572acc6d6c9222c7cd72cd093d148ce896681da448106f",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S3/V1/RELEASE.json": "d1ab66a25415ce8298402b520bee961adbd4b688bb5852786970d7b6285937a4"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "90051cb74c86af5b0a9e72c73ce64adb6c5ee7d622e967e999796a285c670ae5",
+       "occupation": "47f60d12733fe4ac0ecd33d39430039fe70028496f4fa6aae22a7ff7d02b5a6b"
+      }
+     },
+     "people_per_value_draw0": {},
+     "draw1": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "42193365252a73ef3a7cad0bac7217fb83b57bb2c2c7c2b329324fe5333d8702",
+       "occupation": "3c0df4b7c8c2acc6a48220791a81c059fef2c473d62bc4d7a5fdd17fa1d55b93"
+      }
+     },
+     "draw2": {
+      "income": 8001,
+      "occupation": 8001,
+      "pair": 8001,
+      "wire_sha256": {
+       "income": "d2b07dbd2836deda2ea7fa34ce83bda627344a15d2341d96db2ee33c5920a528",
+       "occupation": "09eea5701647ece3046df6ac6fce84adea6c3f2bb7daf6e0eb34156856055da0"
+      }
+     }
+    },
+    "max_row_sum_dev": 4.440892098500626e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_SEX_S3.V1__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_SEX_S3/V1 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S3/V1/RELEASE.json": "d1ab66a25415ce8298402b520bee961adbd4b688bb5852786970d7b6285937a4",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [],
+    "exposure": {
+     "unit_id": "FB_FIT_V1",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_TWIN.V0__FB1",
+   "what": "transmitted outputs of FB/FB_TWIN/V0: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_TWIN/V0/RELEASE.npz": "581ebd099523d9ba6394eadf335b01bd620a1dd64d43b259ed8c47476590933b",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_TWIN/V0/RELEASE.json": "d18f394e116c038d78466a99e707cbffd5d8e2ce798d9b182905091bc5e6a076"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 7500,
+      "occupation": 7500,
+      "pair": 7500,
+      "wire_sha256": {
+       "income": "95f34975e213af1a3f4246c7aa295a8d9f89149c9e39ab324bfa534a7a34bbe7",
+       "occupation": "29124890c1b3330ecad9bdfdc48466bb6a9dcd4c40a238ca27504d506c415cc4"
+      }
+     },
+     "people_per_value_draw0": {}
+    },
+    "max_row_sum_dev": 4.440892098500626e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_TWIN.V0__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_TWIN/V0 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_TWIN/V0/RELEASE.json": "d18f394e116c038d78466a99e707cbffd5d8e2ce798d9b182905091bc5e6a076",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [
+     "a task-only twin unit read MODEL_FIT SEX (allowed only if the twin itself never uses it; see card)"
+    ],
+    "exposure": {
+     "unit_id": "FB_FIT_V0",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "ATTENTION",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.OUTPUTS.FB.FB_TWIN.V1__FB1",
+   "what": "transmitted outputs of FB/FB_TWIN/V1: probability vectors on all six roles, decisions, array hashes, distinct vectors and linked cells (MODEL_SELECT)",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_TWIN/V1/RELEASE.npz": "5ec69587a7f86e521789bedb428fc3c51959e6cd697672124ca7b41c2f7c4eaf",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_TWIN/V1/RELEASE.json": "100d2424ffbc35b35e4aea7488303b854471ea2d7bb1492e655a9af5e2d22c49"
+   },
+   "result": {
+    "problems": [],
+    "cardinality_MODEL_SELECT": {
+     "draw0": {
+      "income": 7499,
+      "occupation": 7500,
+      "pair": 7500,
+      "wire_sha256": {
+       "income": "99ff0db7f32d56ba0700cd5b5e3021cf713b244cb63fb37e8960eb6cb724f4fc",
+       "occupation": "a53dbaea040c2671ad7679ec10b4036ae52d3591c7482a6b668d903211d110ee"
+      }
+     },
+     "people_per_value_draw0": {}
+    },
+    "max_row_sum_dev": 4.440892098500626e-16,
+    "tied_argmax_rows_MODEL_SELECT": {
+     "income": 0,
+     "occupation": 0
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.EXPOSURE.FB.FB_TWIN.V1__FB1",
+   "what": "record, card order, configuration ledger and training / calibration exposure of FB/FB_TWIN/V1 against the access and queue logs",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_TWIN/V1/RELEASE.json": "100d2424ffbc35b35e4aea7488303b854471ea2d7bb1492e655a9af5e2d22c49",
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8",
+    ".private/pcrl_new_release_mechanisms_v1/access/LABEL_ACCESS.jsonl": "85b48cf3cc63bb5cdb855a71a7124b56a987b43b7a626478365fcbf598cf7858",
+    "card": {
+     "card": "results/pcrl_new_release_mechanisms_v1/cards/FB_FSC_v1.md",
+     "card_commit": "48fbac50f223dce809ea3fb68f2e444be2ff047a",
+     "card_sha256": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_at_commit": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "sha_now": "472da93292550837f40d4ab915abf4b7aaeb814cd386115e86efc4c8d22a7d91",
+     "commit_utc": "2026-10-20T11:24:05-04:00",
+     "ancestor": true
+    }
+   },
+   "result": {
+    "record_problems": [],
+    "exposure_problems": [],
+    "attention": [
+     "a task-only twin unit read MODEL_FIT SEX (allowed only if the twin itself never uses it; see card)"
+    ],
+    "exposure": {
+     "unit_id": "FB_FIT_V1",
+     "labels_read_by_saving_unit": {
+      "MODEL_FIT": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "CALIBRATION": [
+       "income",
+       "occupation"
+      ]
+     },
+     "roles_read_stated": "MODEL_FIT: income, occupation, sex (fit); CALIBRATION: income, occupation (calibrate)",
+     "sizes": {
+      "training_people": 20000,
+      "training_households": 13337,
+      "full_pool": true
+     }
+    }
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "ATTENTION",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3.CONFIG_BUDGET__FB1",
+   "what": "configuration ledger: distinct (family, config, version) <= 60, every entry has its release directory",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/CONFIG_LEDGER.jsonl": "b1e0d979425362a1b72717e7ad1d7184f983b2a009de1930c93be39d501ca4d8"
+   },
+   "result": {
+    "n_configurations": 18,
+    "n_ledger_lines": 18,
+    "missing_dirs": []
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:25:10+00:00",
+   "unit_id": "VER_OUTPUTS_FB_V1"
+  },
+  {
+   "id": "V3X.FB_SEX_INVARIANCE.V0__V1",
+   "what": "Family B V0: twin and SEX-blind control learners (none, minf:S2, iso:S2) bitwise invariant to a household-level permutation of MODEL_FIT SEX; positive control sex:S2 changes; all four refits reproduce the saved learner files; SEX-blind channel files carry no SEX geometry",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/MODELS/V0/LEARNER_none.pt": "ce189c7baa7a34972e077ef7aa9ab548269d644673aedbdde9a2b182f82b1db9",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/MODELS/V0/LEARNER_minf_S2.pt": "8ad8a60b6efbab93befbc5896b2be5045abc8ad179561419ede083165af13dc7",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/MODELS/V0/LEARNER_iso_S2.pt": "bcf82976f5dc66396ac8a607c20cb4ded6785f2b70d9343381280513c2986cd4",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/MODELS/V0/LEARNER_sex_S2.pt": "a9f54bb0463b8adb097123016a49ee753b78e0e2a9007ed8d72d3881b0f5bc56",
+    "code": {
+     "nrm/fb/learner.py": "c1b0ca58ece786399394a95b19196357412603d9d35673d65bf26b2b390a43a9",
+     "nrm/fb/channel.py": "a7fb3006393c7b55f749b6963284043a39b4b09bd2257ea049ff946343b1a3f3"
+    }
+   },
+   "result": {
+    "version": 0,
+    "sex_changed_people": 10000,
+    "learners": {
+     "none": {
+      "invariant_to_sex_permutation": true,
+      "reproduces_saved_learner": true,
+      "selected_epochs": [
+       7,
+       7
+      ],
+      "saved_file_sha256": "ce189c7baa7a34972e077ef7aa9ab548269d644673aedbdde9a2b182f82b1db9"
+     },
+     "minf:S2": {
+      "invariant_to_sex_permutation": true,
+      "reproduces_saved_learner": true,
+      "selected_epochs": [
+       7,
+       7
+      ],
+      "saved_file_sha256": "8ad8a60b6efbab93befbc5896b2be5045abc8ad179561419ede083165af13dc7"
+     },
+     "iso:S2": {
+      "invariant_to_sex_permutation": true,
+      "reproduces_saved_learner": true,
+      "selected_epochs": [
+       7,
+       7
+      ],
+      "saved_file_sha256": "bcf82976f5dc66396ac8a607c20cb4ded6785f2b70d9343381280513c2986cd4"
+     },
+     "sex:S2": {
+      "invariant_to_sex_permutation": false,
+      "reproduces_saved_learner": true,
+      "selected_epochs": [
+       7,
+       7
+      ],
+      "saved_file_sha256": "a9f54bb0463b8adb097123016a49ee753b78e0e2a9007ed8d72d3881b0f5bc56"
+     }
+    },
+    "channels_sex_free": {
+     "FB_TWIN": {
+      "geometry": {
+       "mode": "none"
+      },
+      "sex_free_geometry": true
+     },
+     "FB_MINF_S2": {
+      "geometry": {
+       "mode": "minf"
+      },
+      "sex_free_geometry": true
+     },
+     "FB_MINF_S3": {
+      "geometry": {
+       "mode": "minf"
+      },
+      "sex_free_geometry": true
+     },
+     "FB_ISO_S2": {
+      "geometry": {
+       "mode": "iso"
+      },
+      "sex_free_geometry": true
+     }
+    },
+    "blind_invariant": true,
+    "positive_control_detects_sex_use": true,
+    "reproduction": true,
+    "channel_files_sex_free": true
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:26:54+00:00",
+   "unit_id": "VER_FB_INVARIANCE_V0_V1"
+  },
+  {
+   "id": "V3X.FB_SEX_INVARIANCE.V1__V1",
+   "what": "Family B V1: twin and SEX-blind control learners (none, minf:S2, iso:S2) bitwise invariant to a household-level permutation of MODEL_FIT SEX; positive control sex:S2 changes; all four refits reproduce the saved learner files; SEX-blind channel files carry no SEX geometry",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/MODELS/V1/LEARNER_none.pt": "3741824535c9a9479feb52beccef87234218ad4ded406937f2eac970c70da104",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/MODELS/V1/LEARNER_minf_S2.pt": "937c93b09ea8b9df377cfa4f61c6ccec56fe3627e4722fef98a50ea0a0447035",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/MODELS/V1/LEARNER_iso_S2.pt": "27a7e94b53a9d799c3ea7c2f421b6c4987e255a980a2a49cdf6cf5a60c135f58",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/MODELS/V1/LEARNER_sex_S2.pt": "f4ea975876287e4dce85c70996abea3b99b3bd7b04ab9c9cde01f24028a4826f",
+    "code": {
+     "nrm/fb/learner.py": "c1b0ca58ece786399394a95b19196357412603d9d35673d65bf26b2b390a43a9",
+     "nrm/fb/channel.py": "a7fb3006393c7b55f749b6963284043a39b4b09bd2257ea049ff946343b1a3f3"
+    }
+   },
+   "result": {
+    "version": 1,
+    "sex_changed_people": 10000,
+    "learners": {
+     "none": {
+      "invariant_to_sex_permutation": true,
+      "reproduces_saved_learner": true,
+      "selected_epochs": [
+       6,
+       6
+      ],
+      "saved_file_sha256": "3741824535c9a9479feb52beccef87234218ad4ded406937f2eac970c70da104"
+     },
+     "minf:S2": {
+      "invariant_to_sex_permutation": true,
+      "reproduces_saved_learner": true,
+      "selected_epochs": [
+       6,
+       6
+      ],
+      "saved_file_sha256": "937c93b09ea8b9df377cfa4f61c6ccec56fe3627e4722fef98a50ea0a0447035"
+     },
+     "iso:S2": {
+      "invariant_to_sex_permutation": true,
+      "reproduces_saved_learner": true,
+      "selected_epochs": [
+       6,
+       6
+      ],
+      "saved_file_sha256": "27a7e94b53a9d799c3ea7c2f421b6c4987e255a980a2a49cdf6cf5a60c135f58"
+     },
+     "sex:S2": {
+      "invariant_to_sex_permutation": false,
+      "reproduces_saved_learner": true,
+      "selected_epochs": [
+       6,
+       6
+      ],
+      "saved_file_sha256": "f4ea975876287e4dce85c70996abea3b99b3bd7b04ab9c9cde01f24028a4826f"
+     }
+    },
+    "channels_sex_free": {
+     "FB_TWIN": {
+      "geometry": {
+       "mode": "none"
+      },
+      "sex_free_geometry": true
+     },
+     "FB_MINF_S2": {
+      "geometry": {
+       "mode": "minf"
+      },
+      "sex_free_geometry": true
+     },
+     "FB_MINF_S3": {
+      "geometry": {
+       "mode": "minf"
+      },
+      "sex_free_geometry": true
+     },
+     "FB_ISO_S2": {
+      "geometry": {
+       "mode": "iso"
+      },
+      "sex_free_geometry": true
+     }
+    },
+    "blind_invariant": true,
+    "positive_control_detects_sex_use": true,
+    "reproduction": true,
+    "channel_files_sex_free": true
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T15:27:14+00:00",
+   "unit_id": "VER_FB_INVARIANCE_V1_V1"
+  },
+  {
+   "id": "V2.UTILITY.FB.FB_TWIN__FB1",
+   "what": "own recomputation of clauses, guards, SEs (and MC SEs), point status, reserve, absolute metrics, distinct vectors and paired costs of FB/FB_TWIN vs EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_TWIN/EVAL_MS.json": "e2415b9b44cb0435e81f1834e973058e4b46e4bc5aad55f84135427f2be3e3d0",
+    "wire_sha256": {
+     "0": {
+      "income": "95f34975e213af1a3f4246c7aa295a8d9f89149c9e39ab324bfa534a7a34bbe7",
+      "occupation": "29124890c1b3330ecad9bdfdc48466bb6a9dcd4c40a238ca27504d506c415cc4"
+     },
+     "1": {
+      "income": "99ff0db7f32d56ba0700cd5b5e3021cf713b244cb63fb37e8960eb6cb724f4fc",
+      "occupation": "a53dbaea040c2671ad7679ec10b4036ae52d3591c7482a6b668d903211d110ee"
+     }
+    },
+    "releases": {
+     "0": "581ebd099523d9ba6394eadf335b01bd620a1dd64d43b259ed8c47476590933b",
+     "1": "5ec69587a7f86e521789bedb428fc3c51959e6cd697672124ca7b41c2f7c4eaf"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 2.8167572441173405e-16,
+     "max_abs_se_diff": 0.0,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 4.336808689942018e-19,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 0.21920684549612218,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.21920684549612218,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.717376241217039e-16,
+     "max_abs_se_diff": 1.0842021724855044e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 4.336808689942018e-19,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -2.088354374215485,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -2.088354374215485,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T15:27:32+00:00",
+   "unit_id": "VER_UTILITY_FB1_V1"
+  },
+  {
+   "id": "V2.UTILITY.FB.FB_SEX_S2__FB1",
+   "what": "own recomputation of clauses, guards, SEs (and MC SEs), point status, reserve, absolute metrics, distinct vectors and paired costs of FB/FB_SEX_S2 vs EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2/EVAL_MS.json": "86144cd5e7540562c059ee834d15c2199bdea8e1658e4eb4b39fada515206de7",
+    "wire_sha256": {
+     "0": {
+      "income": [
+       "00c69aa753e88aa53b9a40249be1e2d76f4f7ed678246dc01f02b370404d971b",
+       "eea4ab06a992d0a4aebfc12a805a236d6b8dc0112b228dd08f639b6174be4bf9",
+       "5cec1a0593a6def815e020fc18d014e914d4e006caa283bad493bad256b3f540",
+       "aaf0cc18ba265614a3bf9dc11a17b45ece7b2e4d5bc4899419407c2e503a77df",
+       "462d08af4bbde0510f5573e6d79b54c09fb121a31814f732eeae8337491a17f5",
+       "a7a9177067a1ff3da25ea3fbb27c517191a5c92727a4ab0db2db5e83b757b4e7",
+       "4b69bd6039197e69c516457e7558abdaa1b5c568202d1f04f82f3fea787ad3f8",
+       "5e498561dcf8b1dfe71fa18971df45d4be6af71dda7a92da1ed8d97e023c206a"
+      ],
+      "occupation": [
+       "5cee2afc3f6413136969512f2834aa61fbb23c94925e432b5f6e3d719db19ddf",
+       "47cb8527512106044df92f850ef8588d16fe3552dac8e1f9345a20376c7fa8b7",
+       "df149950c6785a785a18440d1d759a385fbf09aa4952d75befb6731cf609b545",
+       "19bbc76a950df8b2d3e2e1b7f72df409ed9a03e20b5d7b7825142ea7fe2ab000",
+       "5551afbb418962950f4b679da645e8666952fb3dee7ca2acd4454ea8044cf27a",
+       "877fd4a318df8ac795d4ee44787cbb65bfc050f545c01f68cca53c5572e17a47",
+       "0bc4064bf6829ebf85b4f6e079b998f6c8210530e22282f4f58355fc61e4c147",
+       "b16fd2c726d00b181493aff68cc20581300f23858a84e382282ccc518f15978f"
+      ]
+     },
+     "1": {
+      "income": [
+       "d28a6cb1faf2cf6e316e91204890eb1cc04dec2b44fc72f34b24dd65d4d92cf8",
+       "b9012ce7694477e24d15e9e2d46c01feb024e4b812d21afc603500d7ebc7cae6",
+       "dec6d660aa84186d0d063f1dc4e5b0e0339b984c76988a242b04ef619f8a3088",
+       "5c9cf944202366661eb62079f2fddebe56a253d4c3fa1215500a94d1bbd0092d",
+       "b690a901cb404ce98d928396470f81325001e7b87e5bfc58138b27298ee3ec21",
+       "9e83ef0c996955e6d0c48b82ff012f3a9b8ad3cfc08e712e2825f47a8e8ac6c4",
+       "272c114f62975e6db48ce00e9abf7505df23725f55af81a502dda9fe154a6957",
+       "c58ea95a9afef9109c035adce92b02941e1908b5338cd4b7ecf32b3299556cf0"
+      ],
+      "occupation": [
+       "f3474fe9a93016cc815a82463f91eaee26cee4a3af6d957a2f2e6b93cbfc5a7a",
+       "f5bbef02c57fd7c18296d381e5dd673ce301f72744c2cee0506cdbdd038e6ce0",
+       "9a05e677b50be008d40fe9ec7ebb2e4e99ba49e13ffcd031addad6a98ef20a6d",
+       "50337201c413e798ee4843ad465e51fa6b65568799c91ecdc6da0b636f4722bf",
+       "8d065c5bdbc1ad218ed3ed2f5a0212cb2e65a45542588c80719d14de13b4105a",
+       "957014fb0b8e17fe43f0e72066742304b9bf72a48307681a913f66b90a20d65e",
+       "cb789ec68c3b9ceea3dac84281197d4ac92975e8917392801c11f5b5c6fc459a",
+       "f6eedf945ccc50a8b464361265cf57b3e3a6bbd201ed3cfe808b671f6851cafc"
+      ]
+     }
+    },
+    "releases": {
+     "0": "1896d0ad93c510ba4976abbe5ad6bb9db757bde0dc463599cfd5fd218a8ebafa",
+     "1": "f335ce0ea97f1cfdb34bb16f95833c7250ba8903779c34babcc2f9d84e9e47f6"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.1709383462843448e-16,
+     "max_abs_se_diff": 0.0,
+     "max_abs_se_mc_diff": 1.882446021977957e-17,
+     "max_abs_cost_diff": 1.0842021724855044e-19,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -0.28834695572902375,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -0.28834695572902375,
+     "reserve_with_mc_met": false,
+     "reserve_with_mc_min_ratio": -0.28834695572902375
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.5612511283791264e-16,
+     "max_abs_se_diff": 0.0,
+     "max_abs_se_mc_diff": 1.1844908734404136e-17,
+     "max_abs_cost_diff": 1.0842021724855044e-19,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -1.8994226074645815,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -1.8994226074645815,
+     "reserve_with_mc_met": false,
+     "reserve_with_mc_min_ratio": -1.8994226074645815
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T15:27:32+00:00",
+   "unit_id": "VER_UTILITY_FB1_V1"
+  },
+  {
+   "id": "V2.UTILITY.FB.FB_SEX_S3__FB1",
+   "what": "own recomputation of clauses, guards, SEs (and MC SEs), point status, reserve, absolute metrics, distinct vectors and paired costs of FB/FB_SEX_S3 vs EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S3/EVAL_MS.json": "e32eb75638e1f88d213684f08991ad711a06ceab95a6743f1fea288cff7dae5b",
+    "wire_sha256": {
+     "0": {
+      "income": [
+       "d50b70e88840474f9b90c9b52a8b7b6e8a84500272b5bf4ae9d67601e90fa730",
+       "8c5ba019aa24697d51f790dfa7722ff76ae9d7734e090b12ef185d516baadb33",
+       "b5d0ef143ff00ab63aac04c63cfcbc0f0ce37228a37fd62174f2b55756495cf0",
+       "c4013239b75a51fd3bf957d1d9a115b0df927581125a6f4e9f08fb18e578868d",
+       "03cdeb8848642f0326c227a3e3c9a46b3844d066cc6ec179056a33341bfcf1b5",
+       "d738e0edb095a4a911dc1aa4987dafc8d35679d57fb3f5c1a20e599b2a79c468",
+       "321f4c7e75dacf73875e71ea5aa0c9a66c6513c448fa0d3e7a5b0ff4b475da4c",
+       "ddaa495176c4d3af7b65a41841554d418f359f8ed6321e7af0bbb84e74abc3e6"
+      ],
+      "occupation": [
+       "705a94f80a3cc21ebbb18c445075f15d95a8362ae6c5b6891ce4cf8f65d4ffc1",
+       "45614fd1f4f9d875b4807a10b7b3c04da263a7e144fd0316e9acf93215123897",
+       "43f28bfc5deb866b70692c822ccda8e66a61919c139864a8f3363d32b558c42b",
+       "549ef50e14995497b0b52d3066302d02fbdcf6e40e2a84f1500d6321140da9df",
+       "755cfb672f35c9edd0811a3fea479969edc9d9841669f79fdfd8c9d50673d043",
+       "401e8cc19f4f44f12bb9bdfde0448656398e5452e977cff568ed360c5b6df86a",
+       "1676213f75a700e4de4ff0c6ed160192bc5e4b63d4647e098d1b7d21366f4a78",
+       "80aa4123c086d0942be18eb06018f9f03aa417a86f7a980bc8ac55adf0a227d6"
+      ]
+     },
+     "1": {
+      "income": [
+       "90051cb74c86af5b0a9e72c73ce64adb6c5ee7d622e967e999796a285c670ae5",
+       "42193365252a73ef3a7cad0bac7217fb83b57bb2c2c7c2b329324fe5333d8702",
+       "d2b07dbd2836deda2ea7fa34ce83bda627344a15d2341d96db2ee33c5920a528",
+       "21b9b73879009ad104e5472179ad8d842d7979203cd6ecf9bb184d7ae5562b2a",
+       "ccc5cdb3ff9d510ffa4c005bfdf39f0f6ab339c291890d3c1edaf4362889dc89",
+       "300a9287dae89b06427863ac0a8ea3959cd6da2ad56de7e7edf4742d63454ebf",
+       "4c16c08578e8335399ad3d50851c0ad030ea8f25992b78cbaf20afd094926eb3",
+       "f446483e0ac5dc664b28ca09b4d576954d40605d8fc762aa2c2b1b9d47317be1"
+      ],
+      "occupation": [
+       "47f60d12733fe4ac0ecd33d39430039fe70028496f4fa6aae22a7ff7d02b5a6b",
+       "3c0df4b7c8c2acc6a48220791a81c059fef2c473d62bc4d7a5fdd17fa1d55b93",
+       "09eea5701647ece3046df6ac6fce84adea6c3f2bb7daf6e0eb34156856055da0",
+       "151e038a836936f0876310033d189bb2543b35bdd06bc164db1e18765b64990c",
+       "49a0915402b5d1361fe1b688622cb3c59b99cb6ea3c8fad657696e50eaca0961",
+       "f307e58796e71bf224c6c6e4506722453acec612df4cc00b49e08a6afad9de04",
+       "a5968fc3f6dc9443197cbc1ff067c8b314674b6de5604da9adb318c02df6bba8",
+       "05326225e683ad038fa413829f917ba35a4ae4745d098e91bf2b4db92a9ca201"
+      ]
+     }
+    },
+    "releases": {
+     "0": "f6c7522b053a07de70138e381aca0cf5636d5fba60f57b93e632824d167c28b1",
+     "1": "d35342df8367060c45572acc6d6c9222c7cd72cd093d148ce896681da448106f"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.4311468676808659e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_se_mc_diff": 6.451002926288751e-18,
+     "max_abs_cost_diff": 2.168404344971009e-19,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0",
+      "income|U0|brier_excess",
+      "income|Ucal|brier_excess"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -0.6553172068551467,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -0.6553172068551467,
+     "reserve_with_mc_met": false,
+     "reserve_with_mc_min_ratio": -0.6553172068551467
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.2836953722228372e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_se_mc_diff": 1.5517643593698782e-17,
+     "max_abs_cost_diff": 2.168404344971009e-19,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0",
+      "occupation|U0|nll_excess",
+      "occupation|Ucal|nll_excess"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -2.5051628839980546,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -2.5051628839980546,
+     "reserve_with_mc_met": false,
+     "reserve_with_mc_min_ratio": -2.5051628839980546
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T15:27:32+00:00",
+   "unit_id": "VER_UTILITY_FB1_V1"
+  },
+  {
+   "id": "V2.UTILITY.FB.FB_MINF_S2__FB1",
+   "what": "own recomputation of clauses, guards, SEs (and MC SEs), point status, reserve, absolute metrics, distinct vectors and paired costs of FB/FB_MINF_S2 vs EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S2/EVAL_MS.json": "5faf5986554b4bab34ea09ffd7e9ddf43a3b45c7d31f2140aae84656ecda48e1",
+    "wire_sha256": {
+     "0": {
+      "income": [
+       "c0f4310f463a721991b2ce4de932df96ebe6b6b686453a860a60f30f6e89fcd8",
+       "e5bdcc19b6e6b213c3aab4a0f544db5b1c3609f1dd2d3ba138fa279220c7bb54",
+       "45ca58636a0a4fec1fb23eaa3004b01b482b2ce63ace20b296e7d06ae842315d",
+       "3c176c8f5ce7c67fdf35d27bd6f477ad33d6bd5e54e12d0a2b71b51709bdbe46",
+       "742e44484a1a5a24c561af42f54d1424dce9136de2cf8515796b061921dda668",
+       "f4198d51a9450dcc560f70f95f40df44961db1f2da34c1ef2a75d1493304ae9b",
+       "c946ab329d71b13b2a8a7734ec218db20ac738f6f799b59c616094d87e4b5802",
+       "24d33f0874e3ea9063582c74ae62d8b8d0ab408d471a88b214b3156381e04c94"
+      ],
+      "occupation": [
+       "2601f11329c048fe0b36b636deb3effe6217b9a6c3dac77751bd585c62ee4f40",
+       "7d5c79a46f8b0ddb91079b86082c7446e181f7a35a0a9524fdcb49a9e5891e42",
+       "238a31907788883f276204bd78af4b4eff4b34197592278149f828fcb63425e8",
+       "16a65c3c7b7d7579faad411132980ae66060337ef70f4a9eb303b9ed0d3ccc1e",
+       "35f1414877baa1b54ec78a2f3ae1be91c2528631347c5ba5b58ea00d4e59d056",
+       "976709263801e0ad4f130ad5e763f386ccee407e1f96cc8b2e73df6587ef57fd",
+       "43327975328881c9612454aaf179b44ca40b54515d12b7d9881f15fad437eb20",
+       "4bdd7e8376682a88a0b2ddf2c8f82adfa902fde3f41fc7478e13dcfdd6854c0d"
+      ]
+     },
+     "1": {
+      "income": [
+       "71f3e3355fd7f894d15d1b4bab6b7b997bc29ca4e501def1014c55335ded9ae2",
+       "7156caaa6f560225ab2d7547d91efabbb63cd75762b68af582129b4ccece1076",
+       "a8b2c5582627aa4ff94b5c9828d526bdc2a70f4fdb3fdd21c63a93b669bf6417",
+       "0bfb9e2b16b6d91efc6ab55a57221eb60ca39c82afd4bf28dc9bf6efb75c67c6",
+       "7173510b1055a3196b765bdf9215e040e4cf61d73521dec0b8bc1504f47921a6",
+       "451dc750d61778fb411c8292eac185bd999170acd3a3889b9346e2db85935b0f",
+       "16068ae0ae2f54014f22e124e1741cc59559670cf6f4f78e4ee9055e3840ed9d",
+       "6be7d0d7d9ed778e13a7c90b9ceeab1672e52d57a626448c4bd50778c50163fd"
+      ],
+      "occupation": [
+       "1b559efad35cf1f2d771af66e9566f45071d6c83c2bd6be4abd2fa12168d921a",
+       "2862a1cebac77f3d0a0199d260d8785c6b32c01f67c5e4e4f924886ae3a43ca4",
+       "60240377c51e97fc3921e3530de900955fd0430cdfa71258215e34372de3a0ce",
+       "a8737e06b24b0736106bf6bab82e3fe01568fefe4533fe14e8ef0ab8e0317fc9",
+       "4f243da34d6597dbe9ab572216f0a01bcb70ac4caec46e34f0d9e013cd46a5ef",
+       "fdcf270c4002df280591de9c30eadaa766b994ee6e4780f64a4eedaddd2897b1",
+       "2569475e4918abb2df893fe0ccf45645fa3eb072aa00d0e1cf5f5634d0151346",
+       "20cd52faf16624054d99603c9e8b491aa7aa9c77163037d8d7f7d0f3cedd46ad"
+      ]
+     }
+    },
+    "releases": {
+     "0": "48dc333a8dc217421ab8861539f1678ac141dfa625fa4246d5b6a9c07fa76922",
+     "1": "5f77b6f142a80e971f27b1d07804c6ebf18434cbaef00c39f7ee5c4debebffd4"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.43982048506075e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_se_mc_diff": 3.2526065174565133e-18,
+     "max_abs_cost_diff": 1.0842021724855044e-19,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -0.13128902975446075,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -0.13128902975446075,
+     "reserve_with_mc_met": false,
+     "reserve_with_mc_min_ratio": -0.13128902975446075
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.474514954580286e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_se_mc_diff": 1.745565497701662e-17,
+     "max_abs_cost_diff": 4.336808689942018e-19,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0",
+      "occupation|U0|nll_excess",
+      "occupation|Ucal|nll_excess"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -2.0706093169229933,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -2.0706093169229933,
+     "reserve_with_mc_met": false,
+     "reserve_with_mc_min_ratio": -2.0706093169229933
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T15:27:32+00:00",
+   "unit_id": "VER_UTILITY_FB1_V1"
+  },
+  {
+   "id": "V2.UTILITY.FB.FB_MINF_S3__FB1",
+   "what": "own recomputation of clauses, guards, SEs (and MC SEs), point status, reserve, absolute metrics, distinct vectors and paired costs of FB/FB_MINF_S3 vs EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S3/EVAL_MS.json": "264f0ea358c719340d082a591aa8ca76febe6cea62150af484a3cc6919a486c8",
+    "wire_sha256": {
+     "0": {
+      "income": [
+       "4814a0133811798a0a6f9dda6ce5f7b464ef2e0f09be3306202ff73d81ba5be9",
+       "ff64d0c6adb83116846a83fceba7c9f7cb7c2f7c93ff4d328121968c5c87c125",
+       "a54f075ec30600f380629bd6f78127342e8f62143a91f875ef9622ea10a7121a",
+       "c7ffcecbeaf850247a2fc9a5df843c4c2478bdbdf462131248b1bac6dbf29214",
+       "e2aa60d72fd0cc096a9b1741a524ad8a8a640a509a3552360e04176a1184adcc",
+       "21f6dc7d21478afbca76cc96fcdd56093140c2f223103b6fe0536349e260dbfc",
+       "07c5ba4bf635760f889bbc05b0633073d8ba97ae7335137dbdcb3bb969945a8e",
+       "3cf4d18ea10c2364fab1f0a4e92f9dfb02476bd5f08706e80fc0703a7c330abc"
+      ],
+      "occupation": [
+       "c35fa31e745ad0db3c0304b4c3e7ff334fe25bd4456f04454993d8ad26561575",
+       "74c52987116418ebe017dbd49afa788c8743f055d4ba850641bb99e167e69db2",
+       "b45a63786ba0a2e16ee9015d10394b88119ea11b4e93a20a013fca050c270a12",
+       "385e684b541b41787b42c27b2afc7d56cc5bb7e974a3e9b329e1112e832cae0c",
+       "7232ae715299840232f94d787c3e08fcfdb0183eaaeea990f8c2fd6a5444e42b",
+       "da598afa076695beab5e1a7999cdbc96926cc48f306f9e1fa2e2a42f88cd0cdc",
+       "817d40ffc55d7ccfedda706c85e6521db2f45ced1576f12b3ffc283ddac1f125",
+       "afd9b4c9aeb637f517f5f466fabb9784b70f06f97a2edb33666076d01ed56566"
+      ]
+     },
+     "1": {
+      "income": [
+       "496d0c0a3ec245fceede510e54430bc47cd30a4fbc8e240decaddf40b963e3c0",
+       "1d81779fbf35e136cb28bd3d8190361262885a5076c771c46896b447b68dab5c",
+       "4c0ce473049001978232765bd22343237a1fb99646c07eb1a21fd129c978d8ad",
+       "bbed0e2987c1e4dbda5a2731bb5dd6c788dc7cd3086abd9bf311db0928a30dcb",
+       "be39cd34108ca661b7b76ef512dbdf74812e0ec8daa3ff9ccd61a14d92de20fe",
+       "3f665ddb3d60552f10fdee48edcccb5a730c22586e7c583662ec6adf7045468e",
+       "1ce4290eb7b912ccad4fa08041b3ced9364471e193b10ce9028f703394161cde",
+       "ac78e279607727e29b058dc3c0d3ed345d56a919eddb98ffce8e1a15673da3e2"
+      ],
+      "occupation": [
+       "84ca749ee275eb45fd06b5d165d2d8d03a230941c38a36709b9cdae368313e3b",
+       "62ed8f49b8afa9d6d322e52efe9b32f7249472b53aaae63ac7a1838887e77491",
+       "c4ccdea4629d5afbade52c3fbbdaa354cf46c1d508c156200c047d0090f791af",
+       "5173cd13aa3b390e78f35b22af48a0f946731a1ff4f27de64a40abbd68ce142e",
+       "313d4fc795a7e79e36630ef3e6bab565b37b3371d26d8be3132fec63bd01e18e",
+       "bd576f4bb69ae738949434b45c9a663b7d3ad16355474ad95e10cdf654452ced",
+       "6f1c8ef963a732e0297d8859cd529d23803a30d48359109904e43427b9c4e0ca",
+       "f1734aeb24d5f858d058d980326f1c2ee245d3dea37eaa88a06106b57044887f"
+      ]
+     }
+    },
+    "releases": {
+     "0": "f35cd89b8996e75696c41dbabf0520d9eb08a066472738dc00c00faa021b36d2",
+     "1": "d2f5e2b44f2fecb71533156386aebd2f4be618ccffb7409f389c3453fbb077ac"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.4094628242311558e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_se_mc_diff": 9.64939933512099e-18,
+     "max_abs_cost_diff": 2.710505431213761e-20,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -0.5450678104160648,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -0.5450678104160648,
+     "reserve_with_mc_met": false,
+     "reserve_with_mc_min_ratio": -0.5450678104160648
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 9.020562075079397e-17,
+     "max_abs_se_diff": 0.0,
+     "max_abs_se_mc_diff": 1.1275702593849246e-17,
+     "max_abs_cost_diff": 1.0842021724855044e-19,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0",
+      "occupation|U0|nll_excess",
+      "occupation|Ucal|nll_excess"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -2.2721116032414352,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -2.2721116032414352,
+     "reserve_with_mc_met": false,
+     "reserve_with_mc_min_ratio": -2.2721116032414352
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T15:27:32+00:00",
+   "unit_id": "VER_UTILITY_FB1_V1"
+  },
+  {
+   "id": "V2.UTILITY.FB.FB_ISO_S2__FB1",
+   "what": "own recomputation of clauses, guards, SEs (and MC SEs), point status, reserve, absolute metrics, distinct vectors and paired costs of FB/FB_ISO_S2 vs EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_ISO_S2/EVAL_MS.json": "20b6b332df3502cde66977c45979922a0fdbc165fa74358405ebd4732ff63e0f",
+    "wire_sha256": {
+     "0": {
+      "income": [
+       "1230e4d249a8b2038a884d018543c4304ac05d50be58b45d505e4919b239c622",
+       "344b45dc00f84d0fa14849a505c3f7291f751a4fb0ad64220c489ce998c8afb4",
+       "2789568a42534801c233b36c1b06bd66f73d4c6e9c83c3dfda08390b4830bd30",
+       "3d3eaac8613a07a7ef8c7982f84e145e9212d8f2357850abed1d27242df05ad7",
+       "51bd50ab8cc59a621df13576eb0b51c988ec265628b1f7c991ade0da1b2353cd",
+       "c124874cf69e5f335bd4ae69026a130bd95bcb5810a49b527b58cf2290e87a3a",
+       "a0de9f0440d6b6d8994df59639073d74066bd77a97eeae9144268067bab53a96",
+       "afe43fcd0d278c7f420dd9d86e32d400f9c6dc0fdbea4c11585e187659b3ef94"
+      ],
+      "occupation": [
+       "47e75aa7beb185e0259ecd1cb6d704f2ff864f1561aae6494dbc8e40b69900ac",
+       "0f7c40b42c917aea713c37da6ef5cea5123869e4821605a40e8abca1f98fc9ef",
+       "2df9e6c75a5e78d0018e098837e1b434e01eb3006fc3f43297114385e27d96c3",
+       "898859b2a5c632d33a46cdd155612eaafbd7f1c1b516a7335b6c5279a9b831ea",
+       "91270d25729ea3c0cd21b881d6d3dad6ac256137cebeb2e6be7bd3bcb1ba3ead",
+       "4bc83856a9c08b9e9b3887377e30ad380223727f0146affbf24034464d1cf74d",
+       "45256347345111dca0780d79e939d22f0d6c2582f21f0a77e9bb0b9f66c04649",
+       "bcd849cc245bc787ef64eab55ac4dd62cb5d8cf0712c4878307441784b201634"
+      ]
+     },
+     "1": {
+      "income": [
+       "39f0e6422f1671df17a9f86e45a43db87533c896841537ed0d2e3fbbf0f78aaa",
+       "3fbf1d8a5a9301c8c6cf2df032fea74fc59d044112b1b692103207f27c582b38",
+       "12cbd06ac4972026db5c69f26dc39511c164699e21a3bc20da0312e2e47fca70",
+       "e92cfb1acdae68468a95305b8b170cf494bcf38b45bc518d91f37ce149a45629",
+       "cb9816a95f690d74ba9b02bc825045307716f14a70fc59ef2deda52300cb84c1",
+       "0968517a02badb2d1b001587e19ff86b36de8ac93f82d0f1561668719ba197bc",
+       "c894bd25ac69cddb097717375be912f3e3ecd156fb34aab20a1240180845d5cc",
+       "0dadabc30377dc092c98343c0019a69c106c5841a3ed28b26fabbb42ee11a9f7"
+      ],
+      "occupation": [
+       "0e688b8d04f4b220ce38b1b87d2fc212d674aa1e6059c0195aea810cf70197b2",
+       "9931354a7b6a4a57490cba9a4edb2c090a3787ee7f38e666017e2cd6169d88b7",
+       "fff22d74285e4d3c924860eee9d5a3d0ff181dc4e3e0eade1ef24bf7729d8207",
+       "886632cf2d7eb078a002383605a50b8a47c84e10748aff334a6072d5753b3b29",
+       "86d374810f8210ffe28015c9f28c15c6a6f37f5fdff408b355b3b8457af5cff7",
+       "ded5acaddf5fa2b790dc73b59a3be277a6398a9397c85fec13efcdd61f3d7958",
+       "67568f95eb0590e2a3d1528e765cf3619cb256fd93ac9103d95e81174bc30e32",
+       "7a73ed701aa2a41cd986526217f92472739195fd35a222a43dd9e7a5bf5d574a"
+      ]
+     }
+    },
+    "releases": {
+     "0": "f1bf3d5993f8c862a48c98e42b40dcab04490ea6d1d13948107c1f337dda36ba",
+     "1": "238edede8f99423907cc450b7b035f0018d9b06e51aedd848cf853c490bbc2f6"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [
+      {
+       "what": "income|Ucal|brier_excess point status",
+       "recorded": false,
+       "mine": true
+      }
+     ],
+     "max_abs_value_diff": 1.3769367590565906e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_se_mc_diff": 2.0599841277224584e-17,
+     "max_abs_cost_diff": 2.710505431213761e-20,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -0.2623493193515664,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -0.2623493193515664,
+     "reserve_with_mc_met": false,
+     "reserve_with_mc_min_ratio": -0.2623493193515664
+    },
+    "1": {
+     "mismatches": [
+      {
+       "what": "occupation|U0|nll_excess point status",
+       "recorded": false,
+       "mine": true
+      },
+      {
+       "what": "occupation|Ucal|nll_excess point status",
+       "recorded": false,
+       "mine": true
+      }
+     ],
+     "max_abs_value_diff": 1.1102230246251565e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_se_mc_diff": 6.749158523722265e-18,
+     "max_abs_cost_diff": 5.421010862427522e-20,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -2.4328593028020493,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -2.4328593028020493,
+     "reserve_with_mc_met": false,
+     "reserve_with_mc_min_ratio": -2.4328593028020493
+    }
+   },
+   "numerical_status": "FAIL",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T15:27:32+00:00",
+   "unit_id": "VER_UTILITY_FB1_V1"
+  },
+  {
+   "id": "V2B.EVAL_DERIVED_FIELDS__V1",
+   "what": "derived per-clause / guard fields of the evaluation records (point_pass, margin, normalized, margin_se_units, point_pass_12, guard_pass) against their own draw-averaged values; deterministic releases must be consistent",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_ISO_S2/EVAL_MS.json": "20b6b332df3502cde66977c45979922a0fdbc165fa74358405ebd4732ff63e0f",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S2/EVAL_MS.json": "5faf5986554b4bab34ea09ffd7e9ddf43a3b45c7d31f2140aae84656ecda48e1",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_MINF_S3/EVAL_MS.json": "264f0ea358c719340d082a591aa8ca76febe6cea62150af484a3cc6919a486c8",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_POSTHOC_S2/EVAL_MS.json": "041572b31eedbd7583f5037842d50bd13f14bc6f9d63eda23839c3e84abe3595",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2/EVAL_MS.json": "86144cd5e7540562c059ee834d15c2199bdea8e1658e4eb4b39fada515206de7",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_ID/EVAL_MS.json": "7df316ab078dba718079276c38fdf329276627ea505a75947f6d58a507d11584",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_MEAN/EVAL_MS.json": "370dbf40a352e2ef1ddb0881ad86741d85c8b748d99907ace72ad6f5aedfa6d6",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S3/EVAL_MS.json": "e32eb75638e1f88d213684f08991ad711a06ceab95a6743f1fea288cff7dae5b",
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_TWIN/EVAL_MS.json": "e2415b9b44cb0435e81f1834e973058e4b46e4bc5aad55f84135427f2be3e3d0"
+   },
+   "result": {
+    "n_files": 9,
+    "randomized_versions": 12,
+    "randomized_versions_with_stale_fields": 12,
+    "per_clause_point_pass_flips": [
+     "FB/FB_ISO_S2/V0:income|Ucal|brier_excess",
+     "FB/FB_ISO_S2/V1:occupation|U0|nll_excess",
+     "FB/FB_ISO_S2/V1:occupation|Ucal|nll_excess",
+     "FB/FB_POSTHOC_S2/V0:income|Ucal|brier_excess"
+    ],
+    "deterministic_inconsistent": {},
+    "detail": {
+     "FB/FB_ISO_S2/EVAL_MS.json/V0": {
+      "draws": 8,
+      "stale_fields": [
+       "income|U0|accuracy_loss:margin",
+       "income|U0|accuracy_loss:normalized",
+       "income|U0|accuracy_loss:margin_se_units",
+       "income|U0|nll_excess:margin",
+       "income|U0|nll_excess:normalized",
+       "income|U0|nll_excess:margin_se_units",
+       "income|U0|brier_excess:margin",
+       "income|U0|brier_excess:normalized",
+       "income|U0|brier_excess:margin_se_units",
+       "income|Ucal|accuracy_loss:margin",
+       "income|Ucal|accuracy_loss:normalized",
+       "income|Ucal|accuracy_loss:margin_se_units",
+       "income|Ucal|nll_excess:margin",
+       "income|Ucal|nll_excess:normalized",
+       "income|Ucal|nll_excess:margin_se_units",
+       "income|Ucal|brier_excess:point_pass",
+       "income|Ucal|brier_excess:margin",
+       "income|Ucal|brier_excess:normalized",
+       "income|Ucal|brier_excess:margin_se_units",
+       "occupation|U0|accuracy_loss:margin",
+       "occupation|U0|accuracy_loss:normalized",
+       "occupation|U0|accuracy_loss:margin_se_units",
+       "occupation|U0|nll_excess:margin",
+       "occupation|U0|nll_excess:normalized",
+       "occupation|U0|nll_excess:margin_se_units",
+       "occupation|U0|brier_excess:margin",
+       "occupation|U0|brier_excess:normalized",
+       "occupation|U0|brier_excess:margin_se_units",
+       "occupation|Ucal|accuracy_loss:margin",
+       "occupation|Ucal|accuracy_loss:normalized",
+       "occupation|Ucal|accuracy_loss:margin_se_units",
+       "occupation|Ucal|nll_excess:margin",
+       "occupation|Ucal|nll_excess:normalized",
+       "occupation|Ucal|nll_excess:margin_se_units",
+       "occupation|Ucal|brier_excess:margin",
+       "occupation|Ucal|brier_excess:normalized",
+       "occupation|Ucal|brier_excess:margin_se_units",
+       "guard|sex0:margin",
+       "guard|sex0:margin_se_units",
+       "guard|sex1:margin",
+       "guard|sex1:margin_se_units",
+       "utility:point_pass_12"
+      ],
+      "n_stale": 42
+     },
+     "FB/FB_ISO_S2/EVAL_MS.json/V1": {
+      "draws": 8,
+      "stale_fields": [
+       "income|U0|accuracy_loss:margin",
+       "income|U0|accuracy_loss:normalized",
+       "income|U0|accuracy_loss:margin_se_units",
+       "income|U0|nll_excess:margin",
+       "income|U0|nll_excess:normalized",
+       "income|U0|nll_excess:margin_se_units",
+       "income|U0|brier_excess:margin",
+       "income|U0|brier_excess:normalized",
+       "income|U0|brier_excess:margin_se_units",
+       "income|Ucal|accuracy_loss:margin",
+       "income|Ucal|accuracy_loss:normalized",
+       "income|Ucal|accuracy_loss:margin_se_units",
+       "income|Ucal|nll_excess:margin",
+       "income|Ucal|nll_excess:normalized",
+       "income|Ucal|nll_excess:margin_se_units",
+       "income|Ucal|brier_excess:margin",
+       "income|Ucal|brier_excess:normalized",
+       "income|Ucal|brier_excess:margin_se_units",
+       "occupation|U0|accuracy_loss:margin",
+       "occupation|U0|accuracy_loss:normalized",
+       "occupation|U0|accuracy_loss:margin_se_units",
+       "occupation|U0|nll_excess:point_pass",
+       "occupation|U0|nll_excess:margin",
+       "occupation|U0|nll_excess:normalized",
+       "occupation|U0|nll_excess:margin_se_units",
+       "occupation|U0|brier_excess:margin",
+       "occupation|U0|brier_excess:normalized",
+       "occupation|U0|brier_excess:margin_se_units",
+       "occupation|Ucal|accuracy_loss:margin",
+       "occupation|Ucal|accuracy_loss:normalized",
+       "occupation|Ucal|accuracy_loss:margin_se_units",
+       "occupation|Ucal|nll_excess:point_pass",
+       "occupation|Ucal|nll_excess:margin",
+       "occupation|Ucal|nll_excess:normalized",
+       "occupation|Ucal|nll_excess:margin_se_units",
+       "occupation|Ucal|brier_excess:margin",
+       "occupation|Ucal|brier_excess:normalized",
+       "occupation|Ucal|brier_excess:margin_se_units",
+       "guard|sex0:margin",
+       "guard|sex0:margin_se_units",
+       "guard|sex1:margin",
+       "guard|sex1:margin_se_units",
+       "utility:point_pass_12"
+      ],
+      "n_stale": 43
+     },
+     "FB/FB_MINF_S2/EVAL_MS.json/V0": {
+      "draws": 8,
+      "stale_fields": [
+       "income|U0|nll_excess:margin",
+       "income|U0|nll_excess:normalized",
+       "income|U0|nll_excess:margin_se_units",
+       "income|U0|brier_excess:margin",
+       "income|U0|brier_excess:normalized",
+       "income|U0|brier_excess:margin_se_units",
+       "income|Ucal|nll_excess:margin",
+       "income|Ucal|nll_excess:normalized",
+       "income|Ucal|nll_excess:margin_se_units",
+       "income|Ucal|brier_excess:margin",
+       "income|Ucal|brier_excess:normalized",
+       "income|Ucal|brier_excess:margin_se_units",
+       "occupation|U0|accuracy_loss:margin",
+       "occupation|U0|accuracy_loss:normalized",
+       "occupation|U0|accuracy_loss:margin_se_units",
+       "occupation|U0|nll_excess:margin",
+       "occupation|U0|nll_excess:normalized",
+       "occupation|U0|nll_excess:margin_se_units",
+       "occupation|U0|brier_excess:margin",
+       "occupation|U0|brier_excess:normalized",
+       "occupation|U0|brier_excess:margin_se_units",
+       "occupation|Ucal|accuracy_loss:margin",
+       "occupation|Ucal|accuracy_loss:normalized",
+       "occupation|Ucal|accuracy_loss:margin_se_units",
+       "occupation|Ucal|nll_excess:margin",
+       "occupation|Ucal|nll_excess:normalized",
+       "occupation|Ucal|nll_excess:margin_se_units",
+       "occupation|Ucal|brier_excess:margin",
+       "occupation|Ucal|brier_excess:normalized",
+       "occupation|Ucal|brier_excess:margin_se_units",
+       "guard|sex0:margin",
+       "guard|sex0:margin_se_units",
+       "guard|sex1:margin",
+       "guard|sex1:margin_se_units"
+      ],
+      "n_stale": 34
+     },
+     "FB/FB_MINF_S2/EVAL_MS.json/V1": {
+      "draws": 8,
+      "stale_fields": [
+       "income|U0|nll_excess:margin",
+       "income|U0|nll_excess:normalized",
+       "income|U0|nll_excess:margin_se_units",
+       "income|U0|brier_excess:margin",
+       "income|U0|brier_excess:normalized",
+       "income|U0|brier_excess:margin_se_units",
+       "income|Ucal|nll_excess:margin",
+       "income|Ucal|nll_excess:normalized",
+       "income|Ucal|nll_excess:margin_se_units",
+       "income|Ucal|brier_excess:margin",
+       "income|Ucal|brier_excess:normalized",
+       "income|Ucal|brier_excess:margin_se_units",
+       "occupation|U0|accuracy_loss:margin",
+       "occupation|U0|accuracy_loss:normalized",
+       "occupation|U0|accuracy_loss:margin_se_units",
+       "occupation|U0|nll_excess:margin",
+       "occupation|U0|nll_excess:normalized",
+       "occupation|U0|nll_excess:margin_se_units",
+       "occupation|U0|brier_excess:margin",
+       "occupation|U0|brier_excess:normalized",
+       "occupation|U0|brier_excess:margin_se_units",
+       "occupation|Ucal|accuracy_loss:margin",
+       "occupation|Ucal|accuracy_loss:normalized",
+       "occupation|Ucal|accuracy_loss:margin_se_units",
+       "occupation|Ucal|nll_excess:margin",
+       "occupation|Ucal|nll_excess:normalized",
+       "occupation|Ucal|nll_excess:margin_se_units",
+       "occupation|Ucal|brier_excess:margin",
+       "occupation|Ucal|brier_excess:normalized",
+       "occupation|Ucal|brier_excess:margin_se_units",
+       "guard|sex0:margin",
+       "guard|sex0:margin_se_units",
+       "guard|sex1:margin",
+       "guard|sex1:margin_se_units"
+      ],
+      "n_stale": 34
+     },
+     "FB/FB_MINF_S3/EVAL_MS.json/V0": {
+      "draws": 8,
+      "stale_fields": [
+       "income|U0|nll_excess:margin",
+       "income|U0|nll_excess:normalized",
+       "income|U0|nll_excess:margin_se_units",
+       "income|U0|brier_excess:margin",
+       "income|U0|brier_excess:normalized",
+       "income|U0|brier_excess:margin_se_units",
+       "income|Ucal|nll_excess:margin",
+       "income|Ucal|nll_excess:normalized",
+       "income|Ucal|nll_excess:margin_se_units",
+       "income|Ucal|brier_excess:margin",
+       "income|Ucal|brier_excess:normalized",
+       "income|Ucal|brier_excess:margin_se_units",
+       "occupation|U0|accuracy_loss:margin",
+       "occupation|U0|accuracy_loss:normalized",
+       "occupation|U0|accuracy_loss:margin_se_units",
+       "occupation|U0|nll_excess:margin",
+       "occupation|U0|nll_excess:normalized",
+       "occupation|U0|nll_excess:margin_se_units",
+       "occupation|U0|brier_excess:margin",
+       "occupation|U0|brier_excess:normalized",
+       "occupation|U0|brier_excess:margin_se_units",
+       "occupation|Ucal|accuracy_loss:margin",
+       "occupation|Ucal|accuracy_loss:normalized",
+       "occupation|Ucal|accuracy_loss:margin_se_units",
+       "occupation|Ucal|nll_excess:margin",
+       "occupation|Ucal|nll_excess:normalized",
+       "occupation|Ucal|nll_excess:margin_se_units",
+       "occupation|Ucal|brier_excess:margin",
+       "occupation|Ucal|brier_excess:normalized",
+       "occupation|Ucal|brier_excess:margin_se_units",
+       "guard|sex0:margin",
+       "guard|sex0:margin_se_units",
+       "guard|sex1:margin",
+       "guard|sex1:margin_se_units"
+      ],
+      "n_stale": 34
+     },
+     "FB/FB_MINF_S3/EVAL_MS.json/V1": {
+      "draws": 8,
+      "stale_fields": [
+       "income|U0|nll_excess:margin",
+       "income|U0|nll_excess:normalized",
+       "income|U0|nll_excess:margin_se_units",
+       "income|U0|brier_excess:margin",
+       "income|U0|brier_excess:normalized",
+       "income|U0|brier_excess:margin_se_units",
+       "income|Ucal|nll_excess:margin",
+       "income|Ucal|nll_excess:normalized",
+       "income|Ucal|nll_excess:margin_se_units",
+       "income|Ucal|brier_excess:margin",
+       "income|Ucal|brier_excess:normalized",
+       "income|Ucal|brier_excess:margin_se_units",
+       "occupation|U0|accuracy_loss:margin",
+       "occupation|U0|accuracy_loss:normalized",
+       "occupation|U0|accuracy_loss:margin_se_units",
+       "occupation|U0|nll_excess:margin",
+       "occupation|U0|nll_excess:normalized",
+       "occupation|U0|nll_excess:margin_se_units",
+       "occupation|U0|brier_excess:margin",
+       "occupation|U0|brier_excess:normalized",
+       "occupation|U0|brier_excess:margin_se_units",
+       "occupation|Ucal|accuracy_loss:margin",
+       "occupation|Ucal|accuracy_loss:normalized",
+       "occupation|Ucal|accuracy_loss:margin_se_units",
+       "occupation|Ucal|nll_excess:margin",
+       "occupation|Ucal|nll_excess:normalized",
+       "occupation|Ucal|nll_excess:margin_se_units",
+       "occupation|Ucal|brier_excess:margin",
+       "occupation|Ucal|brier_excess:normalized",
+       "occupation|Ucal|brier_excess:margin_se_units",
+       "guard|sex0:margin",
+       "guard|sex0:margin_se_units",
+       "guard|sex1:margin",
+       "guard|sex1:margin_se_units"
+      ],
+      "n_stale": 34
+     },
+     "FB/FB_POSTHOC_S2/EVAL_MS.json/V0": {
+      "draws": 8,
+      "stale_fields": [
+       "income|U0|accuracy_loss:margin",
+       "income|U0|accuracy_loss:normalized",
+       "income|U0|accuracy_loss:margin_se_units",
+       "income|U0|nll_excess:margin",
+       "income|U0|nll_excess:normalized",
+       "income|U0|nll_excess:margin_se_units",
+       "income|U0|brier_excess:margin",
+       "income|U0|brier_excess:normalized",
+       "income|U0|brier_excess:margin_se_units",
+       "income|Ucal|accuracy_loss:margin",
+       "income|Ucal|accuracy_loss:normalized",
+       "income|Ucal|accuracy_loss:margin_se_units",
+       "income|Ucal|nll_excess:margin",
+       "income|Ucal|nll_excess:normalized",
+       "income|Ucal|nll_excess:margin_se_units",
+       "income|Ucal|brier_excess:point_pass",
+       "income|Ucal|brier_excess:margin",
+       "income|Ucal|brier_excess:normalized",
+       "income|Ucal|brier_excess:margin_se_units",
+       "occupation|U0|accuracy_loss:margin",
+       "occupation|U0|accuracy_loss:normalized",
+       "occupation|U0|accuracy_loss:margin_se_units",
+       "occupation|U0|nll_excess:margin",
+       "occupation|U0|nll_excess:normalized",
+       "occupation|U0|nll_excess:margin_se_units",
+       "occupation|U0|brier_excess:margin",
+       "occupation|U0|brier_excess:normalized",
+       "occupation|U0|brier_excess:margin_se_units",
+       "occupation|Ucal|accuracy_loss:margin",
+       "occupation|Ucal|accuracy_loss:normalized",
+       "occupation|Ucal|accuracy_loss:margin_se_units",
+       "occupation|Ucal|nll_excess:margin",
+       "occupation|Ucal|nll_excess:normalized",
+       "occupation|Ucal|nll_excess:margin_se_units",
+       "occupation|Ucal|brier_excess:margin",
+       "occupation|Ucal|brier_excess:normalized",
+       "occupation|Ucal|brier_excess:margin_se_units",
+       "guard|sex0:margin",
+       "guard|sex0:margin_se_units",
+       "guard|sex1:margin",
+       "guard|sex1:margin_se_units",
+       "utility:point_pass_12"
+      ],
+      "n_stale": 42
+     },
+     "FB/FB_POSTHOC_S2/EVAL_MS.json/V1": {
+      "draws": 8,
+      "stale_fields": [
+       "income|U0|accuracy_loss:margin",
+       "income|U0|accuracy_loss:normalized",
+       "income|U0|accuracy_loss:margin_se_units",
+       "income|U0|nll_excess:margin",
+       "income|U0|nll_excess:normalized",
+       "income|U0|nll_excess:margin_se_units",
+       "income|U0|brier_excess:margin",
+       "income|U0|brier_excess:normalized",
+       "income|U0|brier_excess:margin_se_units",
+       "income|Ucal|accuracy_loss:margin",
+       "income|Ucal|accuracy_loss:normalized",
+       "income|Ucal|accuracy_loss:margin_se_units",
+       "income|Ucal|nll_excess:margin",
+       "income|Ucal|nll_excess:normalized",
+       "income|Ucal|nll_excess:margin_se_units",
+       "income|Ucal|brier_excess:margin",
+       "income|Ucal|brier_excess:normalized",
+       "income|Ucal|brier_excess:margin_se_units",
+       "occupation|U0|accuracy_loss:margin",
+       "occupation|U0|accuracy_loss:normalized",
+       "occupation|U0|accuracy_loss:margin_se_units",
+       "occupation|U0|nll_excess:margin",
+       "occupation|U0|nll_excess:normalized",
+       "occupation|U0|nll_excess:margin_se_units",
+       "occupation|U0|brier_excess:margin",
+       "occupation|U0|brier_excess:normalized",
+       "occupation|U0|brier_excess:margin_se_units",
+       "occupation|Ucal|accuracy_loss:margin",
+       "occupation|Ucal|accuracy_loss:normalized",
+       "occupation|Ucal|accuracy_loss:margin_se_units",
+       "occupation|Ucal|nll_excess:margin",
+       "occupation|Ucal|nll_excess:normalized",
+       "occupation|Ucal|nll_excess:margin_se_units",
+       "occupation|Ucal|brier_excess:margin",
+       "occupation|Ucal|brier_excess:normalized",
+       "occupation|Ucal|brier_excess:margin_se_units",
+       "guard|sex0:margin",
+       "guard|sex0:margin_se_units",
+       "guard|sex1:margin",
+       "guard|sex1:margin_se_units"
+      ],
+      "n_stale": 40
+     },
+     "FB/FB_SEX_S2/EVAL_MS.json/V0": {
+      "draws": 8,
+      "stale_fields": [
+       "income|U0|accuracy_loss:margin",
+       "income|U0|accuracy_loss:normalized",
+       "income|U0|accuracy_loss:margin_se_units",
+       "income|U0|nll_excess:margin",
+       "income|U0|nll_excess:normalized",
+       "income|U0|nll_excess:margin_se_units",
+       "income|U0|brier_excess:margin",
+       "income|U0|brier_excess:normalized",
+       "income|U0|brier_excess:margin_se_units",
+       "income|Ucal|accuracy_loss:margin",
+       "income|Ucal|accuracy_loss:normalized",
+       "income|Ucal|accuracy_loss:margin_se_units",
+       "income|Ucal|nll_excess:margin",
+       "income|Ucal|nll_excess:normalized",
+       "income|Ucal|nll_excess:margin_se_units",
+       "income|Ucal|brier_excess:margin",
+       "income|Ucal|brier_excess:normalized",
+       "income|Ucal|brier_excess:margin_se_units",
+       "occupation|U0|accuracy_loss:margin",
+       "occupation|U0|accuracy_loss:normalized",
+       "occupation|U0|accuracy_loss:margin_se_units",
+       "occupation|U0|nll_excess:margin",
+       "occupation|U0|nll_excess:normalized",
+       "occupation|U0|nll_excess:margin_se_units",
+       "occupation|U0|brier_excess:margin",
+       "occupation|U0|brier_excess:normalized",
+       "occupation|U0|brier_excess:margin_se_units",
+       "occupation|Ucal|accuracy_loss:margin",
+       "occupation|Ucal|accuracy_loss:normalized",
+       "occupation|Ucal|accuracy_loss:margin_se_units",
+       "occupation|Ucal|nll_excess:margin",
+       "occupation|Ucal|nll_excess:normalized",
+       "occupation|Ucal|nll_excess:margin_se_units",
+       "occupation|Ucal|brier_excess:margin",
+       "occupation|Ucal|brier_excess:normalized",
+       "occupation|Ucal|brier_excess:margin_se_units",
+       "guard|sex0:margin",
+       "guard|sex0:margin_se_units",
+       "guard|sex1:margin",
+       "guard|sex1:margin_se_units"
+      ],
+      "n_stale": 40
+     },
+     "FB/FB_SEX_S2/EVAL_MS.json/V1": {
+      "draws": 8,
+      "stale_fields": [
+       "income|U0|accuracy_loss:margin",
+       "income|U0|accuracy_loss:normalized",
+       "income|U0|accuracy_loss:margin_se_units",
+       "income|U0|nll_excess:margin",
+       "income|U0|nll_excess:normalized",
+       "income|U0|nll_excess:margin_se_units",
+       "income|U0|brier_excess:margin",
+       "income|U0|brier_excess:normalized",
+       "income|U0|brier_excess:margin_se_units",
+       "income|Ucal|accuracy_loss:margin",
+       "income|Ucal|accuracy_loss:normalized",
+       "income|Ucal|accuracy_loss:margin_se_units",
+       "income|Ucal|nll_excess:margin",
+       "income|Ucal|nll_excess:normalized",
+       "income|Ucal|nll_excess:margin_se_units",
+       "income|Ucal|brier_excess:margin",
+       "income|Ucal|brier_excess:normalized",
+       "income|Ucal|brier_excess:margin_se_units",
+       "occupation|U0|accuracy_loss:margin",
+       "occupation|U0|accuracy_loss:normalized",
+       "occupation|U0|accuracy_loss:margin_se_units",
+       "occupation|U0|nll_excess:margin",
+       "occupation|U0|nll_excess:normalized",
+       "occupation|U0|nll_excess:margin_se_units",
+       "occupation|U0|brier_excess:margin",
+       "occupation|U0|brier_excess:normalized",
+       "occupation|U0|brier_excess:margin_se_units",
+       "occupation|Ucal|accuracy_loss:margin",
+       "occupation|Ucal|accuracy_loss:normalized",
+       "occupation|Ucal|accuracy_loss:margin_se_units",
+       "occupation|Ucal|nll_excess:margin",
+       "occupation|Ucal|nll_excess:normalized",
+       "occupation|Ucal|nll_excess:margin_se_units",
+       "occupation|Ucal|brier_excess:margin",
+       "occupation|Ucal|brier_excess:normalized",
+       "occupation|Ucal|brier_excess:margin_se_units",
+       "guard|sex0:margin",
+       "guard|sex0:margin_se_units",
+       "guard|sex1:margin",
+       "guard|sex1:margin_se_units"
+      ],
+      "n_stale": 40
+     },
+     "FB/FB_SEX_S3/EVAL_MS.json/V0": {
+      "draws": 8,
+      "stale_fields": [
+       "income|U0|accuracy_loss:margin",
+       "income|U0|accuracy_loss:normalized",
+       "income|U0|accuracy_loss:margin_se_units",
+       "income|U0|nll_excess:margin",
+       "income|U0|nll_excess:normalized",
+       "income|U0|nll_excess:margin_se_units",
+       "income|U0|brier_excess:margin",
+       "income|U0|brier_excess:normalized",
+       "income|U0|brier_excess:margin_se_units",
+       "income|Ucal|accuracy_loss:margin",
+       "income|Ucal|accuracy_loss:normalized",
+       "income|Ucal|accuracy_loss:margin_se_units",
+       "income|Ucal|nll_excess:margin",
+       "income|Ucal|nll_excess:normalized",
+       "income|Ucal|nll_excess:margin_se_units",
+       "income|Ucal|brier_excess:margin",
+       "income|Ucal|brier_excess:normalized",
+       "income|Ucal|brier_excess:margin_se_units",
+       "occupation|U0|accuracy_loss:margin",
+       "occupation|U0|accuracy_loss:normalized",
+       "occupation|U0|accuracy_loss:margin_se_units",
+       "occupation|U0|nll_excess:margin",
+       "occupation|U0|nll_excess:normalized",
+       "occupation|U0|nll_excess:margin_se_units",
+       "occupation|U0|brier_excess:margin",
+       "occupation|U0|brier_excess:normalized",
+       "occupation|U0|brier_excess:margin_se_units",
+       "occupation|Ucal|accuracy_loss:margin",
+       "occupation|Ucal|accuracy_loss:normalized",
+       "occupation|Ucal|accuracy_loss:margin_se_units",
+       "occupation|Ucal|nll_excess:margin",
+       "occupation|Ucal|nll_excess:normalized",
+       "occupation|Ucal|nll_excess:margin_se_units",
+       "occupation|Ucal|brier_excess:margin",
+       "occupation|Ucal|brier_excess:normalized",
+       "occupation|Ucal|brier_excess:margin_se_units",
+       "guard|sex0:margin",
+       "guard|sex0:margin_se_units",
+       "guard|sex1:margin",
+       "guard|sex1:margin_se_units"
+      ],
+      "n_stale": 40
+     },
+     "FB/FB_SEX_S3/EVAL_MS.json/V1": {
+      "draws": 8,
+      "stale_fields": [
+       "income|U0|accuracy_loss:margin",
+       "income|U0|accuracy_loss:normalized",
+       "income|U0|accuracy_loss:margin_se_units",
+       "income|U0|nll_excess:margin",
+       "income|U0|nll_excess:normalized",
+       "income|U0|nll_excess:margin_se_units",
+       "income|U0|brier_excess:margin",
+       "income|U0|brier_excess:normalized",
+       "income|U0|brier_excess:margin_se_units",
+       "income|Ucal|accuracy_loss:margin",
+       "income|Ucal|accuracy_loss:normalized",
+       "income|Ucal|accuracy_loss:margin_se_units",
+       "income|Ucal|nll_excess:margin",
+       "income|Ucal|nll_excess:normalized",
+       "income|Ucal|nll_excess:margin_se_units",
+       "income|Ucal|brier_excess:margin",
+       "income|Ucal|brier_excess:normalized",
+       "income|Ucal|brier_excess:margin_se_units",
+       "occupation|U0|accuracy_loss:margin",
+       "occupation|U0|accuracy_loss:normalized",
+       "occupation|U0|accuracy_loss:margin_se_units",
+       "occupation|U0|nll_excess:margin",
+       "occupation|U0|nll_excess:normalized",
+       "occupation|U0|nll_excess:margin_se_units",
+       "occupation|U0|brier_excess:margin",
+       "occupation|U0|brier_excess:normalized",
+       "occupation|U0|brier_excess:margin_se_units",
+       "occupation|Ucal|accuracy_loss:margin",
+       "occupation|Ucal|accuracy_loss:normalized",
+       "occupation|Ucal|accuracy_loss:margin_se_units",
+       "occupation|Ucal|nll_excess:margin",
+       "occupation|Ucal|nll_excess:normalized",
+       "occupation|Ucal|nll_excess:margin_se_units",
+       "occupation|Ucal|brier_excess:margin",
+       "occupation|Ucal|brier_excess:normalized",
+       "occupation|Ucal|brier_excess:margin_se_units",
+       "guard|sex0:margin",
+       "guard|sex0:margin_se_units",
+       "guard|sex1:margin",
+       "guard|sex1:margin_se_units"
+      ],
+      "n_stale": 40
+     }
+    },
+    "reading": "for randomized releases the derived fields describe draw 0 (copied block), not the draw average; value, se, se_mc, the point summary and the reserve are draw-averaged and are replayed by v2_utility"
+   },
+   "numerical_status": "ATTENTION",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T15:28:29+00:00",
+   "unit_id": "VER_STALE_FIELDS_V1"
+  },
+  {
+   "id": "V2.UTILITY.FB.FB_POSTHOC_S2__FB2",
+   "what": "own recomputation of clauses, guards, SEs (and MC SEs), point status, reserve, absolute metrics, distinct vectors and paired costs of FB/FB_POSTHOC_S2 vs EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_POSTHOC_S2/EVAL_MS.json": "041572b31eedbd7583f5037842d50bd13f14bc6f9d63eda23839c3e84abe3595",
+    "wire_sha256": {
+     "0": {
+      "income": [
+       "70ccde481ec2296541fec89ebbeebc7d24c3f7d8e64ee45ef4eae99df89f2927",
+       "106a84603bd9fb8cc3bf3e19238ffd3302e9e1e32948b0643a2667ff14bcd961",
+       "8003fb0eeee9d2c8de292102d0e0c9f853953874134a6ea53c2c3ded912706b9",
+       "01c305afcfef88dd511b148b940e2441528fd2f5317f915229c63df2dcd86f21",
+       "75e5d66b499c36d114cd6698f03a1131edd295e00a875a9852c2c2dcaebf84f7",
+       "01f42c95c722650ee24c4deab0d9bae6251541544f3851c8505130fad76a5395",
+       "df68db7266ed480c37b7d9e929fef75a4e427fd901787aaeb38ad991cd184c8a",
+       "70d128afe0ebe1660e26b6d02b6c987d2a6d75d185be44b06e2bb10ba9749f6a"
+      ],
+      "occupation": [
+       "c5adce778bcbc3a55d32669b4533370bc13a0d060af1dfff1edc594216408baf",
+       "b142b305ce20485130aaf98d89b2c1e4b2d575495db2fc48dfd352ab65a2a24f",
+       "48ebbcbd10a123e38dd6b61e0ffb26e42583fa4abfead32f76ec421a22e4e7ab",
+       "6d1ffd4645a1c5a9f4b0e1bd970bc7903c6c7db5e43095f5f80f9f01f45d9f05",
+       "89512fb2aa80eb903f628f4a2d4de946e4fa890788326513ccb0a91357db4c12",
+       "f26755790274be90a3a97c69e4b45af9426f016e58f5da569f060adc64570dae",
+       "c524dc154a5d10002a801f777e0230ef248f80e0e3c3680068b2dba37ffb8552",
+       "863887605ccdecdb7e4fa64474b28db0ec8c95f37b0725c7134e9ecded310b7d"
+      ]
+     },
+     "1": {
+      "income": [
+       "a36c968aaccf628a2cbfb344be00af95ac0c3b2cda9cf2803311f47e752dce01",
+       "a7a9a001a1be63c8fb9b00b9163ba644b6be8eb0e2ec0e9e9cfe19e1afbb81d2",
+       "15c883cf0fa8dc1c0955d9cdfece6c1895feebf645f41ad230843c0befff8595",
+       "9fc44e7cbbfaeacf1417c042e738d59bdc05d60dedda2a6fca97a6f9161a8e45",
+       "d86c8cd8789a03c9b6bc5466a5e8eb82ac2468da16dbdba78ba28b77d0a27124",
+       "3f28a825d84a078a3af61ec7a8bdd7f47e5f42e2b38ecb1e564b83850e5ec508",
+       "8a893d55d79eb21b70742d9fac0254301b08bbd9dd9028df918421bd8c78906f",
+       "2527678f1cf71edb0d041b9245ce0b03729ed1c50f521581aaea0eb4237e3b14"
+      ],
+      "occupation": [
+       "a6e16104e9d9bc20b6b866604d255d966009074cf6efc80cfd550095feb60521",
+       "cc9970bc462ec1b4da51b3ccc58310c4d3e47656c8a55421b4e19aa99c47342f",
+       "440058f6fe5f852a52b96db7e5f2049a03665c74a28666fc30e26232108ac1cb",
+       "6424eeeec0bdaaf99b7835d253897d19f90949713654326cceee0ccd73d1d717",
+       "5e695ff9b5627924c88b5863714accab291261a3d8ad10fe5875acc15f20f89d",
+       "eff0eda49be8d39b9658398f615e51d1b8c8687e91311502cec291dca25fa755",
+       "e4d72ddf570b2b4f1be64160643de882ff701ce26a2411f46b6b95a243622c38",
+       "2df20238adb11e4ce4e78412458b640df019ece385c45b3cc6fb65d7cb05bdaf"
+      ]
+     }
+    },
+    "releases": {
+     "0": "a4e59902ac8b4b1a243b423f137f4e5facdd005d8f4d6c0a3601393b6d94e01c",
+     "1": "d9a86a7c861800194c328ca0ba44182b0b9c02521fad71358616b7592d0c33c8"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [
+      {
+       "what": "income|Ucal|brier_excess point status",
+       "recorded": false,
+       "mine": true
+      }
+     ],
+     "max_abs_value_diff": 1.444157293750692e-16,
+     "max_abs_se_diff": 0.0,
+     "max_abs_se_mc_diff": 5.149960319306146e-18,
+     "max_abs_cost_diff": 5.421010862427522e-20,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -0.007577087032405558,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -0.007577087032405558,
+     "reserve_with_mc_met": false,
+     "reserve_with_mc_min_ratio": -0.007577087032405558
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.194790794079026e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_se_mc_diff": 2.0111950299606107e-17,
+     "max_abs_cost_diff": 5.421010862427522e-20,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0",
+      "occupation|U0|nll_excess",
+      "occupation|Ucal|nll_excess"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -2.4286027711353357,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -2.4286027711353357,
+     "reserve_with_mc_met": false,
+     "reserve_with_mc_min_ratio": -2.4286027711353357
+    }
+   },
+   "numerical_status": "FAIL",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T15:29:26+00:00",
+   "unit_id": "VER_UTILITY_FB2_V1"
+  },
+  {
+   "id": "V2.UTILITY.FB.FB_SEX_S2_ID__FB2",
+   "what": "own recomputation of clauses, guards, SEs (and MC SEs), point status, reserve, absolute metrics, distinct vectors and paired costs of FB/FB_SEX_S2_ID vs EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_ID/EVAL_MS.json": "7df316ab078dba718079276c38fdf329276627ea505a75947f6d58a507d11584",
+    "wire_sha256": {
+     "0": {
+      "income": "efd8c1ad8e87a3f6381d4cfcaad6c6bc3de192867ee8ee6a0c4fcf2eeaa924b0",
+      "occupation": "b0f5d65c849c40a9bd7425935e24c32eee01c49dab410fdcdc4986485ee471fa"
+     },
+     "1": {
+      "income": "03cbf3822cb52fb0419df4b40c3ec9b046c9734b7ec7dc7bf3ef514aa4f36995",
+      "occupation": "a75da44ba0cc6e3ce1790533a37a45cca53e359dfb741439253830a73c7580d0"
+     }
+    },
+    "releases": {
+     "0": "c6b0c07e9ef61e3d2dffaedaa782cb5cd6c14480fa5dad43667d303be0525981",
+     "1": "a43b31e3267da52c23a76107953dc9c05133f2b10bd56dfdeec7b5dcfee131a6"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 2.2985086056692694e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 1.0842021724855044e-19,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 0.02966834551695853,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.02966834551695853,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.4994516045474526e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 1.3552527156068805e-20,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -1.8028051638905835,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -1.8028051638905835,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T15:29:26+00:00",
+   "unit_id": "VER_UTILITY_FB2_V1"
+  },
+  {
+   "id": "V2.UTILITY.FB.FB_SEX_S2_MEAN__FB2",
+   "what": "own recomputation of clauses, guards, SEs (and MC SEs), point status, reserve, absolute metrics, distinct vectors and paired costs of FB/FB_SEX_S2_MEAN vs EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_new_release_mechanisms_v1/runs/FB/FB_SEX_S2_MEAN/EVAL_MS.json": "370dbf40a352e2ef1ddb0881ad86741d85c8b748d99907ace72ad6f5aedfa6d6",
+    "wire_sha256": {
+     "0": {
+      "income": "3dcb3cd73a0f373c602f1e9ca83b91c89df75239be4e35287146e0d4a11c90fb",
+      "occupation": "57b09a7a54a2e219dbe7151dbfaf7462bac7e1bb5ddbe61461f5855955c3b67f"
+     },
+     "1": {
+      "income": "43d333392361ac9054ca5e00489b043856015b3bdc5a4aa6448a8cb0d313efae",
+      "occupation": "27aef9bc6be435e981fd2b919e5354f409ff37fba535f95163816fd73853d9fa"
+     }
+    },
+    "releases": {
+     "0": "e2d0a255b615f3615ce9cb2fb9e2cb7bef96b316085c40490e6e0aa7e19e6b70",
+     "1": "3abff776b688950315bcdcce9a7c01f3e536294b496f2032894e20d7b28ee488"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 2.886146183156413e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 1.0842021724855044e-19,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "reserve_met": false,
+     "min_whole_ratio": 0.026301491849911665,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.026301491849911665,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 3.608224830031759e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_se_mc_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "point_pass_12_plus_2": false,
+     "failed": [
+      "guard|sex0"
+     ],
+     "reserve_met": false,
+     "min_whole_ratio": -1.7705643309108197,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": -1.7705643309108197,
+     "reserve_with_mc_met": null,
+     "reserve_with_mc_min_ratio": null
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T15:29:26+00:00",
+   "unit_id": "VER_UTILITY_FB2_V1"
+  }
+ ],
+ "entry_sha256": [
+  "aa6ccbdcebe4f48a4534114c0cd5f1b01c70cf73e05e813fce551423a63658c4",
+  "3ca819e2952a68a743d21f6538b2a6731b2a76b5121be886d8534032f07ebd13",
+  "1b2ace84bed607dd3f2629bffc2b1e1040ff7d2a4261480278f9fa63c2aee425",
+  "3777590d06c50aa537450fffe4f4d07977e6d5528da5462ca8eb44d6051f323d",
+  "a327c3226f5c65019a0da68e5e2ad182f3ab9b7465c91b34db33c54eb186ee86",
+  "c51b7789cab00ff15446b9d884f1f91bb296867565b17f9ffa02192db7ae2e0f",
+  "0a9a1c65d9556799b4375885a28e74e3c493a1106d45c887695421e6b44b337d",
+  "a19378d9d96ed188cce9cffe122d5edbee03c551ace7b8952005326d2fc08d3f",
+  "7e65cf5f4150e0ebed795c8ad2cadcf9a6b799c7655ee42e9dce3efb41fca2c1",
+  "2796d8a30146e25b6ccc9e5385002811c31f1f40eef2ca1f7b1156ce99046291",
+  "df0dc76222306301ba333c8494cbade6ad0289c1c4e651cf219307255944ba48",
+  "ae7db6c0e3336defee7114e3aa89f8f3996ad4ec8a3bf67a92e32b882820f82e",
+  "40038701df9030b7fc0c848db6c02f316dd543b7b1931b5405cf2a5aa3ef3d1b",
+  "8f321c98ca5a6d36935dccf77ba6ce43a75d8b7fd2d0d896e068da03a7fec50d",
+  "24b186517cffe73f0229afedf19ce50d5f77f0d3d86da17daff532b3bc34616e",
+  "be3aba93247d914268c12066a4c38ee3c8ee3ffdcba3ffb1680761d139014e20",
+  "727e6a0a691d338f33e7ce0c584d26a947d4c68796e67292560eee45672a4312",
+  "3ab099204c44fb1fc09fe4dc8e73bb7b0d7c53ef0be9a3d68deb01df9e3db5c2",
+  "938da07c11b129b7c3c8fbb55a5c54c609695119356bdd406b06a441f4c11fb2",
+  "574db8700e18abcf243f047b49e51b664b00469aa3a30e0c2e54b41ee3841346",
+  "248d99049a12e83870024ed0330d98af6a523e60f4ce7a55c1f4a8f4317cefe5",
+  "a4218b493c9335e8e761ab747c3e2a16590662e8bc3f79adb3571ce1dc0f479f",
+  "800ecb128841c784c0c6e7b8769e000875f9365b4d3f594f1ef1aa71e308ba0e",
+  "5be53dbc8eeb37d23e49ccc31bdacecc162c971602193f543618ff0b23e1fbf0",
+  "6639e815ef1cfb790a41ff0783bcfef92702ddb689aa452ad801f3f792160245",
+  "2cf88f30882047af601ce645b4f3db3795bcbde06f6c0886df3c46b026fae84b",
+  "249b821e2d0cbf0cd50e1c8cfb3b729d177f23ccd5e09eff0b9f0fc76fa3bf78",
+  "f305a51630ede8965455af9acb2f7ec71288a1978a90368d9a99a65517890194",
+  "81b14b660293c7b19cc31fe238f9742dc9eecb714d16e594c2590aeef7245234",
+  "9d376973efc2e4ae1f73fd579f08ac4066e2f980233d836b098da3dda44ff579",
+  "b7aa1fc95fc6d8c094af911517666d34eeb093c8bb03860a6834f13eab517873",
+  "1d3dffdb62bcf82886bdf21e67614e4ee277c689e20ab258c091385a03a72ef6",
+  "7eccaddf7b3be4f8eb3850682ce6f5b469a6d94917aeab5a8dd5cdd023939434",
+  "4ef0f4e23185319203053d55d37f306e046e59d36720630751b04ff8cc8ebf1e",
+  "e526c27b80cada878ab7ae96017cf98ae0d07488743963a8c2935ae4c5ea20bd",
+  "0a69f1d36eac16d009b90d99ed1e8cb873de774cc89fc77c649a676f7cc78a7f",
+  "0278e4d5da2cab095c33faad8eb13f24f837dd46e2c64cce24d577c14a636b0b",
+  "a01da5081adc73215eb9719efcdb8a04732f7f4bf6d354eb5513b3f3db25f3e9",
+  "936521ebae35cfeb92106ef5537b6458efa9c87f63dfa589fdb5eb12e053a34b",
+  "c878e9c7cfcf7be67e29a442c0096b485e5fd98d101448381c247971f677cf38",
+  "450e1ce4c490b51aec60127f69ce444e61c7b7417b9092ce2782117c0fa3eff0",
+  "2f7e55543612826f00ffc61d98fc32c4d72b005536a1d0348420c90d26276b3c",
+  "b5cea1824cc516808807456723d49bdf454ea4e1619b917e5c44afa4c9c3e1bd",
+  "04c3a761a95d200ade65f0f46eebdc351101553d703a42a5fbdc79a6b4d26c5a",
+  "8bb0052342de0a95fe3c517bd8ea26c5326615865ec8234d95cc0f1311cbe43d",
+  "8ce99dba6b40861706ab910052d97f5616f43844bcdec18d9c7b51a7d1f118be",
+  "73ed8da8a5a70cadaba40f2165c28d1bff150a7084fb7684d0971deceedea6dc",
+  "99a7ef6630ab1ed1796bf61231efa3e77a52a5d5da0243afd7d7bbc6a2fe7c8a",
+  "4c80377fb9349949042ae0fcb87ca074510a9ed7907e4b78e08290b5e4f0c8bc",
+  "bb93101553fdb4aa671f28af1b641097a530a8aafe2754bf2aa7cd180b3ba47d",
+  "98636e8cd819c99ec06f88d91e37288ef008f7cd3c4d86165d8408a409ef0cb8",
+  "aa59e24903f20a082c17a50bece2b7ee5e251a5286cd206e19fd829b1500f9ed",
+  "8db5a6c1e5fca7fdd0a31d311e7cd4b3c8b210782a6aaf3106fdc7d4e02ec50e",
+  "8c55325861b8a7b06ce3f1eef4a3fa292e2ffe8a9b3f6d5ee70e889331f9b685",
+  "563a5f847b754da681f45368573377dd2c15b572f98dd510d81ad20e8a40e3dc",
+  "d4cde8d084284c47b9bc842b84eab310fc9e174a0222f7bbaa1a17665bad01d1",
+  "29b576e848701da22c8278728664a237c9f805cba6457bc37e7601608d42d27c",
+  "8c05ab1dd7b70a41a765fe74bfc0fcc19f55ec4a43e7dc89930120337a02be9d",
+  "0fd653e67675be9cacc5448d91f7098b7c4a72495f8da9947026f9d6ed1210b3",
+  "a401763aa5f85c12005adf41ab97e19cb1eeee155900060952da5a50639deae5",
+  "4617d2fcba327839872fcf331e12734cf43346b8da8e4433fb6945de46a1f22f",
+  "8c3cf68676e818c512a62118ebde135c65a5c43d7c80ee11964166913764b1bd",
+  "dcac6559a1e58d24316d3d66db41791e590fc12a154d5eded26eeb93ca736b43",
+  "1bd0c5fb8f26397685111fa3a50030af53800e1aa431b80570e592d3d76a882f",
+  "ad048f0297c15982f0e7504290b7f63399ef1ac0cda6fef067098e30d8820f2c",
+  "f3628cc540bfa0a28ca0c873155970fb13bea7dbc92745729ad8cae150fc0cf8",
+  "74f5f393fd6085d9d7f4f7d72fa540aef2c3b5e1b974ceeee3795be747763a7b",
+  "9708fe6c4dce76a34d90282f230c4cb816fa49bdac4c214ee62e76ac49f50530",
+  "8db1dc673a9b17e690cf3b1e98d1865fd67c96adb04af38662b9b2b9a4ec3ce3",
+  "4b0c84d91661e3d85dd409b3e71433dce522edd3f97567c30bda2c3629c96c4f",
+  "221278c2c901cc16a411086218eff650cbb436079c88728cb75a6b06d4508a3d",
+  "daa4a3f32e37324b079123d98cea32853f59c2296907e92ed2fae900cc066a6d",
+  "26dfa0525b1f98dea2417fa26b5aeaf79d5af249395bab5050c9d0414c13a428"
+ ],
+ "summary": {
+  "n_checks": 73,
+  "numerical": {
+   "PASS": 48,
+   "FAIL": 2,
+   "ATTENTION": 1,
+   "NOT_APPLICABLE": 22,
+   "NOT_RUN": 0
+  },
+  "procedural": {
+   "PASS": 43,
+   "FAIL": 0,
+   "ATTENTION": 2,
+   "NOT_APPLICABLE": 28,
+   "NOT_RUN": 0
+  },
+  "updated_utc": "2026-10-20T15:29:26+00:00"
+ }
+}

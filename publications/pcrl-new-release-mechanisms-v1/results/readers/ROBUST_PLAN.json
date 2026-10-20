@@ -1,0 +1,56 @@
+{
+ "plan_id": "ROBUST_PLAN_V1",
+ "author": "reader-robustness investigator",
+ "written_utc": "2026-10-20T15:56:56+00:00",
+ "written_before": "any output of NRM1_MAIN, NRM1_ROBUST_REPS or NRM1_ROBUST_SEEDS was read (GRID.json, BOOT.npz, BOOT_EXTRAS.npz, claims records)",
+ "status": "descriptive development robustness; robustness cells never change a decision or a ranking (RULES.md sections 5.1, 6); lower recovery for these readers is not protection against every reader; MODEL_SELECT is adaptively used",
+ "banks": {"registered": "NRM1_MAIN", "robustness": ["NRM1_ROBUST_REPS", "NRM1_ROBUST_SEEDS"]},
+ "design": {
+  "A_reps": "NRM1_ROBUST_REPS: R1-R4 x k0/k1 (new cells R3/R4 x k0/k1; R1/R2 cells are cache re-reads of NRM1_MAIN and must agree bitwise)",
+  "B_seeds": "NRM1_ROBUST_SEEDS: R1/R2 x k2/k3",
+  "corner_not_run": "R3/R4 x k2/k3 (CPU)",
+  "learning_curve": "not run: no finite-cell member in the bank (coordinator, 15:54Z)",
+  "monte_carlo": "randomized members read their registered instance per cell (R1 0, R2 1, R3 6, R4 7); robustness cells are single-instance (D = 1, MC SE not estimable there); registered cells use the NRM1_MAIN replicate members (offsets +2, +4) through nrm.rules.mc_cell, offset paired with offset as in nrm.claims.grid_entry"
+ },
+ "members": ["FB2_BASE", "FB2_SEX_S3", "FB2_SEX_S5", "FB2_MINF_S3", "FB2_MINF_S5", "NEURAL_RAW", "H_LJ", "RETIRED_B3CTL"],
+ "replicates_registered": {"FB2_SEX_S3": ["FB2_SEX_S3__d2", "FB2_SEX_S3__d4"], "FB2_SEX_S5": ["FB2_SEX_S5__d2", "FB2_SEX_S5__d4"],
+                           "FB2_MINF_S3": ["FB2_MINF_S3__d2", "FB2_MINF_S3__d4"], "FB2_MINF_S5": ["FB2_MINF_S5__d2", "FB2_MINF_S5__d4"]},
+ "focus": [
+  {"cand": "FB2_SEX_S3", "comp": "FB2_BASE", "role": "twin (G2)"},
+  {"cand": "FB2_SEX_S3", "comp": "FB2_MINF_S3", "role": "declared alternative (G2); MINF path point"},
+  {"cand": "FB2_SEX_S3", "comp": "FB2_MINF_S5", "role": "MINF path point"},
+  {"cand": "FB2_SEX_S3", "comp": "NEURAL_RAW", "role": "target reference (G5)"},
+  {"cand": "FB2_SEX_S3", "comp": "H_LJ", "role": "target reference (G5)"},
+  {"cand": "FB2_SEX_S3", "comp": "RETIRED_B3CTL", "role": "lowest-recovery reference of the last grid (G4)"},
+  {"cand": "FB2_SEX_S5", "comp": "FB2_BASE", "role": "twin (G2)"},
+  {"cand": "FB2_SEX_S5", "comp": "FB2_MINF_S5", "role": "declared alternative (G2); MINF path point"},
+  {"cand": "FB2_SEX_S5", "comp": "FB2_MINF_S3", "role": "MINF path point"},
+  {"cand": "FB2_SEX_S5", "comp": "NEURAL_RAW", "role": "target reference (G5)"},
+  {"cand": "FB2_SEX_S5", "comp": "H_LJ", "role": "target reference (G5)"},
+  {"cand": "FB2_SEX_S5", "comp": "RETIRED_B3CTL", "role": "lowest-recovery reference of the last grid (G4)"},
+  {"cand": "FB2_MINF_S3", "comp": "FB2_BASE", "role": "SEX-blind control effect (descriptive)"},
+  {"cand": "FB2_MINF_S5", "comp": "FB2_BASE", "role": "SEX-blind control effect (descriptive)"}
+ ],
+ "all_ordered_pairs": "every ordered pair of the eight members is summarized as well; the focus list is what the report reads",
+ "summaries_per_comparison": [
+  "nrm.rules.comparison on the registered cells (beside the coordinator's claims; never replaces them)",
+  "nrm.rules.robustness (pair view): ROBUSTNESS_CONFIRMED / ROBUSTNESS_NOT_CONFIRMED / NOT_RUN",
+  "nrm.rules.benefit_screen and recipient_screen on: registered, robustness, all cells, and each robustness part alone (A: R3/R4 x k0/k1; B: R1/R2 x k2/k3)",
+  "nrm.rules.aggregate: block means, per-version means, se components, sign reversals, n_eff, k_differs, reader-seed qualifier",
+  "nrm.rules.reader_stability on registered cells and on all cells (winner changes, near ties, seed-dependent winners, deterministic cells, cells beyond threshold); exact aliases counted once from the members' wire hashes",
+  "grid validity: nrm.rules.grid_validity from the score fingerprints, k0 vs k1 on R1-R4 (minimum set = the five FB2 members); k2 vs k3 equalities counted separately (descriptive)",
+  "reader targeting (declared labels below) from the extras: NOLOOKUP and ENHANCED (TABLE_CV) winners, registered and all cells",
+  "reader budget (nrm.readerbudget, label-free) and its contrast flag for every focus pair"
+ ],
+ "labels_declared_here": {
+  "TABLE_READER_TARGETING": {"HOLDS_WITHOUT_TABLE_READERS": "main pair benefit AGG_POSITIVE and NOLOOKUP pair benefit AGG_POSITIVE",
+                             "NEEDS_TABLE_READERS": "main AGG_POSITIVE, NOLOOKUP not AGG_POSITIVE",
+                             "NO_MAIN_BENEFIT": "main not AGG_POSITIVE (the NOLOOKUP label is reported beside)"},
+  "TABLE_CV_SENSITIVITY": {"SURVIVES_TABLE_CV": "main AGG_POSITIVE and ENHANCED pair benefit AGG_POSITIVE",
+                           "REMOVED_BY_TABLE_CV": "main AGG_POSITIVE, ENHANCED not AGG_POSITIVE",
+                           "NO_MAIN_BENEFIT": "main not AGG_POSITIVE (the ENHANCED label is reported beside)"},
+  "MERGE": "a cell present in two runs must agree bitwise (winner, score AUC, paired value and SE); otherwise CELL_CONFLICT is listed and the registered run's value is used",
+  "ACROSS_READER_SEEDS": "the phrase is written only when the qualifier is READER_SEEDS_EFFECTIVE_ALL_BLOCKS and the grid is valid"
+ },
+ "code": "nrm/readerstab.py (committed with its invented-data selftest before any grid output is read)"
+}

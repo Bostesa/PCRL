@@ -1,0 +1,42 @@
+{
+ "plan_id": "PLAN_MAIN",
+ "written": "committed before any output of bank NRM1_MAIN is read; transcribes DECLARATIONS_V1.md, RULING_FB_R1_FINAL.md (C1-C7) and FB2_SPEND_DECISIONS.md",
+ "bank": "NRM1_MAIN",
+ "label_sentences": {
+  "FB2": "FB2 was designed after family-B screening on MODEL_SELECT (targeting signal, F3); it is evaluated on the same people; development evidence only.",
+  "FB_V1": "Family B v1 release (channel-trained learner); its twin fails the original limits, so G1 = TASK_INFEASIBLE; descriptive only.",
+  "FA": "Family A 64-cell twin (closed at the capacity stage); descriptive only."
+ },
+ "scope_sentences": ["one released instance per person; repeated-query protection not claimed (family B)",
+                     "Lower recovery for the declared development readers is not protection against every reader."],
+ "references_eval": [".private/pcrl_new_release_mechanisms_v1/runs/REFERENCES/EVAL_MS__WIRES.json"],
+ "configs": {
+  "FB2_SEX_S3": {"family": "FB", "config": "FB2_SEX_S3", "kind": "candidate", "twin": "FB2_BASE", "alternatives": ["FB2_MINF_S3"],
+                 "paths": {"MINF": ["FB2_BASE", "FB2_MINF_S3", "FB2_MINF_S5"]},
+                 "replicates": ["FB2_SEX_S3__d2", "FB2_SEX_S3__d4"], "outputs_jointly_designed": true, "novelty": "NOT_CLAIMED",
+                 "label_sentence": "FB2"},
+  "FB2_SEX_S5": {"family": "FB", "config": "FB2_SEX_S5", "kind": "candidate", "twin": "FB2_BASE", "alternatives": ["FB2_MINF_S5"],
+                 "paths": {"MINF": ["FB2_BASE", "FB2_MINF_S3", "FB2_MINF_S5"]},
+                 "replicates": ["FB2_SEX_S5__d2", "FB2_SEX_S5__d4"], "outputs_jointly_designed": true, "novelty": "NOT_CLAIMED",
+                 "label_sentence": "FB2"},
+  "FB2_MINF_S3": {"family": "FB", "config": "FB2_MINF_S3", "kind": "control", "twin": "FB2_BASE", "alternatives": [], "paths": {},
+                  "replicates": ["FB2_MINF_S3__d2", "FB2_MINF_S3__d4"], "outputs_jointly_designed": true, "novelty": "NOT_CLAIMED",
+                  "label_sentence": "FB2", "note": "C4: NO_MATCHED_CONTROLS, not selectable; G3 control path point"},
+  "FB2_MINF_S5": {"family": "FB", "config": "FB2_MINF_S5", "kind": "control", "twin": "FB2_BASE", "alternatives": [], "paths": {},
+                  "replicates": ["FB2_MINF_S5__d2", "FB2_MINF_S5__d4"], "outputs_jointly_designed": true, "novelty": "NOT_CLAIMED",
+                  "label_sentence": "FB2", "note": "C4: NO_MATCHED_CONTROLS, not selectable; G3 control path point"},
+  "FB2_BASE": {"family": "FB", "config": "FB2_BASE", "kind": "twin", "twin": null, "alternatives": [], "paths": {}, "replicates": [],
+               "outputs_jointly_designed": false, "novelty": "NOT_CLAIMED", "label_sentence": "FB2",
+               "note": "the twin (frozen task-only base); income view an exact alias of TWJ's and occupation view of W's (C3)"},
+  "FB_SEX_S2": {"family": "FB", "config": "FB_SEX_S2", "kind": "candidate", "twin": "FB_TWIN", "alternatives": ["FB_MINF_S2", "FB_ISO_S2"],
+                "paths": {}, "replicates": [], "outputs_jointly_designed": true, "novelty": "NOT_CLAIMED", "label_sentence": "FB_V1",
+                "note": "descriptive: G1 TASK_INFEASIBLE; FB_ISO_S2 is not a member of this bank, so the declared conjunction cannot hold"},
+  "FB_TWIN": {"family": "FB", "config": "FB_TWIN", "kind": "twin", "twin": null, "alternatives": [], "paths": {}, "replicates": [],
+              "outputs_jointly_designed": false, "novelty": "NOT_CLAIMED", "label_sentence": "FB_V1"},
+  "PRC_TWIN": {"family": "FA", "config": "PRC_TWIN", "kind": "twin", "twin": null, "alternatives": [], "paths": {}, "replicates": [],
+               "outputs_jointly_designed": false, "novelty": "PRIOR_ART_FOUND", "label_sentence": "FA"}
+ },
+ "ctl_path_rule": "C7: after the challenger's spend-only CTL_REM fit on FB2_BASE (CTL v2 card), PLAN_FINAL adds paths['CTL'] = ['FB2_BASE', <CTL_REM levels>] to FB2_SEX_S3 and FB2_SEX_S5 unchanged otherwise; G3 then needs DOMINATES_CONTROL_FRONTIER against BOTH paths (MINF and CTL).",
+ "mean_rule": "C5: FB2_SEX_S?_MEAN (+2) is fitted at the highest FB2_SEX strength that is TASK_FEASIBLE in both versions and DOMINATES_CONTROL_FRONTIER against both declared paths; otherwise not fitted.",
+ "f1_rule": "C6: F1 holds unless frontier_comparison gives DOMINATES_CONTROL_FRONTIER at BOTH S3 and S5 (on the MINF path); an INCOMPLETE record is completed, never read as F1 or as a pass."
+}

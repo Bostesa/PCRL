@@ -346,8 +346,16 @@ def per_person_avg(labels, rel, sex=None):
         out[t] = {'acc_loss': np.mean([p['err'] for p in per], axis=0), 'nll': np.mean([p['nll'] for p in per], axis=0),
                   'brier': np.mean([p['brier'] for p in per], axis=0),
                   'draw_means': {'acc_loss': np.array([p['err'].mean() for p in per]), 'nll': np.array([p['nll'].mean() for p in per]),
-                                 'brier': np.array([p['brier'].mean() for p in per])}}
+                                 'brier': np.array([p['brier'].mean() for p in per])},
+                  'draw_arrays': {'acc_loss': np.array([p['err'] for p in per]), 'nll': np.array([p['nll'] for p in per]),
+                                  'brier': np.array([p['brier'] for p in per])}}
     return out
+
+
+def mc_se(draw_means):
+    """Monte Carlo SE of one release's draw-averaged mean: SD (ddof 1) over its per-draw means / sqrt(R); 0 for one draw."""
+    x = np.asarray(draw_means, dtype=np.float64)
+    return float(x.std(ddof=1) / math.sqrt(len(x))) if len(x) > 1 else 0.0
 
 
 def distinct_rows(p):

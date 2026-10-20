@@ -31,16 +31,34 @@ def load_sex(purpose):
     return np.asarray(S['sex']), np.asarray(S['unit']), np.asarray(S['row_id'])
 
 
+REP_INSTANCE = {'R1': 0, 'R2': 1, 'R3': 6, 'R4': 7}   # declared instance map (DECLARATIONS_V1, reviewer's ruling; lock 1128afd67)
+
+
+def draw_index(rule, rep):
+    """Declared per-cell instance of a randomized release: R1 0, R2 1, R3 6, R4 7 (both reader seeds of a cell read the same
+    instance) unless a fixed draw is given, plus an optional Monte Carlo offset (+2, +4) allowed on R1 / R2 only."""
+    d = rule.get('draw', 'rep')
+    off = int(rule.get('draw_offset', 0))
+    if d == 'rep':
+        if off and rep not in V.REG_REPS:
+            raise ValueError('Monte Carlo offsets apply to R1 / R2 only')
+        return REP_INSTANCE[rep] + off
+    return int(d) + off
+
+
 def member_arrays(m, v):
     t = m.get('type')
     if t == 'nrm':
         arr, rec, prov = vref.release(m['family'], m['config'], v)
-        ms, d = arr['MODEL_SELECT'], int(m.get('draw', 0))
-        rel = {task: (ms[task][d] if ms[task].ndim == 3 else ms[task]) for task in V.TASKS}
-        return rel, {**prov, 'draw': d if rec.get('randomized') else None, 'kind': rec.get('kind')}
+        ms = arr['MODEL_SELECT']
+        if rec.get('randomized'):
+            rule = {'draw': m.get('draw', 'rep'), 'draw_offset': int(m.get('draw_offset', 0))}
+            rel = {task: ms[task] for task in V.TASKS}
+            return rel, {**prov, 'draw_rule': rule, 'randomized': True, 'kind': rec.get('kind')}
+        return {task: ms[task] for task in V.TASKS}, {**prov, 'randomized': False, 'kind': rec.get('kind')}
     if t == 'witness':
         return vref.reference('W', v)
-    if t == 'reference' and m['name'] in vref.FROZEN + ('B2TWIN', 'RETIRED_B3CTL', 'SUCC', 'TWJ'):
+    if t == 'reference' and m['name'] in vref.FROZEN + ('B2TWIN', 'RETIRED_B3CTL', 'SUCC', 'TWJ') + tuple(vref.COMPONENTS):
         return vref.reference('REF:' + m['name'], v)
     if t == 'arrays':
         rel, prov = {}, {}
@@ -71,6 +89,27 @@ def member_arrays(m, v):
     return load_member(m, v), {'frozen_member': m}
 
 
+def lock_status(g):
+    """The grid unit ran the locked reader code: DEVGRID_CODE_LOCK.json committed, and the unit's launch hashes of every locked file
+    equal the lock (queue CODE_AT_START / CODE_AT_LAUNCH)."""
+    lock = V.RESULTS / 'DEVGRID_CODE_LOCK.json'
+    out = {'lock_committed': lock.is_file() and V.committed_unchanged(lock), 'unit_id': g.get('unit_id')}
+    if not lock.is_file():
+        return out
+    lk = json.loads(lock.read_text())
+    out['lock_sha256'] = V.file_sha(lock)
+    uid = g.get('unit_id')
+    d = V.PRIV / 'compute' / 'units' / str(uid)
+    p = d / 'CODE_AT_LAUNCH.json' if (d / 'CODE_AT_LAUNCH.json').is_file() else d / 'CODE_AT_START.json'
+    if uid and p.is_file():
+        files = json.loads(p.read_text())['files']
+        out['unit_files_equal_lock'] = {f: files.get(f) == h for f, h in lk['files_sha256'].items()}
+        out['all_equal'] = all(out['unit_files_equal_lock'].values())
+        rc, t, _ = V.git('log', '-1', '--format=%cI', '--', str(lock.relative_to(V.ROOT)))
+        out['lock_commit_utc'] = t
+    return out
+
+
 def read_cache(view, inc, occ, rep, rs, sex_sha, n_score):
     wh = V.view_hash(view, inc, occ)
     p = CACHE / f'{V.cache_key(rep, rs, 1.0, wh, sex_sha)}.npz'
@@ -95,12 +134,14 @@ def replay_seed(bank_dir, sex, unit, boot_mode, members_filter=None):
     spec = g['spec']
     sx = V.arr_sha(sex)
     mm, info = [], {'cells': {}, 'members': {}}
-    rels = {}
+    rels, rules = {}, {}
     for name, m in spec['members'].items():
         rel, prov = member_arrays(m, v)
         rel = {t: np.ascontiguousarray(np.asarray(rel[t], dtype=np.float64)) for t in V.TASKS}
         rels[name] = rel
-        w = {t: V.wire_sha(rel[t]) for t in V.TASKS}
+        if prov.get('randomized'):
+            rules[name] = prov['draw_rule']
+        w = {t: ([V.wire_sha(x) for x in rel[t]] if rel[t].ndim == 3 else V.wire_sha(rel[t])) for t in V.TASKS}
         rec_w = (g.get('members') or {}).get(name, {}).get('wire_sha256')
         info['members'][name] = {'wire_sha256': w, 'recorded': rec_w, 'equal': rec_w == w, 'provenance': prov}
         if rec_w != w:
@@ -125,9 +166,15 @@ def replay_seed(bank_dir, sex, unit, boot_mode, members_filter=None):
             if members_filter and name not in members_filter:
                 continue
             rel = rels[name]
+            inc, occ = rel['income'], rel['occupation']
+            if inc.ndim == 3 or occ.ndim == 3:                     # randomized: this cell's ONE emitted draw per person
+                di = draw_index(rules.get(name, {}), rep)
+                inc = inc[di] if inc.ndim == 3 else inc
+                occ = occ[di] if occ.ndim == 3 else occ
+                info.setdefault('draws_read', {})[f'{cell}|{name}'] = di
             rd = {}
             for view in V.VIEWS:
-                e, p = read_cache(view, rel['income'], rel['occupation'], rep, rs, sx, n_sc)
+                e, p = read_cache(view, inc, occ, rep, rs, sx, n_sc)
                 if e is None:
                     mm.append({'what': f'{cell} {name} {view}: cache entry missing', 'path': V.rel(p)}); continue
                 if e['malformed']:
@@ -198,23 +245,32 @@ def main():
     ap.add_argument('--tag', required=True); ap.add_argument('--bank', required=True)
     ap.add_argument('--seeds', nargs='+', type=int, default=[0, 1]); ap.add_argument('--boot', default='paired', choices=('all', 'paired', 'none'))
     ap.add_argument('--members', nargs='*', default=None)
+    ap.add_argument('--dir', action='append', default=[], help='explicit run folder per seed, V=FOLDER (e.g. 1=S1_V2)')
     a = ap.parse_args()
+    explicit = {int(x.split('=')[0]): x.split('=')[1] for x in a.dir}
     sex, unit, _ = load_sex(f'verify: replay of reader grid {a.bank} from saved reader scores (own AUC, winners, bootstrap; SEX only)')
     checks, record = [], {'tag': a.tag, 'bank': a.bank, 'utc': V.utc(), 'seeds': {}}
     for v in a.seeds:
-        d = V.RUNS / 'GRID' / a.bank / f'S{v}'
+        d = V.RUNS / 'GRID' / a.bank / explicit.get(v, f'S{v}')
         if not (d / 'GRID.json').is_file():
+            checks.append({'id': f'V4.GRID.{a.bank}.S{v}__{a.tag}', 'what': f'grid {a.bank} seed {v}: no GRID.json in {V.rel(d)}',
+                           'inputs': {}, 'result': {'missing': V.rel(d)}, 'numerical_status': 'NOT_RUN', 'procedural_status': 'NOT_RUN'})
             continue
         summ, info, pairs, g = replay_seed(d, sex, unit, a.boot, set(a.members) if a.members else None)
-        record['seeds'][str(v)] = {'summary': summ, 'cells': info['cells'], 'members': info['members'], 'pairs': pairs}
+        lk = lock_status(g)
+        record['seeds'][str(v)] = {'summary': summ, 'cells': info['cells'], 'members': info['members'], 'pairs': pairs,
+                                   'draws_read': info.get('draws_read'), 'lock': lk}
         wire_bad = [n for n, x in info['members'].items() if not x['equal']]
+        proc_ok = not wire_bad and lk.get('lock_committed') and lk.get('all_equal')
         checks.append({'id': f'V4.GRID.{a.bank}.S{v}__{a.tag}',
                        'what': f'grid {a.bank} seed {v} replayed from saved reader scores: cache keys, winners (own pick on cached '
-                               f'VALIDATION AUCs), SCORE AUCs, bootstrap draws ({a.boot}), paired differences and SEs; member wires = saved',
-                       'inputs': V.inputs_sha([d / 'GRID.json', d / 'BOOT.npz']),
-                       'result': {k: x for k, x in summ.items()},
+                               f'VALIDATION AUCs), SCORE AUCs, bootstrap draws ({a.boot}), paired differences and SEs; member wires = saved; '
+                               'grid unit ran the locked reader code',
+                       'inputs': V.inputs_sha([d / 'GRID.json', d / 'BOOT.npz', V.RESULTS / 'DEVGRID_CODE_LOCK.json']),
+                       'result': {**{k: x for k, x in summ.items()}, 'members_wire_differs': wire_bad, 'lock': lk,
+                                  'draws_read': info.get('draws_read')},
                        'numerical_status': 'PASS' if not summ['mismatches'] else 'FAIL',
-                       'procedural_status': 'PASS' if not wire_bad else 'FAIL'})
+                       'procedural_status': 'PASS' if proc_ok else 'FAIL'})
     V.write_record(f'V4_GRID__{a.bank}__{a.tag}.json', record)
     print(json.dumps(V.append_checks(checks), indent=1))
     for c in checks:

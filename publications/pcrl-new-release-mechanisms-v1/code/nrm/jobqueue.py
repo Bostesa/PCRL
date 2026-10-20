@@ -117,6 +117,11 @@ def charge(label, cpu_s, note):
     _append({'event': 'charge', 'label': label, 'charged_cpu_s': float(cpu_s), 'note': note, 'utc': now().isoformat(timespec='seconds')})
 
 
+def close(note):
+    """Close the queue at campaign end: an append-only event; every later `run` is refused (charges are still recorded)."""
+    _append({'event': 'queue_closed', 'note': note, 'utc': now().isoformat(timespec='seconds')})
+
+
 def _sha(path):
     with open(path, 'rb') as f:
         return hashlib.file_digest(f, 'sha256').hexdigest()
@@ -139,9 +144,13 @@ def code_manifest():
                 continue
             files[str(p.relative_to(REPO))] = _sha(p)
     digest = hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()
-    dirty = _git('status', '--porcelain', '--', *CODE_PACKAGES) or ''
+    # -z: NUL-separated, unstripped entries (engineering review ENG1-01: the stripped porcelain output cut the first path's first
+    # character in the records of every unit launched before commit 442b84694, committed 15:39:57Z on 2026-10-20; those rows are
+    # kept and disclosed, never rewritten)
+    r = subprocess.run(['git', '-C', str(REPO), 'status', '--porcelain', '-z', '--', *CODE_PACKAGES], capture_output=True, text=True)
+    entries = [e for e in r.stdout.split('\0') if e] if r.returncode == 0 else []
     return {'files': files, 'digest': digest, 'git_head': _git('rev-parse', 'HEAD'),
-            'uncommitted_code_paths': [l[3:] for l in dirty.splitlines() if l.strip()]}
+            'uncommitted_code_paths': [e[3:] for e in entries if len(e) > 3]}
 
 
 def interpreter_versions(executable):
@@ -180,6 +189,8 @@ def _peak_rss_loop(proc, interval=0.5, deadline=None):
 def run(unit_id, argv, stage, rss_gib, outputs=(), cwd=None, max_wall_s=6 * 3600):
     init()
     es = entries()
+    if any(e.get('event') == 'queue_closed' for e in es):
+        raise PermissionError('the campaign queue is closed (queue_closed event in the ledger)')
     if any(e.get('event') in ('unit_start', 'unit_end') and e['unit_id'] == unit_id for e in es):
         raise PermissionError(f'unit id {unit_id} already used (append-only; use a new versioned id)')
     elapsed_h = (now() - start_utc()).total_seconds() / 3600
@@ -302,6 +313,7 @@ def main(argv=None):
     r.add_argument('--max-wall-s', type=int, default=6 * 3600); r.add_argument('cmd_argv', nargs=argparse.REMAINDER)
     c = sub.add_parser('charge'); c.add_argument('--label', required=True); c.add_argument('--cpu-s', type=float, required=True); c.add_argument('--note', required=True)
     sub.add_parser('summary')
+    cl = sub.add_parser('close'); cl.add_argument('--note', required=True)
     a = ap.parse_args(argv)
     if a.cmd == 'init':
         print(json.dumps(init()))
@@ -311,6 +323,8 @@ def main(argv=None):
         print(json.dumps(rec)); return 0 if rec['returncode'] == 0 else 1
     elif a.cmd == 'charge':
         charge(a.label, a.cpu_s, a.note)
+    elif a.cmd == 'close':
+        close(a.note)
     else:
         print(json.dumps(summary(), indent=2))
     return 0

@@ -71,8 +71,10 @@ def audit(events, receipt_utc, policy, amendments, card_lookup, units, role_rows
                                                    if a['operation'] == op and a['commit_utc'] is not None and a['commit_utc'] < t]
             if not entry_ok(mod, allowed):
                 flag('FAIL', 'R4_entry_point_not_authorized', i, f'{mod} for {op}')
+        ms_amended = [a['entry_point'] for a in amendments if a['operation'] in ('benchmark', 'screen', 'readers', 'verify')
+                      and a['commit_utc'] is not None and a['commit_utc'] < t]
         if role == 'MODEL_SELECT' and fields:
-            if not entry_ok(mod, MS_ENTRY) or entry_ok(mod, FIT_ENTRY):
+            if not entry_ok(mod, list(MS_ENTRY) + ms_amended) or entry_ok(mod, FIT_ENTRY):
                 flag('FAIL', 'R5_model_select_by_other_entry', i, mod)
         if op in ('fit', 'calibrate'):
             card = e.get('card')
@@ -111,7 +113,36 @@ def audit(events, receipt_utc, policy, amendments, card_lookup, units, role_rows
                 flag('FAIL', 'R9_uncommitted_code_at_launch', i, {'unit': uid, 'files': bad})
             elif bad is None:
                 flag('ATTENTION', 'R9_code_not_checkable', i, uid)
+            # R10: the unit that read the labels runs the operation's own entry point (a fitting unit cannot reach MODEL_SELECT labels
+            # through an evaluation helper; the immediate-caller check of the access layer cannot see that)
+            main_mod, stage = units[uid].get('main'), units[uid].get('stage')
+            want = {'benchmark': ('nrm.evaluate',), 'screen': ('nrm.screen',), 'readers': ('nrm.devreaders',),
+                    'verify': (f'results/{V.CAMPAIGN}/roles/verifier/code/',), 'fit': FIT_ENTRY, 'calibrate': FIT_ENTRY}.get(op, ())
+            want = tuple(want) + tuple(a['entry_point'] for a in amendments if a['operation'] == op and a['commit_utc'] is not None
+                                       and a['commit_utc'] < t)
+            if main_mod is not None and want and not entry_ok(main_mod, want):
+                flag('FAIL', 'R10_unit_main_module_differs_from_operation', i, {'unit': uid, 'main': main_mod, 'operation': op})
+            if role == 'MODEL_SELECT' and fields and stage == 'fit':
+                flag('FAIL', 'R10_fit_stage_unit_read_model_select', i, uid)
     return f
+
+
+def main_module(argv):
+    """Module (after -m) or repository-relative script path that a queue unit runs."""
+    if not argv:
+        return None
+    if '-m' in argv:
+        i = argv.index('-m')
+        return argv[i + 1] if i + 1 < len(argv) else None
+    for x in argv[1:]:
+        if x.endswith('.py'):
+            p = Path(x)
+            p = p if p.is_absolute() else V.ROOT / p
+            try:
+                return str(p.resolve().relative_to(V.ROOT))
+            except ValueError:
+                return str(p)
+    return None
 
 
 # ---------------------------------------------------------------- real inputs
@@ -120,7 +151,7 @@ def _units():
     for e in V.jsonl(V.QUEUE_LEDGER):
         if e.get('event') == 'unit_start':
             out[e['unit_id']] = {'start': V.parse_utc(e['utc']), 'end': None, 'stage': e['stage'], 'git_head': e.get('git_head'),
-                                 'argv': e.get('argv')}
+                                 'argv': e.get('argv'), 'main': main_module(e.get('argv'))}
         elif e.get('event') == 'unit_end' and e['unit_id'] in out:
             out[e['unit_id']]['end'] = V.parse_utc(e['utc'])
             out[e['unit_id']]['status'] = e.get('status')
@@ -281,7 +312,18 @@ def run(tag):
     pdiff = policy_matches_code(pol)
     events = V.jsonl(V.ACCESS_LOG)
     units = _units()
-    findings = audit(events, rutc, pol, _amendments(), _card_lookup(), units, role_rows(), _code_checker(units))
+    amends = _amendments()
+    findings = audit(events, rutc, pol, amends, _card_lookup(), units, role_rows(), _code_checker(units))
+    amend_use = []
+    for am in amends:
+        uses = [e for e in events if str(e.get('entry_point', '')).split(':')[0] == am['entry_point'] or
+                str(e.get('entry_point', '')).split(':')[0].startswith(am['entry_point'] + '.')]
+        first = min((V.parse_utc(e['utc']) for e in uses), default=None)
+        amend_use.append({'operation': am['operation'], 'entry_point': am['entry_point'],
+                          'commit_utc': am['commit_utc'].isoformat() if am['commit_utc'] else None,
+                          'first_use_utc': first.isoformat() if first else None, 'n_uses': len(uses),
+                          'committed_before_first_use': bool(am['commit_utc'] and (first is None or am['commit_utc'] < first)),
+                          'uses': [{k: e.get(k) for k in ('utc', 'unit_id', 'operation', 'role', 'fields')} for e in uses]})
     fails = [x for x in findings if x['severity'] == 'FAIL']
     atts = [x for x in findings if x['severity'] == 'ATTENTION']
     by_rule = {}
@@ -308,9 +350,11 @@ def run(tag):
          'cards committed before fitting reads, unit intervals, row sets, committed code at launch)',
          'inputs': {**V.inputs_sha([V.ACCESS_LOG, V.QUEUE_LEDGER, V.RECEIPT]), 'n_events': len(events)},
          'result': {'summary': summary, 'findings_by_rule': by_rule, 'fail_examples': fails[:20], 'attention_examples': atts[:20],
+                    'amendments': amend_use,
                     'receipt_verified_utc': rutc.isoformat() if rutc else None},
          'numerical_status': 'NOT_APPLICABLE',
-         'procedural_status': 'FAIL' if fails else ('ATTENTION' if atts else 'PASS')},
+         'procedural_status': 'FAIL' if (fails or not all(x['committed_before_first_use'] for x in amend_use))
+                              else ('ATTENTION' if atts else 'PASS')},
         {'id': f'V1.ROW_SETS__{tag}', 'what': 'logged row-set hashes, people and households equal the admitted roles (label-free rebuild, R8)',
          'inputs': V.inputs_sha([V.ACCESS_LOG]),
          'result': {'n_events': len(events), 'row_set_failures': [x for x in findings if x['rule'] == 'R8_row_set_differs'][:10]},
@@ -335,7 +379,9 @@ def selftest():
     card = f'results/{V.CAMPAIGN}/cards/FA_CARD_v1.md'
     cards = {(card, 'c1'): {'commit_utc': T(5), 'sha_at_commit': 's1', 'ancestor': True, 'sha_now': 's1'},
              (card, 'c2'): {'commit_utc': T(30), 'sha_at_commit': 's2', 'ancestor': True, 'sha_now': 's1'}}
-    units = {'U1': {'start': T(10), 'end': T(20), 'stage': 'fit'}, 'U2': {'start': T(10), 'end': T(50), 'stage': 'evaluate'}}
+    units = {'U1': {'start': T(10), 'end': T(20), 'stage': 'fit', 'main': 'nrm.fa.fit'},
+             'U2': {'start': T(10), 'end': T(50), 'stage': 'evaluate', 'main': 'nrm.evaluate'},
+             'U3': {'start': T(10), 'end': T(50), 'stage': 'fit', 'main': 'nrm.fa.fit'}}
     good_fit = {'utc': T(12).isoformat(), 'unit_id': 'U1', 'role': 'MODEL_FIT', 'fields': ['income', 'sex'], 'operation': 'fit',
                 'entry_point': 'nrm.fa.fit:main', 'rows_sha256': 'h1', 'people': 10, 'households': 5, 'card': card,
                 'card_commit': 'c1', 'card_sha256': 's1', 'card_commit_utc': T(5).isoformat()}
@@ -352,6 +398,8 @@ def selftest():
         'R7_null_unit_id': {**good_ms, 'unit_id': None},
         'R8_row_set_differs': {**good_ms, 'people': 7},
         'R9_uncommitted_code_at_launch': {**good_ms, 'unit_id': 'U2', 'entry_point': 'nrm.evaluate:dirty'},
+        'R10_unit_main_module_differs_from_operation': {**good_ms, 'unit_id': 'U3'},
+        'R10_fit_stage_unit_read_model_select': {**good_ms, 'unit_id': 'U3'},
     }
 
     def code_check(uid, mod):

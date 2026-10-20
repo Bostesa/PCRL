@@ -8,6 +8,9 @@
         keys={'role': ROLE, 'row_id': row_ids of ROLE}) reproduces RELEASE.npz draw 0 bitwise (checked in the learner selftest).
     model_paths(config_id, version) -> [learner weights, frozen channel file, (randomized only) the private root key file]
         all under .private/<campaign>/runs/FB/MODELS/V<v>/ (write-once files written by nrm.fb.learner.fit_version).
+        FB2_* (revision 1, nrm.fb.posthoc): [frozen channel file, (randomized only) root key] under runs/FB/MODELS_FB2/V<v>/ PLUS the
+        frozen base's files OUTSIDE this campaign's runs folder (HC_STRONG state / Step-1 learner and admitted stage files in the
+        income-headroom mirror; the A1_PO_16 run directory of the occupation-headroom campaign; two governance admissions).
 Needs the torch interpreter (the release logits are the torch float32 forward pass of the saved networks).
 """
 from __future__ import annotations
@@ -19,30 +22,48 @@ import numpy as np
 from . import channel as CH
 
 FAMILY = 'FB'
-CODE_MODULES = ('nrm.fb.channel', 'nrm.fb.learner', 'nrm.fb.release')
+CODE_MODULES = ('nrm.fb.channel', 'nrm.fb.learner', 'nrm.fb.release', 'nrm.fb.posthoc',
+                # FB2 base sources (HC_STRONG income, A1_PO_16 occupation) read by nrm.fb.posthoc.base_probs
+                'ihs.fam_h', 'ihs.bases', 'ihs.common', 'ohn.fam_a', 'ohn.common', 'ohn.devrun', 'acs_replication.trees')
 TASKS = ('income', 'occupation')
-_ROOT_OVERRIDE = None            # selftest only: a temporary model folder in place of runs/FB/MODELS
+_ROOT_OVERRIDE = None            # selftest only: a temporary model folder in place of runs/FB/MODELS[/<rev>]/V<v>
+REVISIONS = ('FB1', 'FB2', 'FB2P')   # FB1 = card FB_FSC_v1 (nrm.fb.learner); FB2 = card v2, FB2P = card v3 (nrm.fb.posthoc)
 
 
-def model_dir(version, root=None):
-    if root is not None:
-        return Path(root)
-    if _ROOT_OVERRIDE is not None:
-        return Path(_ROOT_OVERRIDE)
+def revision_of(config_id):
+    """The revision tag a family-B configuration id belongs to (ENG1-08: configurations are selected by revision)."""
+    from . import learner as L
+    if config_id in L.CONFIGS:
+        return 'FB1'
+    from . import posthoc as PH
+    if config_id in PH.REVISION_OF:
+        return PH.REVISION_OF[config_id]
+    raise ValueError(f'unknown family-B configuration {config_id}')
+
+
+def model_dir(version, root=None, rev='FB1'):
+    """Model folder of one (revision, version). FB1 keeps the layout it was fitted with (runs/FB/MODELS/V<v>, written before
+    ENG1-08); every later revision uses runs/FB/MODELS/<rev>/V<v>, with its own write-once root key."""
+    if rev not in REVISIONS:
+        raise ValueError(f'unknown family-B revision {rev}')
+    if root is not None or _ROOT_OVERRIDE is not None:           # selftests: the caller's folder (FB1 flat, later revisions per rev/V)
+        base = Path(root if root is not None else _ROOT_OVERRIDE)
+        return base if rev == 'FB1' else base / rev / f'V{int(version)}'
     from .. import common as C
-    return C.RUNS / FAMILY / 'MODELS' / f'V{int(version)}'
+    base = C.RUNS / FAMILY / 'MODELS'
+    return base / f'V{int(version)}' if rev == 'FB1' else base / rev / f'V{int(version)}'
 
 
-def channel_file(config_id, version, root=None):
-    return model_dir(version, root) / f'CHANNEL_{config_id}.json'
+def channel_file(config_id, version, root=None, rev='FB1'):
+    return model_dir(version, root, rev) / f'CHANNEL_{config_id}.json'
 
 
 def learner_file(learner, version, root=None):
-    return model_dir(version, root) / f'LEARNER_{learner.replace(":", "_")}.pt'
+    return model_dir(version, root, 'FB1') / f'LEARNER_{learner.replace(":", "_")}.pt'
 
 
-def root_key_file(version, root=None):
-    return model_dir(version, root) / 'RELEASE_ROOT.bin'
+def root_key_file(version, root=None, rev='FB1'):
+    return model_dir(version, root, rev) / 'RELEASE_ROOT.bin'
 
 
 def _channel(config_id, version):
@@ -56,6 +77,9 @@ def _channel(config_id, version):
 
 
 def model_paths(config_id, version):
+    if revision_of(config_id) in ('FB2', 'FB2P'):         # post-hoc channel on the frozen TWA base (nrm.fb.posthoc)
+        from . import posthoc as PH
+        return PH.model_paths2(config_id, version)
     rec = _channel(config_id, version)
     paths = [learner_file(rec['learner'], version), channel_file(config_id, version)]
     if rec['randomized']:
@@ -80,6 +104,9 @@ def _check_inputs(X, feature_names, expected):
 
 
 def predict(config_id, version, X, feature_names, draw=0, keys=None):
+    if revision_of(config_id) in ('FB2', 'FB2P'):         # numpy / scikit-learn only (python3)
+        from . import posthoc as PH
+        return PH.predict2(config_id, version, X, feature_names, draw=draw, keys=keys)
     from . import learner as L
     rec = _channel(config_id, version)
     X = _check_inputs(X, feature_names, rec['feature_names'])
