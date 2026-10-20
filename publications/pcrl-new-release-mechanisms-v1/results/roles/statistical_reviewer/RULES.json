@@ -1,0 +1,138 @@
+{
+  "schema": "NRM1-rules-v1",
+  "campaign": "pcrl_new_release_mechanisms_v1",
+  "author_role": "statistical reviewer",
+  "written_before_outcomes": "writing started 2026-10-20T14:45:00Z (date -u), before any candidate outcome of this campaign; no label read, no real-data computation, no label-reading loader called",
+  "human_readable": "RULES.md (same directory)",
+  "implementation": "nrm/rules.py (pure functions; load_rules() checks this file against the module constants); invented-data tests and known-law screen checks: python3 -m nrm.test_rules (writes SCREEN_CHECKS.json in this directory)",
+  "status_of_every_rule": "development rule on previously and adaptively used MODEL_SELECT records; changes no original limit; the two-SE reserve is a development heuristic, not a cap or population guarantee; every uncertainty statement is asymptotic and model-based (normal approximation, conservative variance bounds), never a finite-sample or distribution-free guarantee",
+  "source_files": {
+    "results/pcrl_occupation_headroom_overnight_v1/roles/statistical_reviewer/RULES.json": "e18f1c68f4646ce9d1395960ab1a364a80c12541b815a55e0ba06b65074cbbb3",
+    "results/pcrl_controlled_training_size_v1/roles/statistical_reviewer/RULES.json": "7bb2d251e951f1745e592602539656769671537e6f29a038194093e6f83e2460"
+  },
+  "original_limits": {
+    "caps": {"accuracy_loss": 0.01, "nll_excess": 0.01, "brier_excess": 0.005},
+    "within_sex_guard_cap": 0.005,
+    "utility_clauses": "income and occupation x U0_S<v> and Ucal_S<v> x accuracy loss, NLL excess (nats), summed Brier excess x versions 0 and 1: 24 clauses (inclusive)",
+    "guards": "within-SEX occupation summed-Brier excess vs U0_S<v>, men (sex0) and women (sex1), versions 0 and 1: 4 guards (inclusive)",
+    "recipient_allowance_auc": 0.01,
+    "recipient_definition": "each single output's SEX-recovery AUC minus the comparator's (income view, occupation view) <= 0.010, per comparator, view and version (OHN1 original_limits.recipient; TSZ1 section 0)",
+    "material_target_auc": 0.02,
+    "target_references": ["NEURAL_RAW", "H_LJ"],
+    "unchanged": true
+  },
+  "versions": {"values": [0, 1], "independence": "procedure repeats sharing every training row and the MODEL_SELECT people; never independent replications"},
+  "reserve": {
+    "rule": "ohn.rules.reserve imported unchanged (OHN1-rules-v1, SHA-256 e18f1c68...); k = 2; se_used = max(own SE, H_LJ floor SE x sqrt(5306 / households)); margin = cap - value >= 2 se_used (inclusive)",
+    "multiplier_k": 2.0,
+    "randomized_own_se": "sqrt(se^2 + se_mc^2) before flooring (se = mean per-draw household-clustered SE, se_mc = SD over draws / sqrt(R)); the reserve without the MC term is reported beside it",
+    "applies_to": "candidates, controls and references identically (whole release, 28 conditions over both versions)",
+    "qualified": "RESERVE_MET on both versions (minimum whole-release ratio >= 2 on each version)"
+  },
+  "cells": {
+    "registered": ["S0R1k0", "S0R1k1", "S0R2k0", "S0R2k1", "S1R1k0", "S1R1k1", "S1R2k0", "S1R2k1"],
+    "robustness_repetitions": ["R3", "R4"],
+    "robustness_reader_seeds": [2, 3],
+    "decision_cells": "registered cells only (every configuration has them); robustness cells give a separate ROBUSTNESS label and never change a decision or a ranking",
+    "fraction_cells": "learning-curve cells (name contains '@') never enter a screen"
+  },
+  "aggregate_screen": {
+    "z": 2.0,
+    "se_floor_auc": 0.001,
+    "estimator": "block b = (version, repetition); block mean m_b = mean of its reader-seed cells; aggregate x = mean of block means; per-version mean = mean of that version's block means",
+    "se_components": {
+      "household": "se_hh = sqrt(sum_c w_c s_c^2), w_c = cell weight in x (RMS of the paired household-bootstrap cell SEs): an upper bound of the SCORE-household sampling SE of x for ANY correlation between cells (shared households across versions, seeds and overlapping repetitions)",
+      "reader_split_version": "se_rs = sqrt(sum_b (m_b - x)^2 / n_blocks): for the crossed 2-version x n-repetition design this has expectation >= the version, split, interaction and reader-seed part of Var(x) (equal for the version and split components when there are 2 levels of each, larger otherwise)",
+      "monte_carlo": "se_mc = sqrt(sum_c w_c mc_c^2) for randomized releases (cell MC SE = SD over draws / sqrt(D)); reported separately",
+      "total": "se_agg = max(sqrt(se_hh^2 + se_rs^2 + se_mc^2), se_floor_auc) unless the comparison is an exact alias"
+    },
+    "benefit_labels": {"ALIAS_ZERO": "every cell value and SE exactly 0 (identical wire): never positive", "AGG_POSITIVE": "x - z se_agg > 0 and both version means > 0", "AGG_POSITIVE_POINT_ONLY": "x > 0 otherwise", "AGG_NOT_POSITIVE": "x <= 0", "INCOMPLETE": "a registered cell, SE or finite value missing"},
+    "target_labels": {"TARGET_AGG_RESOLVED": "x - z se_agg > 0.020 and both version means > 0.020", "TARGET_AGG_POINT_ONLY": "x > 0.020 otherwise", "TARGET_AGG_NOT_MET": "x <= 0.020 or incomplete"},
+    "recipient": "per version v (the original allowance is per version): r_v = mean of v's block means, se_v from v's cells only; gate (original allowance at the aggregate point): r_v <= 0.010 for both versions; RECIPIENT_AGG_RESOLVED (r_v + z se_v <= 0.010 both), RECIPIENT_AGG_EDGE (point pass, not resolved), RECIPIENT_AGG_POINT_FAILED, RECIPIENT_AGG_RESOLVED_WORSE (some r_v - z se_v > 0.010), ALIAS_ZERO (passes)",
+    "old_every_cell_rule": "kept beside as a diagnostic: tsz.rules.recipient_gate (every registered cell <= 0.010) and tsz.rules.stability_label (STABLE_POSITIVE) on the 8 registered cells; a disagreement is flagged EVERY_CELL_RULE_DIVERGES and disclosed; earlier campaigns are never relabelled",
+    "aliases": "an exact alias (identical wire of the compared view) is one zero comparison; comparator views with identical wires form one alias group, reported once and counted once in every count; seed-deterministic duplicate cells (k cells of a block with bitwise equal values) count once in n_eff",
+    "sign_reversals": "cells (distinct) whose sign differs from the aggregate's, block means and version means with the other sign, reported for every comparison"
+  },
+  "reader_stability": {
+    "seed_dependent_recipes": ["ET5", "ET25", "MLP64", "MLP6432", "OUT_MLP", "LOG_MLP"],
+    "seed_invariant_recipes": ["OUT_LR", "OUT_HGB", "LOG_LR", "DEC_LR", "CONF_HGB", "LOOKUP", "HGB15", "HGB31", "CATI01", "CATI1"],
+    "validation_near_tie": 0.01,
+    "qualifiers": {"READER_SEEDS_EFFECTIVE_ALL_BLOCKS": "every block's reader-seed cells differ", "READER_SEEDS_PARTLY_EFFECTIVE": "some blocks", "READER_SEED_REPLICATION_ABSENT": "no block"},
+    "forbidden_reader_seed_offsets": [300, 500],
+    "reader_seed_offset_this_campaign": 600,
+    "model_seed_base": 2026101205,
+    "grid_validity": "A-SC1 criterion applied prospectively: (i) recorded distinct integer reader seeds, none equal to MODEL_SEED_BASE + 300 or + 500 + 10 v + k (k = 0..9); (ii) no k0/k1 equality of a seed-dependent recipe on the minimum set (the selected candidate and its matched controls); (iii) every other equality explained (another seed-dependent recipe differs in the same wire, view, version, repetition; the same recipe differs on another view of the same wire; the view's distinct-input count recorded), where differs means a RECORDED check with equal_k0_k1 false; the four registered seeds S0k0, S0k1, S1k0, S1k1 must be recorded; claims need grid_valid recorded and true (missing: NOT_COMPUTED_GRID_VALIDITY_UNKNOWN; false: NOT_COMPUTED_GRID_INVALID for G2-G6, no tier); seed-invariant recipes that differ are flagged NONDETERMINISTIC_RECIPE (not fatal)"
+  },
+  "references": {
+    "original_benchmark": ["NEURAL_RAW", "H_LJ", "B2TWIN", "RETIRED_B3CTL", "SUCC", "TWJ", "W", "TR100", "TT100"],
+    "inherited_six": ["NEURAL_RAW", "H_LJ", "B2TWIN", "RETIRED_B3CTL", "SUCC", "TWJ"],
+    "definitions": {
+      "NEURAL_RAW": "neural release (frozen)",
+      "H_LJ": "LOCAL income + JOINT_TREE occupation",
+      "B2TWIN": "6-level LOCAL income code + JOINT_TREE occupation",
+      "RETIRED_B3CTL": "retired B3CTL (JOINT occupation + 6-level income code)",
+      "SUCC": "H3 income + JOINT_TREE occupation",
+      "TWJ": "HC_STRONG income + JOINT_TREE occupation",
+      "W": "A1_PO_16 (100% of MODEL_FIT) occupation + H3 income (TSZ1 witness)",
+      "TR100": "TASK_REFIT (100%) occupation + H3 income (TSZ1 control)",
+      "TT100": "T_TREE (100%) occupation + H3 income (TSZ1 control's first stage)"
+    },
+    "eligibility_rule": "original point eligibility only: all 24 clauses and 4 guards pass at the point on both versions from the published MODEL_SELECT values; reserve, recovery and any outcome of this campaign play no role; a re-evaluation by nrm.evaluate is reported beside and a disagreement is flagged REFERENCE_POINT_STATUS_DISAGREES (the published label governs)",
+    "published_labels": {
+      "NEURAL_RAW": {"point": "POINT_ELIGIBLE", "reserve": "RESERVE_NOT_MET", "min_whole_ratio": [1.9473360473873678, 1.5575384412450328], "source": "TSZ1 conditional/COND_UTILITY.json"},
+      "H_LJ": {"point": "POINT_ELIGIBLE", "reserve": "RESERVE_NOT_MET", "min_whole_ratio": [0.3212259380172857, 0.6244343872131651], "source": "TSZ1 conditional/COND_UTILITY.json"},
+      "B2TWIN": {"point": "POINT_ELIGIBLE", "reserve": "RESERVE_NOT_MET", "min_whole_ratio": [0.3212259380172857, 0.6244343872131651], "source": "TSZ1 conditional/COND_UTILITY.json"},
+      "RETIRED_B3CTL": {"point": "POINT_ELIGIBLE", "reserve": "RESERVE_NOT_MET", "min_whole_ratio": [0.3212259380172857, 0.3488691895977687], "source": "TSZ1 conditional/COND_UTILITY.json"},
+      "SUCC": {"point": "POINT_ELIGIBLE", "reserve": "RESERVE_NOT_MET", "min_whole_ratio": [0.3212259380172857, 0.6244343872131651], "source": "TSZ1 conditional/COND_UTILITY.json"},
+      "TWJ": {"point": "POINT_ELIGIBLE", "reserve": "RESERVE_NOT_MET", "min_whole_ratio": [0.3212259380172857, 0.6244343872131651], "source": "TSZ1 conditional/COND_UTILITY.json"},
+      "W": {"point": "POINT_ELIGIBLE", "reserve": "RESERVE_MET", "min_whole_ratio": [3.511132467535549, 2.8619483139645507], "source": "TSZ1 conditional/COND_UTILITY.json (W)"},
+      "TR100": {"point": "POINT_ELIGIBLE", "reserve": "RESERVE_MET", "min_whole_ratio": [3.412, 2.8619483139645507], "source": "TSZ1 size/SIZE_RESULTS.json TR|S100 (occupation-side 3.412 / 3.186, income 3.511 / 2.862)"},
+      "TT100": {"point": "POINT_ELIGIBLE", "reserve": "RESERVE_MET", "min_whole_ratio": [3.326, 2.6], "source": "TSZ1 size/SIZE_RESULTS.json TT|S100 (occupation-side 3.326 / 2.600, income 3.511 / 2.862)"}
+    },
+    "diagnostic": {
+      "PUB_IBSI": "DIAGNOSTIC_POINT_INELIGIBLE (published seed-1 men's guard 0.0050142 > 0.005): descriptive only, never in the original benchmark",
+      "U0, Ucal": "UTILITY_REFERENCE_ONLY (define the clauses; not recovery comparators)"
+    },
+    "frozen": "this set and these labels never change after any outcome of this campaign"
+  },
+  "frontier": {
+    "primary_cost": "total NLL spending of the complete release: income NLL + occupation NLL (nats per person, MODEL_SELECT, draw-averaged), compared through paired per-person differences d = cost(candidate) - cost(control) with household-clustered SEs; across versions d = mean of the two version differences, SE = mean of the two SEs (versions share people: correlation bound); if only per-task SEs are given, SE(sum) <= se_income + se_occupation (flag COST_SE_BOUND)",
+    "secondary_metrics": ["income|acc_loss", "income|brier", "income|nll", "occupation|acc_loss", "occupation|brier", "occupation|nll", "occupation|men_brier", "occupation|women_brier"],
+    "bracket": "Q* = the control-path point with the smallest pooled cost among those whose pooled point cost is >= the candidate's (d <= 0); no exact cost match is required",
+    "dominates": "DOMINATES_CONTROL_FRONTIER iff a bracket Q* exists, the pair benefit vs Q* is AGG_POSITIVE (aggregate screen) and no secondary metric shows resolved extra spending vs Q* (d_m - z se_m > 0)",
+    "labels": ["DOMINATES_CONTROL_FRONTIER", "SEPARATED_ON_PRIMARY_COST_ONLY", "NOT_SEPARATED_FROM_TASK_SPENDING", "INCOMPLETE"],
+    "secondary_required": "all 8 secondary metrics against Q* must be present and finite; otherwise INCOMPLETE (the secondary check is never skipped)",
+    "not_separated_reasons": ["CANDIDATE_SPENDS_MORE_THAN_EVERY_CONTROL_POINT", "NO_RESOLVED_BENEFIT_AT_BRACKETING_CONTROL", "CONTROL_PATH_MISSING"],
+    "interpolation": "linear interpolation of the control path's pair AUC at the candidate's cost between the bracketing points, with SE <= (1 - lambda) se_lo + lambda se_hi (the cost uncertainty of lambda is not propagated; the primary cost SEs are reported beside it); reported, never gating",
+    "z": 2.0
+  },
+  "claims": {
+    "G1": "TASK_FEASIBLE iff the complete release (actual emitted outputs; randomized: draw-averaged) passes all 24 clauses and 4 guards at the point; reserve reported beside, never part of G1",
+    "G2": "INCREMENTAL_REDUCTION_BEYOND_MATCHED_CONTROLS iff G1 and, against BOTH the family's equally trained task-only twin and its declared simplest alternative explanation, the pair benefit is AGG_POSITIVE and the recipient gate passes (both views, both versions); MET_WITHOUT_TASK_FEASIBILITY if the comparisons pass without G1; NO_MATCHED_CONTROLS if either control is missing",
+    "G3": "STABLE_FRONTIER_IMPROVEMENT iff G1 and the actual selected output's frontier label is DOMINATES_CONTROL_FRONTIER against the family's SEX-blind control path",
+    "G4": "SUPERIOR_TO_ALL_ELIGIBLE_REFERENCES iff G1 and, against every point-eligible original-benchmark reference, AGG_POSITIVE pair benefit and the recipient gate (both views, both versions); the old every-cell profile is reported beside (OLD_RULE_PROFILE)",
+    "G5": "MATERIAL_0020_RESOLVED iff G1, TARGET_AGG_RESOLVED against NEURAL_RAW and against H_LJ, and the recipient gate against both; TARGET_RESOLVED_RECIPIENT_GATE_FAILED (target resolved against both, a recipient gate fails); MATERIAL_0020_POINT_ONLY (aggregate mean > 0.020 against both, not resolved); POSITIVE_BELOW_MATERIAL_TARGET (AGG_POSITIVE against both, target not met); NOT_MET; without G1 any level above NOT_MET becomes MET_WITHOUT_TASK_FEASIBILITY (level kept); a separate claim, never nested in or implied by G4 (G4 is reported beside it)",
+    "G6": "in order: fewer than two distinct outputs changed -> NOT_APPLICABLE_ONE_OUTPUT_CHANGED (names the output); both changed but not declared jointly designed (or no joint record) -> NOT_APPLICABLE_NOT_JOINT; separate design or a sequential order missing -> NOT_ASSESSED_MISSING_CONTROLS; JOINT_CONTRIBUTION_SUPPORTED iff against the matched separate design and both sequential orders the pair benefit is AGG_POSITIVE, the recipient gate passes and the primary cost is not resolved higher; else NOT_SUPPORTED",
+    "G7": "novelty: copied verbatim from a separate prior-art review (NOT_CLAIMED by default); never inferred from any performance label",
+    "useful_component": "USEFUL_COMPONENT_NOT_COMPETITIVE iff G2 holds and G4 does not; always shown",
+    "protection_without_feasibility": "any protection label without G1 is MET_WITHOUT_TASK_FEASIBILITY and never claimable"
+  },
+  "selection": {
+    "max_candidates": 1,
+    "universe": "the complete ledger: every configuration of every family and every challenger control saved through nrm.release.save and evaluated in both versions; control-labelled configurations compete on equal terms and are never excluded after results",
+    "tiers": {"T5": "G1 G2 G3 G4 G5(resolved)", "T4": "G1 G2 G3 G4", "T3": "G1 G2 G3", "T2": "G1 G2"},
+    "minimum_tier": "T2",
+    "score": "minimum over the point-eligible original-benchmark references of the registered-cell aggregate pair benefit x (higher is better)",
+    "near_tie_width": 0.005,
+    "tie_breaks": ["reserve-qualified on both versions first (implied by the leximin vector when both versions are evaluated; kept explicit)", "leximin whole-release reserve ratio vector (larger minimum first)", "fewer fitted components (a number, or a per-version record summed over both versions; 0 is 0; missing is infinite)", "earliest ledger entry (missing sorts last)", "config_id (lexicographic)"],
+    "aliases": "a configuration whose wires equal a reference's (both tasks, both versions; the wires of all 9 references are a REQUIRED input) or whose pair comparison against a reference is ALIAS_ZERO is ALIAS_OF_<REFERENCE>; equal to an earlier configuration: ALIAS_OF_<earlier config_id>; neither is selectable",
+    "actual_outputs": "the wire hashes recorded with the utility evaluation and with the grid must be equal per version and task (every draw for randomized releases); otherwise NOT_SELECTABLE_OUTPUT_MISMATCH; no nearby strength, seed or draw is substituted",
+    "incomplete": "NOT_SELECTABLE_INCOMPLETE_REFERENCE_GRID when a grid entry against one of the 9 references is missing or incomplete (the score needs all 9)",
+    "none": "NO_DEVELOPMENT_CANDIDATE when no configuration reaches T2"
+  },
+  "randomized": {
+    "utility": "each metric on each emitted draw (vector and its own argmax), averaged over R predeclared one-draw-per-person repetitions; household SE = mean per-draw SE; MC SE = SD over draws / sqrt(R), reported separately; every draw's own point status reported (WORST_DRAW diagnostic)",
+    "grid": "cell value = mean over the cell's evaluated draws; household SE = RMS of the draws' paired bootstrap SEs (bound for shared households); MC SE = SD over draws / sqrt(D) (D >= 2; D = 1 gives MC_SE_NOT_ESTIMABLE)",
+    "decision": "MC SE enters the aggregate SE as its own component and the reserve's own SE in quadrature; the three components are always reported separately"
+  }
+}
