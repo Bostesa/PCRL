@@ -1,0 +1,58 @@
+{
+ "schema": "FSA1-backup-verification-v1",
+ "campaign": "pcrl_finite_solver_adequacy_v1",
+ "written_utc": "2026-10-21T03:37:56Z",
+ "what_is_backed_up": "this campaign has no fitted release, deployment package or reader grid; the backup holds the campaign code and records (code.tar), the branch since its base 278cb1ed6 (bundle), and the private tree: the P1 replay and nested per-person files, the source partitions and books, the queue and access logs, plus the read-only source artefacts the code reads (frc runs and caches, NRM1 task caches, occupation-headroom and H3 mirrors)",
+ "B1_first_attempt_failed": {
+  "status": "FAILED_RESTORE_CHECK (kept; superseded)",
+  "unit": "FSA_CUSTODY_B1_V1 (queue status done; the restore check inside reported all_ok false)",
+  "path": "<worktrees>/pcrl-finite-solver-adequacy-v1-backup/pcrl_finite_solver_adequacy_v1_20261021T033518Z",
+  "tip_commit": "57fad34b525df124e227dbb6e7433b844e67c124",
+  "cause": "the stage records (replay / audit / source / nested JSON) had not been committed, so code.tar (git archive of committed files) lacked them and the restore check could not find replay/P1_REPLAY_V0.json; the records were committed (237c953a8) and the backup repeated",
+  "checked_utc": "2026-10-21T03:35:35+00:00"
+ },
+ "B1_same_device": {
+  "status": "VERIFIED_FROM_BACKUP_ALONE",
+  "unit": "FSA_CUSTODY_B1_V2 (python3 -m fsa.custody backup; 24.4 s wall, 19.6 CPU-s)",
+  "path": "<worktrees>/pcrl-finite-solver-adequacy-v1-backup/pcrl_finite_solver_adequacy_v1_20261021T033709Z",
+  "tip_commit": "237c953a86c8ad1ed7cb910662a6a8b7733399c1",
+  "taken_after": "every real-data unit (replay, audit, source, nested), the decision inputs and the advancement decision, the exact-reference outputs and the restore-check rewrite; later research commits change records and documents only",
+  "files_bytes": {"TIP_COMMIT": 41, "branch_since_base.bundle": 555806, "code.tar": 146892800, "private.tar": 1305581568, "MANIFEST.sha256": 321},
+  "manifest_sha256": {
+   "TIP_COMMIT": "5ce2cd70b67745f25b441382dfa14df6fcbcc5917eccb5d4fc402900c0cace0d",
+   "branch_since_base.bundle": "2e0df7b6a52595908e448b1dac49ce60e1334bea0cbfafe574dc4a608e5369a7",
+   "code.tar": "6e1c5eac6754dc99c12d4870ea8258c52e6a1664e08259baa6d3b56f531289c9",
+   "private.tar": "900f1a33d6167b13f48f83f42ebc1cf67b96c131ca8792958fb7b24e378b5b94"
+  },
+  "manifest_file_sha256": "180cd5147449047261f2453542e8ff854c1c945c20d7b5f2a4b0556c41c9ef1d",
+  "restore_check_sha256": "f4ee1e27346e8f42d5e2613922eaf99f955b1c0cd9ca2ead56300fc017272cd8",
+  "checked_utc": "2026-10-21T03:37:32+00:00",
+  "read_back": "same device (local disk), right after writing; not a cold check",
+  "results": {
+   "all_ok": true,
+   "manifest_rehash_ok": true,
+   "bundle_verify": true,
+   "admitted_copies_rehashed": 201,
+   "source_artefacts_rehashed_without_mismatch": true,
+   "private_outputs_rehashed_without_mismatch": true,
+   "source_books_rerouted_bitwise_from_backup": "72 of 72 (python3 3.14.3 pass)",
+   "fitted_objectives_equal_record": "4 of 4 (PRC original and SV1 at strength 8, both versions)",
+   "replay_loss_means_max_abs_difference": 0.0,
+   "solver_selftest_from_backup": "passed",
+   "route_s_label_rederived_from_backup": "S_PROXY_ONLY (both passes)",
+   "advancement_label_rederived_from_backup": "OPTIMIZER_REPAIR_CLOSED (both passes)",
+   "torch_venv_pass": "hashes and label re-derivation only (the cached teachers are pickled under the fit interpreter)",
+   "labels_read": false
+  },
+  "independent_check": "the verifier's own check of this backup, if made, is in VERIFICATION.md"
+ },
+ "off_device": {
+  "status": "PENDING_DRIVE_NOT_ATTACHED",
+  "drive": "YOTUO (the owner's off-device custody drive)",
+  "checked_utc": ["2026-10-21T02:30Z (source admission record: offdevice_drive_attached false)", "2026-10-21T03:35:10Z", "2026-10-21T03:37:56Z"],
+  "observation": "/Volumes listed BackgroundSyncService Setup, Google Chrome and Macintosh HD only",
+  "action_taken": "none: nothing was mounted, unmounted or forced",
+  "when_attached": "python3 -m fsa.custody offdevice <worktrees>/pcrl-finite-solver-adequacy-v1-backup/pcrl_finite_solver_adequacy_v1_20261021T033709Z <external drive>,
+  "warm_versus_cold": "a check right after copying reads through the cache (warm); a cold re-check needs an ordinary eject and re-attach first"
+ }
+}

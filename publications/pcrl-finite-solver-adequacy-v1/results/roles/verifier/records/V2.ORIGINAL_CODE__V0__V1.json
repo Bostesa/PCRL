@@ -1,0 +1,99 @@
+{
+ "inputs": {
+  "labels_read": true,
+  "npz": ".private/pcrl_finite_solver_adequacy_v1/solver/P1_REPLAY_V0.npz",
+  "npz_sha256": "30828da8be9d5832a3cb187769aa361a8d0c2fcfc1c2ed2fa01024789bfdbea0",
+  "replay_record": "results/pcrl_finite_solver_adequacy_v1/replay/P1_REPLAY_V0.json",
+  "replay_record_sha256": "3ae020141734d35e567fd8a3433faabb92e80715f07a0b1aa9c718954c821a72",
+  "reproduction_tolerance_abs": 1e-12,
+  "rules": {
+   "results/pcrl_finite_solver_adequacy_v1/roles/statistical_reviewer/RULES.json": {
+    "commit": "71f8de33bcfc63d7c003c9ac8c65d43305f82651",
+    "commit_utc": "2026-10-20T22:59:46-04:00",
+    "sha256": "ec4af5e6e07f33bafe56fd98552450ab3c3e4a1aa14046b6034a53f7bcb0ef53"
+   },
+   "results/pcrl_finite_solver_adequacy_v1/roles/statistical_reviewer/RULES.md": {
+    "commit": "71f8de33bcfc63d7c003c9ac8c65d43305f82651",
+    "commit_utc": "2026-10-20T22:59:46-04:00",
+    "sha256": "a8df3dfab088a8f44ce179a287c919774b0203f717a9b77466ba92ac40b3a06b"
+   }
+  },
+  "selection": "results/pcrl_finite_routing_comparison_v1/fa/SELECTION_V0.json",
+  "selection_sha256": "e68635555057da3556b18a55772e2c7d530e460c31d3ca903631723d0d2316f5",
+  "tolerance_abs": 1e-09
+ },
+ "result": {
+  "nested_c_call_path": {
+   "changed": [
+    "emit"
+   ],
+   "constants_changed": [],
+   "constants_only_new": [],
+   "constants_only_old": [],
+   "functions_new": [
+    "_unit_hash",
+    "apply_c",
+    "chain_inputs",
+    "emit",
+    "entry_embedding",
+    "fit_pipeline_c",
+    "nested_c",
+    "route_any",
+    "shuf_embedding",
+    "tables",
+    "unt_route"
+   ],
+   "functions_old": [
+    "apply_c",
+    "chain_inputs",
+    "emit",
+    "entry_embedding",
+    "fit_pipeline_c",
+    "nested_c",
+    "shuf_embedding",
+    "tables"
+   ],
+   "only_new": [
+    "_unit_hash",
+    "route_any",
+    "unt_route"
+   ],
+   "only_old": [],
+   "source_changed": {
+    "emit": {
+     "new": "def emit(E, book, tabs):\n    \"\"\"Release of runtime statistics E through the routing book and the emitted tables (the partition depends on the book and the\n    statistics only, never on the tables).\"\"\"\n    k, l = route_any(E, book)\n    return {'income': tabs['I'][k].copy(), 'occupation': tabs['O'][l].copy()}, k, l",
+     "old": "def emit(E, book, tabs):\n    \"\"\"Release of runtime statistics E through the routing book and the emitted tables (the partition depends on the book and the\n    statistics only, never on the tables).\"\"\"\n    k, l = P.route(entry_embedding(E, book), book)\n    return {'income': tabs['I'][k].copy(), 'occupation': tabs['O'][l].copy()}, k, l"
+    }
+   },
+   "source_only_new": {
+    "_unit_hash": "def _unit_hash(Z, tag):\n    \"\"\"Keyed hash of each row's compact features in [0, 1): SHA-256(tag | row bytes), first 8 bytes / 2^64 (deployable).\"\"\"\n    Z = np.ascontiguousarray(np.asarray(Z, dtype=np.float64))\n    t_ = tag.encode()\n    return np.array([int.from_bytes(hashlib.sha256(t_ + Z[i].tobytes()).digest()[:8], 'big') / 2.0 ** 64 for i in range(len(Z))])",
+    "route_any": "def route_any(E, book):\n    \"\"\"The partition an entry's deployed rule produces from statistics E.\"\"\"\n    if book.get('frc_route') == 'unt':\n        return unt_route(E, book)\n    return P.route(entry_embedding(E, book), book)",
+    "unt_route": "def unt_route(E, book):\n    \"\"\"Revision R1 untargeted re-routing: the nearest-codeword (twin) rule, except that people whose keyed hash falls below f_O\n    (occupation, tag | 'O') or f_I (income, tag | 'I') take their second-nearest codeword. SEX-blind; a function of x only.\"\"\"\n    AI, AO = P._xent(E['qI'], book['CI']), P._xent(E['qO'], book['CO'])\n    oi, oo = np.argsort(AI, axis=1, kind='stable'), np.argsort(AO, axis=1, kind='stable')\n    uI, uO = _unit_hash(E['Z'], book['unt_tag'] + '|I'), _unit_hash(E['Z'], book['unt_tag'] + '|O')\n    k = np.where(uI < book['unt_f_I'], oi[:, 1], oi[:, 0])\n    l = np.where(uO < book['unt_f_O'], oo[:, 1], oo[:, 0])\n    return k, l"
+   }
+  },
+  "nrm_ohn_scm_bench_files_changed_since_original": {},
+  "original_route_matches_its_unit_record": true,
+  "original_route_sha256": "7ed1003f52d9fa5f7cef1401bb3e010e90311825732d0825fac6767ad631d258",
+  "original_unit": {
+   "git_head": "b538fa7a483713fc9f5ab23c96c35c666224426a",
+   "interpreter": {
+    "catboost": null,
+    "executable": "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "numpy": "2.4.4",
+    "psutil": null,
+    "python": "3.14.3",
+    "scikit-learn": "1.8.0",
+    "scipy": "1.17.1",
+    "torch": null
+   },
+   "unit_id": "FRC_PATHS_V0_V1",
+   "utc": "2026-10-20T23:56:21+00:00"
+  },
+  "same_interpreter": {
+   "numpy": true,
+   "python": true,
+   "scikit-learn": true,
+   "scipy": true
+  }
+ }
+}

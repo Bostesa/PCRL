@@ -57,7 +57,7 @@ def main():
             if isinstance(v, (int, float)):
                 stats[k] += v
     ps = subprocess.run(['ps', '-axo', 'pid,command'], capture_output=True, text=True).stdout.splitlines()
-    owned = re.compile(r'(-m frc\.|/fsa/|pcrl_finite_solver_adequacy_v1/roles/verifier/code)')   # campaign modules only
+    owned = re.compile(r'(-m fsa\.|/fsa/|pcrl_finite_solver_adequacy_v1/roles/(verifier|exact_reference)/code)')   # campaign modules only
     mine = [l.strip()[:120] for l in ps if owned.search(l) and 'closeout' not in l and 'ps -axo' not in l]
     res = {'schema': 'FSA1-resource-accounting-v1', 'utc': now.isoformat(timespec='seconds'), 'start_utc': Q.CAMPAIGN_START_UTC,
            'elapsed_h': round((now - Q.start_utc()).total_seconds() / 3600, 3), 'research_limit_h': Q.RESEARCH_LIMIT_H,

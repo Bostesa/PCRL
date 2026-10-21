@@ -400,7 +400,7 @@ def selftest():
     pb = chain(E, tb, k0, l0, [1.0, 2.0], rp, solver='original_traced', trace={})
     checks['chain_original_traced_equals_protected_path'] = all(
         np.array_equal(pa[x][1], pb[x][1]) and np.array_equal(pa[x][2], pb[x][2]) for x in (1.0, 2.0))
-    # 4. SV1 accepted objectives decrease, every accepted state is rule-consistent, and it is never worse than the original
+    # 4. SV1 accepted objectives decrease and every accepted state is rule-consistent (SV1 is not guaranteed to beat the original)
     tr1 = {}
     ps = chain(E, tb, k0, l0, [1.0, 2.0], rp, solver='SV1', trace=tr1)
     mono, cons = True, True

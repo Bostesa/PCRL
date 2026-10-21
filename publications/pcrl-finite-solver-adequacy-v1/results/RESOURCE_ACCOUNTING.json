@@ -1,0 +1,155 @@
+{
+ "agent_charges": [
+  {
+   "charged_cpu_s": 10.0,
+   "label": "exact_reference",
+   "note": "fsa_exact.py selftest on invented inputs (not the declared laws), 7/7 PASS; plus the laws.json structural sum check before commit",
+   "utc": "2026-10-21T02:49:05+00:00"
+  },
+  {
+   "charged_cpu_s": 5.0,
+   "label": "exact_reference",
+   "note": "fsa_exact.py selftest rerun on invented inputs after adding the update_book/set_tables check, 8/8 PASS",
+   "utc": "2026-10-21T02:53:31+00:00"
+  },
+  {
+   "charged_cpu_s": 20.0,
+   "label": "statistical_reviewer",
+   "note": "FSA1 rules: fsa.test_rules runs (invented data, about 0.06 CPU-s each, 8 runs), two in-memory mutation checks (24 seeded bugs each, scratchpad script, no file changed), import / load_rules smoke checks and small python3 -c reads; no label, no real data",
+   "utc": "2026-10-21T02:59:09+00:00"
+  },
+  {
+   "charged_cpu_s": 5.0,
+   "label": "exact_reference",
+   "note": "ad-hoc read-only inspections of my result JSON files (python3 -I one-liners and a scratchpad script), upper estimate",
+   "utc": "2026-10-21T03:07:27+00:00"
+  },
+  {
+   "charged_cpu_s": 120.0,
+   "label": "engineering_reviewer",
+   "note": "engineering review of fsa.fa.solver / fsa.fa.solve before the first real-data unit: solver selftest x2 and invented-data adversarial checks (envelope brute force, ties, duplicates, current line, nested_s vs nested_c, memory at n=20000); measured about 41 CPU-s",
+   "utc": "2026-10-21T03:08:05+00:00"
+  },
+  {
+   "charged_cpu_s": 120.0,
+   "label": "verifier",
+   "note": "verifier out-of-queue work to 03:20Z: invented-data selftests (vcore x2, v1_access x1, v2_replay x8 at about 10.4 CPU-s each), one debug run of the v2 selftest data, label-free dry runs of the V2 code-identity and V1 receipt helpers (git and AST only; nothing written), one label-free MODEL_FIT features load to inspect shapes; no label read",
+   "utc": "2026-10-21T03:16:07+00:00"
+  },
+  {
+   "charged_cpu_s": 60.0,
+   "label": "verifier",
+   "note": "verifier out-of-queue work 03:20-03:45Z: invented-data selftests (vcore x1, v1_access x3, v2_replay x1, v3_exact x4, v4_objective x1, v5_nested x1), a scratch dry run of v3 on D_witness (not recorded; repeated as queue unit FSA_VER_EXACT_V2), label-free import/closure dry runs and JSON inspection of records; no label read; upper estimate",
+   "utc": "2026-10-21T03:43:31+00:00"
+  },
+  {
+   "charged_cpu_s": 2.0,
+   "label": "verifier",
+   "note": "verifier: fsa.rules.p1_replay applied out of the queue to the recorded SELECTION, the replay records and P1_VERIFIER_V0/V1.json (pure JSON rule; result P1_REPLAY_VERIFIED in both versions); no data read",
+   "utc": "2026-10-21T03:45:34+00:00"
+  },
+  {
+   "charged_cpu_s": 10.0,
+   "label": "statistical_reviewer",
+   "note": "FSA1 closing review: frozen fsa.rules functions (advancement, route_d, route_e, route_s, p1_replay) re-run on saved records, JSON reads of decision / stage / verifier / exact-reference records, git log; no label, no real data, no .private file",
+   "utc": "2026-10-21T03:49:29+00:00"
+  },
+  {
+   "charged_cpu_s": 3.0,
+   "label": "statistical_reviewer",
+   "note": "FSA1 closing review addendum 1: git diff of frc/fa/route.py between b538fa7a4 and 01a86ce20 and file reads; no label, no real data",
+   "utc": "2026-10-21T03:52:15+00:00"
+  },
+  {
+   "charged_cpu_s": 30.0,
+   "label": "engineering_reviewer",
+   "note": "claims review of the closing documents: fsa.report, fsa.fa.solver and fsa.test_rules in a scratch git-archive copy (label-free) plus record lookups; measured about 6 CPU-s",
+   "utc": "2026-10-21T03:55:03+00:00"
+  },
+  {
+   "charged_cpu_s": 600.0,
+   "label": "coordinator",
+   "note": "coordinator out-of-queue work 02:23-04:10Z, upper estimate: fsa.fa.solver selftests (about 6 runs), the unregistered invented-data SV1 timing / trace runs of 02:44-02:47Z, fsa.test_rules runs, fsa.report table builds, a restore_check trial before the custody units, label-free JSON / ledger / transcript inspection scripts and git; no label read, no real-data computation outside the queue",
+   "utc": "2026-10-21T04:10:25+00:00"
+  }
+ ],
+ "charged_cpu_h": 1.167,
+ "cloud_or_paid_compute_usd": 0,
+ "configurations": {
+  "by_family_and_kind": {},
+  "configurations": [],
+  "internal_fits": {},
+  "limit": 32,
+  "n_configurations": 0
+ },
+ "cpu_limit_h": 12.0,
+ "cpu_s_by_stage": {
+  "audit": 37.1,
+  "custody": 30.7,
+  "decide": 21.1,
+  "exact": 18.8,
+  "nested": 709.3,
+  "replay": 275.3,
+  "source": 2066.5,
+  "verify": 59.0
+ },
+ "cpu_s_by_unit_prefix": {
+  "FSA_AUDIT": 37.1,
+  "FSA_CUSTODY": 30.7,
+  "FSA_DECIDE": 21.1,
+  "FSA_EXACT": 18.8,
+  "FSA_NESTED": 709.3,
+  "FSA_REPLAY": 275.3,
+  "FSA_SOURCE": 2066.5,
+  "FSA_VER": 59.0
+ },
+ "elapsed_h": 1.797,
+ "elapsed_limit_h": 8.5,
+ "failed_units": [
+  {
+   "charged_cpu_s": 0.157,
+   "returncode": 1,
+   "stage": "verify",
+   "unit": "FSA_VER_P1_V1_V1"
+  },
+  {
+   "charged_cpu_s": 0.173,
+   "returncode": 1,
+   "stage": "verify",
+   "unit": "FSA_VER_P1_V0_V1"
+  },
+  {
+   "charged_cpu_s": 18.518,
+   "returncode": 3,
+   "stage": "verify",
+   "unit": "FSA_VER_ACCESS_V1"
+  },
+  {
+   "charged_cpu_s": 1.108,
+   "returncode": 1,
+   "stage": "verify",
+   "unit": "FSA_VER_EXACT_V1"
+  }
+ ],
+ "heavy_process_limit": 2,
+ "households": {
+  "CALIBRATION": 1974,
+  "MODEL_FIT": 13337,
+  "MODEL_SELECT": 5306
+ },
+ "internal_fit_counters_from_units": {},
+ "people": {
+  "CALIBRATION": 2982,
+  "MODEL_FIT": 20000,
+  "MODEL_SELECT": 8001
+ },
+ "processes_left_running": [],
+ "research_limit_h": 8.0,
+ "schema": "FSA1-resource-accounting-v1",
+ "start_utc": "2026-10-21T02:22:58+00:00",
+ "threads_per_job": 1,
+ "units_done": 28,
+ "units_failed": 4,
+ "units_started_without_end": [],
+ "utc": "2026-10-21T04:10:48+00:00"
+}

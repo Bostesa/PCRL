@@ -1014,6 +1014,158 @@ def selftest():
     return all(checks.values())
 
 
+# ============================================================ STEP 5: original against revised solver (route E input)
+def metrics8(rr, full):
+    """Exact Bayes AUC of the three views and the eight exact task losses of the emitted B1 release (population values)."""
+    return {'auc': {'pair': rr['auc_pair'], 'income': rr['auc_income'], 'occupation': rr['auc_occupation']},
+            'task': {'inc_nll': rr['inc_nll'], 'occ_nll': rr['occ_nll'], 'inc_acc_loss': full['inc_acc'] - rr['inc_acc'],
+                     'occ_acc_loss': full['occ_acc'] - rr['occ_acc'], 'inc_brier': rr['inc_brier'], 'occ_brier': rr['occ_brier'],
+                     'occ_brier_men': rr['occ_brier_S0'], 'occ_brier_women': rr['occ_brier_S1']}}
+
+
+def exact_point(P, law, E, full, bk, kk, ll, lam, limits, KI=2, KO=3):
+    """One solver state (book, rows' cells): exact objective (code and mine), deployability (the code's route with the book's own
+    tilt reproduces every row's cells, all rows of a support point alike), routing family (0 <= t <= lam, capacity KI x KO)."""
+    kr, lr = P.route(E, bk)
+    deploy = bool(np.array_equal(kr, kk) and np.array_equal(lr, ll))
+    try:
+        ks, ls = to_state(law, kk), to_state(law, ll)
+    except AssertionError:
+        return {'J': float(P.objective(E, bk, kk, ll)), 'deployable': False, 'error': 'rows of one support point differ'}
+    t = float(bk.get('tilt', 0.0))
+    fam = bool(0.0 <= t <= lam + 1e-15 and bk['CI'].shape == (KI, 2) and bk['CO'].shape == (KO, 5))
+    rr = release(law, ks, ls, full)
+    ok, fails = feasible(rr['excess'], limits)
+    return {'J': float(P.objective(E, bk, kk, ll)),
+            'J_mine': ref_objective(law, bk['CI'], bk['CO'], lam, bk['kappa'], bk['w_pair'], bk['w_loc'], ks, ls),
+            'deployable': deploy, 'tilt': t, 'same_family': fam, 'capacity': [int(bk['CI'].shape[0]), int(bk['CO'].shape[0])],
+            'inc_cell': ks.tolist(), 'occ_cell': ls.tolist(), 'feasible': ok, 'fails': fails, **metrics8(rr, full)}
+
+
+def ref_points_hook(P, full, limits, tol, store):
+    """The narrow reference at each of the original's steps, plus the best point of each same-class line (refreshed book on (0,
+    lam], refreshed book at t = 0, current book on [0, lam]) re-derived with the code's route and objective."""
+    base = narrow_step(P, full, limits, tol)
+
+    def fn(law, E, book, nb, k, l, J, props, acc, lam):
+        res = base(law, E, book, nb, k, l, J, props, acc, lam)
+        for tag, bk in (('card', nb), ('nb_t0', nb), ('cur_card', book)):
+            c = res[tag]
+            t = float(c['best_t'])
+            bt = dict(bk)
+            bt['tilt'] = t
+            kr, lr = P.route(E, bt)
+            ks, ls = to_state(law, kr), to_state(law, lr)
+            ok = bool(np.array_equal(ks, np.array(c['best_k'])) and np.array_equal(ls, np.array(c['best_l'])) and 0.0 <= t <= lam)
+            store.append({'lam': float(lam), 'class': f'narrow:{tag}', 'J': float(P.objective(E, bt, kr, lr)), 'deployable': ok,
+                          'tilt': t, 'inc_cell': ks.tolist(), 'occ_cell': ls.tolist()})
+        return res
+    return fn
+
+
+def selfconsistent_point(P, law, E, ks, ls, lam, t):
+    """The partition's own rule book (code's update_book: cell-mean codewords, shrunk tables) at tilt t; deployable iff the code's
+    route reproduces the partition."""
+    book = {'CI': np.full((2, 2), 0.5), 'CO': np.full((3, 5), 0.2), 'lam': float(lam), 'w_pair': 1.0, 'w_loc': 1.0, 'kappa': 1.0,
+            'm_shrink': 20.0, 'restrict': None, 'rbar': float(E['pi'].mean()), 'p0': float((1 - E['pi']).mean()),
+            'p1': float(E['pi'].mean()), 'tilt': 0.0}
+    nb = P.update_book(E, book, to_rows(law, ks), to_rows(law, ls))
+    nb['tilt'] = float(t)
+    kr, lr = P.route(E, nb)
+    ok = bool(np.array_equal(to_state(law, kr), np.asarray(ks)) and np.array_equal(to_state(law, lr), np.asarray(ls)))
+    return float(P.objective(E, nb, kr, lr)), ok
+
+
+def run_step5(out_dir, enum_path):
+    from nrm.fa import prc as P
+    from fsa.fa import solver as SV
+    from fsa import rules as FR5
+    t0 = time.process_time()
+    laws, common = load_laws()
+    limits = common['limits_vs_full_posterior_release']
+    tol = common['tolerances']['objective_tie_abs']
+    KI, KO = common['KI'], common['KO']
+    lams = list(common['lambda_grid'])
+    En = json.loads(Path(enum_path).read_text())
+    solvers = ('original_traced', 'SV1', 'SV1_first')
+    full_out = {'schema': 'FSA_EXACT_STEP5_v1', 'laws_commit': 'c27a91477', 'solver_blob': 'fsa/fa/solver.py at 91ba9a27e',
+                'cells': {}, 'traces': {}, 'checks': {}}
+    cells = {sv: [] for sv in ('SV1', 'SV1_first')}
+    reg = []
+    orig_equal = True
+    for name, law in laws.items():
+        E = code_E(law)
+        full = full_release(law)
+        for seed in common['twin_seeds']:
+            lid = f'{name}:seed{seed}'
+            tb, k0, l0 = P.twin_book(E, KI, KO, seed, P.route_params('PRC_TWIN'))
+            rp = P.route_params('PRC_S2')
+            ref_orig = P.protected_path(E, tb, k0, l0, lams, rp)
+            states, traces = {}, {}
+            for sv in solvers:
+                tr = {}
+                states[sv] = SV.chain(E, tb, k0, l0, lams, rp, solver=sv, trace=tr)
+                traces[sv] = {str(g): {'reset_to_twin': v['reset_to_twin'], 'objective': v['objective'], 'tilt': v['tilt'],
+                                       'accepted': [(s.get('accepted_tilt'), s.get('accepted_line'), s.get('J_after'))
+                                                    for s in v['steps']]} for g, v in tr.items()}
+            orig_equal &= all(same_state(ref_orig[g], states['original_traced'][g]) for g in lams)
+            store = []
+            replay_path(P, E, law, tb, k0, l0, rp, lams, narrow=ref_points_hook(P, full, limits, tol, store))
+            full_out['traces'][lid] = traces
+            Eo = En['laws'][name]['optima']
+            for g in lams:
+                pts = {sv: exact_point(P, law, E, full, *states[sv][g], g, limits) for sv in solvers}
+                # applicable same-class reference: best deployable point of the declared classes (narrow lines at the original's
+                # steps at this strength; the enumeration optimum's own rule book when its self-consistent tilt is within [0, lam])
+                cand = [s for s in store if s['lam'] == g and s['deployable']]
+                o = Eo[f'obj_{float(g)}']
+                rz = o['realizable'][str(float(g))]
+                if rz['self_consistent_tilt'] is not None and rz['self_consistent_tilt'] <= g:
+                    Jsc, ok = selfconsistent_point(P, law, E, np.array(o['inc_cell']), np.array(o['occ_cell']), g,
+                                                   rz['self_consistent_tilt'])
+                    cand.append({'lam': g, 'class': 'enum:self_consistent_rule_book', 'J': Jsc, 'deployable': ok,
+                                 'tilt': rz['self_consistent_tilt'], 'inc_cell': o['inc_cell'], 'occ_cell': o['occ_cell']})
+                cand = [c for c in cand if c['deployable']]
+                ref = None
+                if cand:
+                    b = min(cand, key=lambda c: c['J'])
+                    rr = release(law, np.array(b['inc_cell']), np.array(b['occ_cell']), full)
+                    ref = {'J': b['J'], 'deployable': True, 'same_class': True, 'class': b['class'], 'tilt': b['tilt'],
+                           'inc_cell': b['inc_cell'], 'occ_cell': b['occ_cell'], **metrics8(rr, full)}
+                rru = release(law, np.array(o['inc_cell']), np.array(o['occ_cell']), full)
+                unr = {'J': o['value'], 'deployable': None, 'class': 'enum:unrestricted (cell-mean codewords), reported only',
+                       'inc_cell': o['inc_cell'], 'occ_cell': o['occ_cell'], **metrics8(rru, full),
+                       'codeword_bound_J': Eo[f'bound_{float(g)}']['value']}
+                reg.append([lid, float(g)])
+                for sv in ('SV1', 'SV1_first'):
+                    po, pr = pts['original_traced'], pts[sv]
+                    cells[sv].append({'law': lid, 'lam': float(g), 'same_start': True, 'same_objective': True,
+                                      'same_capacity': po['capacity'] == pr['capacity'] == [KI, KO],
+                                      'same_rule_family': bool(po['same_family'] and pr['same_family']),
+                                      'original': po, 'revised': pr, 'reference': ref, 'unrestricted': unr})
+                full_out['cells'][f'{lid}@{g}'] = {'points': pts, 'reference': ref, 'unrestricted': unr}
+    full_out['checks']['original_traced_equals_protected_path'] = bool(orig_equal)
+    out = {}
+    for sv in ('SV1', 'SV1_first'):
+        rec = {'revision_id': sv, 'laws_registered_before_run': True, 'solver_registered_before_run': True,
+               'registered_cells': reg, 'cells': cells[sv]}
+        path = Path(out_dir, f'route_e_input_{sv}.json')
+        path.write_text(json.dumps(rec, indent=1, default=jsonable))
+        prov = json.loads(path.read_text())                      # evaluate exactly the written file, plus two placeholders
+        prov.update({'runnable_on_source': True, 'source_distinct': {0: True, 1: True}})
+        res = FR5.route_e(prov)
+        out[sv] = res
+        print(json.dumps({'revision': sv, 'PROVISIONAL_label': res['label'], 'errors': res.get('errors'), 'flags': res['flags'],
+                          'useful_cells': res.get('useful_cells'), 'improving_cells': res.get('improving_cells')}), flush=True)
+    full_out['route_e_PROVISIONAL'] = {sv: {'label': r['label'], 'flags': r['flags'], 'errors': r.get('errors'),
+                                            'useful_cells': r.get('useful_cells'), 'improving_cells': r.get('improving_cells'),
+                                            'placeholders': 'runnable_on_source = True, source_distinct = {0: True, 1: True}',
+                                            'cells': r['cells']} for sv, r in out.items()}
+    full_out['cpu_s'] = round(time.process_time() - t0, 2)
+    Path(out_dir, 'STEP5_V1.json').write_text(json.dumps(full_out, indent=1, default=jsonable))
+    print(json.dumps({'done': True, 'cpu_s': full_out['cpu_s'], 'original_traced_equals_protected_path': orig_equal}))
+
+
 def run_summary(narrow_path, enum_path, out_path):
     """Compact machine-readable results (RESULTS_V1.json) from the narrow and enumeration outputs; no new numerical experiment."""
     Nr = json.loads(Path(narrow_path).read_text())
@@ -1094,6 +1246,9 @@ def main(argv=None):
     p.add_argument('--narrow', required=True)
     p.add_argument('--enum', required=True)
     p.add_argument('--out', required=True)
+    p = sub.add_parser('step5')
+    p.add_argument('--out-dir', required=True)
+    p.add_argument('--enum', required=True)
     p = sub.add_parser('narrow')
     p.add_argument('--out', required=True)
     p = sub.add_parser('enum')
@@ -1108,6 +1263,8 @@ def main(argv=None):
             run_narrow(a.out)
         elif a.cmd == 'summary':
             run_summary(a.narrow, a.enum, a.out)
+        elif a.cmd == 'step5':
+            run_step5(a.out_dir, a.enum)
         else:
             run_enum(a.out, a.narrow)
     return 0

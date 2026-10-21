@@ -33,7 +33,7 @@ FRESH grid (splits frozen in the registration before any new fit; READER_SPLITS.
 
 Bank spec (JSON): {"bank_id", "purpose", "members": {name: member}, "candidates": [...], "comparators": [...], optional "reps",
 "reader_seeds", "fractions"}. A member is
-  a release of this campaign:  {"type": "frc", "family": F, "config": C[, "draw": d | "rep"][, "draw_offset": o]}
+  a release of this campaign:  {"type": "fsa", "family": F, "config": C[, "draw": d | "rep"][, "draw_offset": o]}; {"type": "frc", ...} loads a finite-routing comparison release, read-only
                                (fsa.release.load, hash-checked; {"type": "nrm", ...} loads a saved source release, read-only; for a randomized release the default "rep" reads instance
                                REP_INSTANCE[repetition] (R1 0, R2 1, R3 6, R4 7) in every cell, plus "draw_offset" for Monte Carlo
                                replicate members (+2, +4; R1/R2 only); a fixed "draw" d reads instance d everywhere),
