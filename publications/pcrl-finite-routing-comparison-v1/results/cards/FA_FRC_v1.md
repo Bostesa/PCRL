@@ -138,3 +138,16 @@ ORD_BR (at most 6); ABL_LOC, ABL_PAIR (4). Any revision uses new configuration i
 - Each revision record: the failure, the change, the control it is compared with, its stopping rule.
 - **Stop:** falsifiers 2-5 on MODEL_SELECT after the allowed revisions, or no qualifying task-only release (PROTOCOL 6.6) -> the
   family closes; protected routing is reported as untested in the second case.
+
+## Addendum A1 (2026-10-20T23:55:53Z, before P1; engineering review findings 1-5, 9, 10)
+
+- **F4 bootstrap (registered here):** B = 400 MODEL_FIT household draws, numpy default_rng(SeedSequence([2026102100, v, 4])), the
+  same weights for the twin and every entry (paired). The SE is conditional on the fitted LOOKUP tables (table refit variance is
+  excluded); this is stated in every F4 record.
+- **Source pins:** every read of a source artefact (TASK.pkl, the saved twins' MODEL.pkl and RELEASE.npz, the GATE records) must
+  equal its SOURCE_ADMISSION.json pin.
+- **Write-once guards:** a stage refuses to start when its write-once outputs exist; P2 and P3 require the SEX-side teachers to be
+  the ones the P1 selection used (SHA-256).
+- **Ablation strength:** the ablation lambda must be the selected grid lambda of a saved PRC configuration of the same version.
+- No operation, rule, budget or control of this card changes; T0-T2 ran under the card's earlier text (its SHA-256 is in their
+  records and in the access log).

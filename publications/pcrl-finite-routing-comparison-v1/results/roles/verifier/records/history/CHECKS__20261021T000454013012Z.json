@@ -1,0 +1,6183 @@
+{
+ "schema": "FRC1-verifier-checks-v1",
+ "campaign": "pcrl_finite_routing_comparison_v1",
+ "role": "independent verifier (own code under roles/verifier/code/; labels only via frc.common.load, operation verify, inside queue units, logged)",
+ "rules": [
+  "append-only: an entry is never edited or removed; each written version is snapshotted to records/history/ and the hashes of all earlier entries are re-checked before every write",
+  "numerical_status (own code recomputes a recorded number) and procedural_status (process, access, record evidence) are recorded separately; values PASS, FAIL, ATTENTION, NOT_APPLICABLE, NOT_RUN",
+  "an acceptance rule is never widened after a failure; a corrected check gets a new id and an entry in CHECK_CHANGES.json (before, after, cause); the earlier result is kept"
+ ],
+ "checks": [
+  {
+   "id": "V1.SOURCE_ADMISSION__V1",
+   "what": "source admission replayed label-free with own calls: remote pin of the NRM publication, branch base, pinned private artefacts re-hashed against their own records (TASK.sha256, MODEL.json, RELEASE.json, published GATE blobs) and against SOURCE_ADMISSION.json, source files unmodified since the campaign start, 26 reference MODEL_SELECT wires, interpreter versions",
+   "inputs": {
+    "results/pcrl_finite_routing_comparison_v1/SOURCE_ADMISSION.json": "ca9d1f53104d215134d170191bbbe2e3c7fe93a8abbf6292d6497926c9d3ae67"
+   },
+   "result": {
+    "nrm_remote_tip": "682068d52147bc1bdfc75d9e49199115b1deaaed",
+    "branch_base_ancestor_of_HEAD": true,
+    "artefacts": {
+     "fa_cache/V0/TASK.pkl": {
+      "sha256": "907e75a435e854728958643ef117d02ba2abc3505d50a3d71dd330468179355d",
+      "equals_TASK.sha256": true
+     },
+     "runs/FA/PRC_TWIN/V0": {
+      "MODEL.pkl": "d728bb0386c10b58c003306ca59676071ba60314a5568fd52c14f66f976792b9",
+      "RELEASE.npz": "22718f50dd29f6d409efb243935b0a4f603f52fa8ffb1a2581a7a0c633d9d84c",
+      "model_json_agrees": true,
+      "release_json_agrees": true,
+      "record_task_cache_sha256_agrees": true,
+      "model_json_identity": true
+     },
+     "runs/FA/PRC_TWIN_C128/V0": {
+      "MODEL.pkl": "d519b09dee8a41e5e14e222482b70567165ab21991748b74b6c44d593ce8f422",
+      "RELEASE.npz": "0dbc9527e9e510126a678b14e4f58b5184a252a60774a21901cf68e2e3edaad5",
+      "model_json_agrees": true,
+      "release_json_agrees": true,
+      "record_task_cache_sha256_agrees": true,
+      "model_json_identity": true
+     },
+     "fa_cache/V1/TASK.pkl": {
+      "sha256": "c7ce41adc80f8028051c37faf4ae9c59d96623b3b16af079fc3167b0de9ff60e",
+      "equals_TASK.sha256": true
+     },
+     "runs/FA/PRC_TWIN/V1": {
+      "MODEL.pkl": "523f503a7c1a8d27aa9ffd0fecc4388c280ca72ffdd8b248a6412a60228cec4e",
+      "RELEASE.npz": "6338b286a76ab21c63ea2d59c7627cecf07a3029f4ad551ad5d8ed8d0ccdaf2e",
+      "model_json_agrees": true,
+      "release_json_agrees": true,
+      "record_task_cache_sha256_agrees": true,
+      "model_json_identity": true
+     },
+     "runs/FA/PRC_TWIN_C128/V1": {
+      "MODEL.pkl": "5a62d600ae784e3370119d30e752c430f917aa252e474a9f88de0a1ab243e7c5",
+      "RELEASE.npz": "e4a65b9860eb5bdffec19ce9c90903522ce734130340a1c2f6a9bf3971f4bb0e",
+      "model_json_agrees": true,
+      "release_json_agrees": true,
+      "record_task_cache_sha256_agrees": true,
+      "model_json_identity": true
+     },
+     "results/designer_a/GATE_V0_16x64.json": {
+      "sha256": "6aed7edc9d276c8a42eb4b942b2057aa4296c34b5d03e9db4a74f0a295a30d94",
+      "published_blob_equal": true
+     },
+     "results/designer_a/GATE_V0_24x128.json": {
+      "sha256": "4f9e8aa783b0dea8fb8edcc4d5f82f7aae3a05b70da446c0dcd29dabec04549a",
+      "published_blob_equal": true
+     },
+     "results/designer_a/GATE_V1_16x64.json": {
+      "sha256": "88cd091e26d41bcdb71041541ee4ade38bc278ef3742788a899eeb3afff13db2",
+      "published_blob_equal": true
+     },
+     "results/designer_a/GATE_V1_24x128.json": {
+      "sha256": "e9fa86d893ea414318bca4abf5196687f83642c8f71a230fc5dbd0861a4189dd",
+      "published_blob_equal": true
+     }
+    },
+    "differences_from_SOURCE_ADMISSION": [],
+    "source_files_modified_after_campaign_start": [],
+    "reference_wires_mine": {
+     "U0/S0": {
+      "income": "32200386e45cadad7315272aadac98d468be5f73e0a982230a0e87b1dbafda2e",
+      "occupation": "7d54173bad3e67f3159bb8b239fc4d659d7ee57c1b79d29c290abf87e7acb242"
+     },
+     "Ucal/S0": {
+      "income": "57639bebdfdf16aa55015b9247c8595d6bc5700a8128043cd8bed833a623a94a",
+      "occupation": "4357bf8c20fe273aa7c1a009bb700b129a81e1b8b0029b07202fa658e92c7c79"
+     },
+     "T_TREE/S0": {
+      "income": "38261e0ee6a1cb4c3983c472a31e5fae65c4d77a804aa53d5130009a95f624f8",
+      "occupation": "d25e553bee94c34815b207549e0e1c69dc9a7b92f44c0bfef9777bf1050869ca"
+     },
+     "TASK_REFIT/S0": {
+      "income": "0ca4afeea53695ef7b6ba34f0fad8974186c32f3186b3fa3a2d276c73469ac4e",
+      "occupation": "fb25885ef678c956eeaf210c60c8e734286eba76bf7c6dfe99957bed64c9c784"
+     },
+     "NEURAL_RAW/S0": {
+      "income": "f4de1c9f2c2ec9048435f9b3c9e2fc96a301c5d529a3ab52b0a1b9118505781d",
+      "occupation": "8311ca98c5e32f237d7fd34fe6a4538853d12a908771e2b0fde66a48784c1a1b"
+     },
+     "H_LJ/S0": {
+      "income": "63bf93b2795d03820c86fabafe59b18cef51d5a143f68ef1975271056a79c7d4",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "B2TWIN/S0": {
+      "income": "25bf1c8d580dba6c5bbfa201e9bbb134458310bf2790fca10771dc6b280147b5",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "RETIRED_B3CTL/S0": {
+      "income": "fb9e28d3dc54283dc2c8b83efaa3406cc97f954869528f6c5ed7766ab69d53b2",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "SUCC/S0": {
+      "income": "067a21bbda07f398404c3b44b319c031b7c5a233e37361523a4388c8e52f1d83",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "TWJ/S0": {
+      "income": "0ef5b6bb7cd7cf03da836b2115b40c00c049db355139aab50995814c375539bb",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "H3+TASK_REFIT/S0": {
+      "income": "067a21bbda07f398404c3b44b319c031b7c5a233e37361523a4388c8e52f1d83",
+      "occupation": "fb25885ef678c956eeaf210c60c8e734286eba76bf7c6dfe99957bed64c9c784"
+     },
+     "H3+T_TREE/S0": {
+      "income": "067a21bbda07f398404c3b44b319c031b7c5a233e37361523a4388c8e52f1d83",
+      "occupation": "d25e553bee94c34815b207549e0e1c69dc9a7b92f44c0bfef9777bf1050869ca"
+     },
+     "W/S0": {
+      "income": "067a21bbda07f398404c3b44b319c031b7c5a233e37361523a4388c8e52f1d83",
+      "occupation": "0db3238d45b3c8e950e524efd9a9f3015fa57c4eb2482f160aa9ee4a08d0a369"
+     },
+     "U0/S1": {
+      "income": "a93d957d85c0259a92e9252c33a353af29b9dc851e3d918e7c110dc7d18235a4",
+      "occupation": "cd203cfb7936ac26b3922e804c0d04b898d96e3d6b40b67f5d76ac0be137da8e"
+     },
+     "Ucal/S1": {
+      "income": "866c559f2b0d4c0e21241aedefa4ca919dd2e876f122e56aea783a73af31410b",
+      "occupation": "46118ff04e3cc8ba8904a78f6c3c7a85a17b75925429b87871bd483e2060370f"
+     },
+     "T_TREE/S1": {
+      "income": "4afb951e7b59c27f4f898d19a215f74e4caed47c796fdc2062e7509eb8c068ec",
+      "occupation": "dc430989262545b7cd9c54dba0b20b1179a7cf3ae8b46dc84466952c10473b04"
+     },
+     "TASK_REFIT/S1": {
+      "income": "0cd0daf3da5a02775dd683e15f2510dfb83c1ce979d7ff4987e51895ea1bc1a2",
+      "occupation": "3de7490b23fb8d339b14d01c2ee8c00c0a1319d7abf55dbba558e05aa87aacaa"
+     },
+     "NEURAL_RAW/S1": {
+      "income": "4456081555060788171a4360bd4f5dc5d8c0c76bf48596457e2fdb45bec9ef37",
+      "occupation": "1c6d084053ae16cdcb279044c35fe95772d05da78e576cd97cbfbe32628f91be"
+     },
+     "H_LJ/S1": {
+      "income": "bb58a741754397c93f858f45855df0d0d081020311234d15cc9723c9fba83afc",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     },
+     "B2TWIN/S1": {
+      "income": "03955dd1305d2ccdce1bc789f763203097bf2a8932956f93fadde5066bbabc98",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     },
+     "RETIRED_B3CTL/S1": {
+      "income": "73ad209aaede370c2ba546a5bb87a035ca381432205346510ea533a9e49b980c",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     },
+     "SUCC/S1": {
+      "income": "1e028f72aed7fbbfc739508db9e965acda92dee2f38db32af8d6ec70bd6a5d52",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     },
+     "TWJ/S1": {
+      "income": "57e25911d064c3997d760985af15c7b054dd60b1992cc0fde62553325760783b",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     },
+     "H3+TASK_REFIT/S1": {
+      "income": "1e028f72aed7fbbfc739508db9e965acda92dee2f38db32af8d6ec70bd6a5d52",
+      "occupation": "3de7490b23fb8d339b14d01c2ee8c00c0a1319d7abf55dbba558e05aa87aacaa"
+     },
+     "H3+T_TREE/S1": {
+      "income": "1e028f72aed7fbbfc739508db9e965acda92dee2f38db32af8d6ec70bd6a5d52",
+      "occupation": "dc430989262545b7cd9c54dba0b20b1179a7cf3ae8b46dc84466952c10473b04"
+     },
+     "W/S1": {
+      "income": "1e028f72aed7fbbfc739508db9e965acda92dee2f38db32af8d6ec70bd6a5d52",
+      "occupation": "10eb87e58575a00d8af6790bd5e6252a9da50c85f84bd8305a06f0b632b0d5df"
+     }
+    },
+    "reference_wires_differ": [],
+    "python3_versions": {
+     "numpy": "2.4.4",
+     "scipy": "1.17.1",
+     "scikit-learn": "1.8.0"
+    },
+    "admission_ok_flag": true,
+    "problems": []
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T23:54:30+00:00",
+   "unit_id": "FRC_VER_ADMISSION_V1"
+  },
+  {
+   "id": "V1.RECEIPT__V1",
+   "what": "registration receipt re-verified with own git calls (R1): record verified; own ls-remote of publication/pcrl-finite-routing-comparison-v1 on https://github.com/Bostesa/PCRL.git equals the receipt commit; registration files committed, unchanged, equal to the receipt hashes, to the research commit and to the published copies; research commit an ancestor of HEAD and earlier than the verification",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/access/REGISTRATION_RECEIPT_VERIFIED.json": "65079e41003bd1c2dc058daaaf187bace3890b6c22d8c96537a81db7988d9275",
+    ".private/pcrl_finite_routing_comparison_v1/access/RECEIPT_ATTEMPTS.jsonl": "2bc5fd4e5aec36d1acbe0ddb530d1d2953e2f4cbcd073c6e97367bf807f3829a",
+    "results/pcrl_finite_routing_comparison_v1/RECEIPTS.json": "fca327018ca36eb55f4b2b3a328a01a21de865ac44883369a000ee31159f133d",
+    "results/pcrl_finite_routing_comparison_v1/PROTOCOL.md": "b3c2be39e9b2a74cbc6e9ca7047a0038001cc78f4b77af64350c6d5b5e0e68b4",
+    "results/pcrl_finite_routing_comparison_v1/EXPOSURE_MAP.md": "e12e4eab1753cf8400e31cb0f652b3121834776ac9e69f41cd87225bedbcb41f",
+    "results/pcrl_finite_routing_comparison_v1/ACCESS_POLICY.json": "d71e7b28308bb8372d9e760bcb4328fa42e81dfb4d949e1c4ca37478626d0d8d",
+    "results/pcrl_finite_routing_comparison_v1/SOURCE_ADMISSION.json": "ca9d1f53104d215134d170191bbbe2e3c7fe93a8abbf6292d6497926c9d3ae67",
+    "results/pcrl_finite_routing_comparison_v1/READER_SPLITS.json": "bc85c72b1bf23ca190ccbf262bf5224435e62ef2da14d2c5b3663527b6dedca1",
+    "results/pcrl_finite_routing_comparison_v1/FAILURE_MAP.md": "0f15ba10099df07e4af40084986415bba893fd7b91f20cd34e348694cceb404c",
+    "results/pcrl_finite_routing_comparison_v1/roles/statistical_reviewer/RULES.md": "2b7e0be8672cb5eb32a195e91c21b4d6b67284b5a14e7a1a584fdc4ffe256fd0",
+    "results/pcrl_finite_routing_comparison_v1/roles/statistical_reviewer/RULES.json": "a0dc0fc7f377c26339df0c96e6abda9784d725ccab8cb204e1cfa7d789029510"
+   },
+   "result": {
+    "record_exists": true,
+    "kind": "registration",
+    "receipt_commit": "7fed2ca443048ab35d0ceb2981fb5d0f76a7d414",
+    "research_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+    "remote_sha": "7fed2ca443048ab35d0ceb2981fb5d0f76a7d414",
+    "remote_url": "https://github.com/Bostesa/PCRL.git",
+    "verified_utc": "2026-10-20T23:48:04+00:00",
+    "remote_sha_verified": true,
+    "remote_sha_equals_receipt_commit": true,
+    "own_ls_remote": "7fed2ca443048ab35d0ceb2981fb5d0f76a7d414\trefs/heads/publication/pcrl-finite-routing-comparison-v1",
+    "own_remote_tip_equals_receipt_commit": true,
+    "origin_url": "https://github.com/Bostesa/PCRL.git",
+    "origin_is_github_remote": true,
+    "files_sha256_equal_now": true,
+    "files_committed_unchanged": {
+     "PROTOCOL.md": true,
+     "EXPOSURE_MAP.md": true,
+     "ACCESS_POLICY.json": true,
+     "SOURCE_ADMISSION.json": true,
+     "READER_SPLITS.json": true,
+     "FAILURE_MAP.md": true,
+     "roles/statistical_reviewer/RULES.md": true,
+     "roles/statistical_reviewer/RULES.json": true
+    },
+    "research_commit_ancestor_of_HEAD": true,
+    "research_commit_utc": "2026-10-20T19:47:33-04:00",
+    "research_commit_before_verification": true,
+    "research_commit_bytes_equal_receipt": true,
+    "receipt_commit_available_locally": true,
+    "receipt_commit_utc": "2026-10-20T19:47:52-04:00",
+    "published_bytes_equal_research": {
+     "PROTOCOL.md": true,
+     "EXPOSURE_MAP.md": true,
+     "ACCESS_POLICY.json": true,
+     "SOURCE_ADMISSION.json": true,
+     "READER_SPLITS.json": true,
+     "FAILURE_MAP.md": true,
+     "roles/statistical_reviewer/RULES.md": true,
+     "roles/statistical_reviewer/RULES.json": true
+    },
+    "attempts": [
+     {
+      "outcome": "verified",
+      "verified_utc": "2026-10-20T23:48:04+00:00",
+      "problems": []
+     }
+    ],
+    "public_RECEIPTS_json_matches_private_record": true
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T23:54:31+00:00",
+   "unit_id": "FRC_VER_ACCESS_V1"
+  },
+  {
+   "id": "V1.ACCESS_POLICY_CODE__V1",
+   "what": "frc.common POLICY / ENTRY_POINTS equal the registered ACCESS_POLICY.json",
+   "inputs": {
+    "results/pcrl_finite_routing_comparison_v1/ACCESS_POLICY.json": "d71e7b28308bb8372d9e760bcb4328fa42e81dfb4d949e1c4ca37478626d0d8d",
+    "frc/common.py": "ac6078918cf9bd71ef7c4804143f7442a1b9ee9b3eeb540f130ccd61f19d26cb"
+   },
+   "result": {
+    "differences": []
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T23:54:31+00:00",
+   "unit_id": "FRC_VER_ACCESS_V1"
+  },
+  {
+   "id": "V1.ACCESS_LOG__V1",
+   "what": "label-access log audit R2-R10 (receipt order, closed roles, policy, MODEL_SELECT entry points and module chains, cards committed before fitting reads, unit intervals, row sets, committed code at launch, unit main modules)",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/access/LABEL_ACCESS.jsonl": "a206a7373c0e33d53a830df281748b9036fea1a76ce513f1a1427704aba070e3",
+    ".private/pcrl_finite_routing_comparison_v1/compute/ledger.jsonl": "f662362e0b9f0fea24a28ba68796f25c567e1553b983fcab7a848663d86656c7",
+    ".private/pcrl_finite_routing_comparison_v1/access/REGISTRATION_RECEIPT_VERIFIED.json": "65079e41003bd1c2dc058daaaf187bace3890b6c22d8c96537a81db7988d9275",
+    "n_events": 9
+   },
+   "result": {
+    "summary": {
+     "n_events": 9,
+     "first_utc": "2026-10-20T23:48:32+00:00",
+     "last_utc": "2026-10-20T23:50:50+00:00",
+     "by_operation_role": {
+      "fit|MODEL_FIT|income,occupation|frc.fa.route": 4,
+      "benchmark|MODEL_SELECT|income,occupation,sex|frc.evaluate": 5
+     },
+     "units_with_reads": [
+      "FRC_EVAL_REFS_V1",
+      "FRC_EVAL_SRC_PRC_TWIN_C128_V1",
+      "FRC_EVAL_SRC_PRC_TWIN_V1",
+      "FRC_EVAL_TWB_C128_V1",
+      "FRC_EVAL_TWB_C64_V1",
+      "FRC_NEST_C128_V0_V1",
+      "FRC_NEST_C128_V1_V1",
+      "FRC_NEST_C64_V0_V1",
+      "FRC_NEST_C64_V1_V1"
+     ]
+    },
+    "findings_by_rule": {},
+    "fail_examples": [],
+    "attention_examples": [],
+    "fit_reads": [
+     {
+      "utc": "2026-10-20T23:48:32+00:00",
+      "unit_id": "FRC_NEST_C64_V1_V1",
+      "role": "MODEL_FIT",
+      "fields": [
+       "income",
+       "occupation"
+      ],
+      "card": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md",
+      "card_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+      "card_commit_utc": "2026-10-20T19:47:33-04:00"
+     },
+     {
+      "utc": "2026-10-20T23:48:33+00:00",
+      "unit_id": "FRC_NEST_C64_V0_V1",
+      "role": "MODEL_FIT",
+      "fields": [
+       "income",
+       "occupation"
+      ],
+      "card": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md",
+      "card_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+      "card_commit_utc": "2026-10-20T19:47:33-04:00"
+     },
+     {
+      "utc": "2026-10-20T23:49:06+00:00",
+      "unit_id": "FRC_NEST_C128_V1_V1",
+      "role": "MODEL_FIT",
+      "fields": [
+       "income",
+       "occupation"
+      ],
+      "card": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md",
+      "card_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+      "card_commit_utc": "2026-10-20T19:47:33-04:00"
+     },
+     {
+      "utc": "2026-10-20T23:49:06+00:00",
+      "unit_id": "FRC_NEST_C128_V0_V1",
+      "role": "MODEL_FIT",
+      "fields": [
+       "income",
+       "occupation"
+      ],
+      "card": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md",
+      "card_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+      "card_commit_utc": "2026-10-20T19:47:33-04:00"
+     }
+    ],
+    "amendments": [],
+    "receipt_verified_utc": "2026-10-20T23:48:04+00:00"
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T23:54:31+00:00",
+   "unit_id": "FRC_VER_ACCESS_V1"
+  },
+  {
+   "id": "V1.ROW_SETS__V1",
+   "what": "logged row-set hashes, people and households equal the admitted roles (R8)",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/access/LABEL_ACCESS.jsonl": "a206a7373c0e33d53a830df281748b9036fea1a76ce513f1a1427704aba070e3"
+   },
+   "result": {
+    "n_events": 9,
+    "admitted": {
+     "MODEL_FIT": [
+      "7c9bb634f7bdfe3ed5ac4d8f309aca296a2142f575840e0a417b0c109e8a866a",
+      20000,
+      13337
+     ],
+     "CALIBRATION": [
+      "65792eb1e813c0f3cd81877a7aa6d416a9bf6a852db93af2eb66a68ef919b580",
+      2982,
+      1974
+     ],
+     "MODEL_SELECT": [
+      "fe7e553bbe5c2c8016e35076a062f95450f04c6d006d8dce1e63b98fab5595e4",
+      8001,
+      5306
+     ],
+     "ATTACK_FIT": [
+      "12f6f5e5e7d196ff6dae588f9d409265484e9de604acd623d508969a867d68a8",
+      8001,
+      5319
+     ],
+     "ATTACK_VALIDATION": [
+      "90c323af06fb8d68a807f7156029047c616798978480a80c5f8dcb175f46b42e",
+      3000,
+      1974
+     ],
+     "DEV_REPORT": [
+      "de4afc1d163845a05a0f69bc48096c797dd08ebdeb36d1d6082a07038f5701ee",
+      5943,
+      3955
+     ]
+    },
+    "row_set_failures": []
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T23:54:31+00:00",
+   "unit_id": "FRC_VER_ACCESS_V1"
+  },
+  {
+   "id": "V2.TWB.C64_V0__V1",
+   "what": "TWB_C64 V0: own out-of-fold routing and B1 tables (bitwise vs the TWB model), B0 = source book, teachers unchanged, partition identity with the source A release on all six roles, TWB = B1[cell] bitwise, distinct vectors = occupied cells, empty-cell counts; A decoders from MODEL_FIT labels bitwise; deployed routing replay",
+   "inputs": {
+    "source_model": "d728bb0386c10b58c003306ca59676071ba60314a5568fd52c14f66f976792b9",
+    "twb_model": "425c6abb7697a35e7800ea2f0370a31a0458e3c779f5e719c31ecab65bfa4079",
+    "source_release": "22718f50dd29f6d409efb243935b0a4f603f52fa8ffb1a2581a7a0c633d9d84c",
+    "twb_release": "a535021ed8149e90f65a5099558250b75052dc0ff9909b76fa8be4f9e0f331f7",
+    "task_cache": "907e75a435e854728958643ef117d02ba2abc3505d50a3d71dd330468179355d"
+   },
+   "result": {
+    "hashes": {
+     "source_model": {
+      "sha256": "d728bb0386c10b58c003306ca59676071ba60314a5568fd52c14f66f976792b9",
+      "record_agrees": true
+     },
+     "twb_model": {
+      "sha256": "425c6abb7697a35e7800ea2f0370a31a0458e3c779f5e719c31ecab65bfa4079",
+      "record_agrees": true
+     },
+     "source_release": {
+      "sha256": "22718f50dd29f6d409efb243935b0a4f603f52fa8ffb1a2581a7a0c633d9d84c",
+      "record_agrees": true
+     },
+     "twb_release": {
+      "sha256": "a535021ed8149e90f65a5099558250b75052dc0ff9909b76fa8be4f9e0f331f7",
+      "record_agrees": true
+     },
+     "task_cache": {
+      "sha256": "907e75a435e854728958643ef117d02ba2abc3505d50a3d71dd330468179355d",
+      "record_agrees": true
+     },
+     "task_cache_equals_source_release_record": true,
+     "task_cache_equals_twb_record": true,
+     "task_rows_are_admitted_model_fit": true
+    },
+    "oof_routing": {
+     "min_gap_income": 6.39020183212935e-07,
+     "min_gap_occupation": 3.350386458822463e-06,
+     "people_gap_below_1e-9": {
+      "income": 0,
+      "occupation": 0
+     },
+     "occupied": {
+      "income": 16,
+      "occupation": 64,
+      "pair": 727
+     },
+     "unoccupied_cells": {
+      "I": 0,
+      "O": 0
+     }
+    },
+    "B1_tables_vs_TWB_dec": {
+     "I": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       16,
+       2
+      ],
+      "shape_stored": [
+       16,
+       2
+      ]
+     },
+     "O": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       64,
+       5
+      ],
+      "shape_stored": [
+       64,
+       5
+      ]
+     }
+    },
+    "unoccupied_vs_record": {
+     "I": [
+      0,
+      0
+     ],
+     "O": [
+      0,
+      0
+     ]
+    },
+    "occupied_vs_record": [
+     {
+      "income": 16,
+      "occupation": 64,
+      "pair": 727
+     },
+     {
+      "income": 16,
+      "occupation": 64,
+      "pair": 727
+     }
+    ],
+    "table_rows_distinct": {
+     "B1_I": true,
+     "B1_O": true,
+     "A_I": true,
+     "A_O": true
+    },
+    "twb_book_equals_source_book": {
+     "CI": true,
+     "CO": true,
+     "lam": true,
+     "tilt": true,
+     "restrict": true,
+     "w_pair": true,
+     "w_loc": true,
+     "kappa": true,
+     "m_shrink": true,
+     "same_keys": true
+    },
+    "twb_teachers_equal_source_pickled_bytes": {
+     "inc": true,
+     "occ": true,
+     "same_names": true
+    },
+    "metadata": {
+     "construction": "B1",
+     "capacity": [
+      16,
+      64
+     ],
+     "T": {
+      "inc": 332,
+      "occ": 168
+     },
+     "source_T": {
+      "inc": 332,
+      "occ": 168
+     },
+     "feature_names_equal": true
+    },
+    "full_pool_max_abs": {
+     "B1_minus_A": {
+      "I": 0.03197875218937751,
+      "O": 0.08954397113281948
+     },
+     "B1_minus_B0": {
+      "I": 0.000312684608173297,
+      "O": 0.002251267453178135
+     }
+    },
+    "full_pool_vs_T1_record": {
+     "B1_minus_A": {
+      "I": [
+       0.03197875218937751,
+       0.03197875218937751
+      ],
+      "O": [
+       0.08954397113281948,
+       0.08954397113281948
+      ]
+     },
+     "B1_minus_B0": {
+      "I": [
+       0.000312684608173297,
+       0.000312684608173297
+      ],
+      "O": [
+       0.002251267453178135,
+       0.002251267453178135
+      ]
+     },
+     "fallbacks": [
+      {
+       "I": 0,
+       "O": 0
+      },
+      {
+       "labels": "none (out-of-fold teacher means)",
+       "unoccupied_prototype_fallback_I": 0,
+       "unoccupied_prototype_fallback_O": 0
+      }
+     ]
+    },
+    "roles": {
+     "MODEL_FIT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 705
+      },
+      "distinct_twb_vectors": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 705
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 20000
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 20000
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 20000
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "CALIBRATION": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 525
+      },
+      "distinct_twb_vectors": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 525
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 2982
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 2982
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 2982
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "MODEL_SELECT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 636
+      },
+      "distinct_twb_vectors": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 636
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 8001
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "ATTACK_FIT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 628
+      },
+      "distinct_twb_vectors": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 628
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 8001
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "ATTACK_VALIDATION": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 530
+      },
+      "distinct_twb_vectors": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 530
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 3000
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 3000
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 3000
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "DEV_REPORT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 597
+      },
+      "distinct_twb_vectors": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 597
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 5943
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 5943
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 5943
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     }
+    },
+    "A_decoders_from_labels_vs_source_dec": {
+     "I": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       16,
+       2
+      ],
+      "shape_stored": [
+       16,
+       2
+      ]
+     },
+     "O": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       64,
+       5
+      ],
+      "shape_stored": [
+       64,
+       5
+      ]
+     }
+    },
+    "A_and_B1_count_same_people": true,
+    "deployed_routing": {
+     "MODEL_SELECT": {
+      "income_cells_equal": 8001,
+      "occupation_cells_equal": 8001,
+      "people": 8001,
+      "min_gap": [
+       1.0765124275335936e-06,
+       3.857626951653259e-06
+      ],
+      "A_release_bitwise_from_own_routing": true,
+      "TWB_release_bitwise_from_own_routing": true,
+      "oof_vs_deployed_agreement_model_fit": null
+     },
+     "MODEL_FIT": {
+      "income_cells_equal": 20000,
+      "occupation_cells_equal": 20000,
+      "people": 20000,
+      "min_gap": [
+       2.0978746242406032e-06,
+       7.213774790848504e-07
+      ],
+      "A_release_bitwise_from_own_routing": true,
+      "TWB_release_bitwise_from_own_routing": true,
+      "oof_vs_deployed_agreement_model_fit": 0.52635
+     }
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T23:59:19+00:00",
+   "unit_id": "FRC_VER_ROUTING_V1"
+  },
+  {
+   "id": "V2.TWB.C128_V0__V1",
+   "what": "TWB_C128 V0: own out-of-fold routing and B1 tables (bitwise vs the TWB model), B0 = source book, teachers unchanged, partition identity with the source A release on all six roles, TWB = B1[cell] bitwise, distinct vectors = occupied cells, empty-cell counts; A decoders from MODEL_FIT labels bitwise; deployed routing replay",
+   "inputs": {
+    "source_model": "d519b09dee8a41e5e14e222482b70567165ab21991748b74b6c44d593ce8f422",
+    "twb_model": "fdd7f0f6872039f4967ad6cc9cfad26c3c6bf66d0a979b35c373cb1f3c67f709",
+    "source_release": "0dbc9527e9e510126a678b14e4f58b5184a252a60774a21901cf68e2e3edaad5",
+    "twb_release": "93204e40568d7bcda69ad19a03ec407de004f7fa34b0bba7211e78ea2128d15c",
+    "task_cache": "907e75a435e854728958643ef117d02ba2abc3505d50a3d71dd330468179355d"
+   },
+   "result": {
+    "hashes": {
+     "source_model": {
+      "sha256": "d519b09dee8a41e5e14e222482b70567165ab21991748b74b6c44d593ce8f422",
+      "record_agrees": true
+     },
+     "twb_model": {
+      "sha256": "fdd7f0f6872039f4967ad6cc9cfad26c3c6bf66d0a979b35c373cb1f3c67f709",
+      "record_agrees": true
+     },
+     "source_release": {
+      "sha256": "0dbc9527e9e510126a678b14e4f58b5184a252a60774a21901cf68e2e3edaad5",
+      "record_agrees": true
+     },
+     "twb_release": {
+      "sha256": "93204e40568d7bcda69ad19a03ec407de004f7fa34b0bba7211e78ea2128d15c",
+      "record_agrees": true
+     },
+     "task_cache": {
+      "sha256": "907e75a435e854728958643ef117d02ba2abc3505d50a3d71dd330468179355d",
+      "record_agrees": true
+     },
+     "task_cache_equals_source_release_record": true,
+     "task_cache_equals_twb_record": true,
+     "task_rows_are_admitted_model_fit": true
+    },
+    "oof_routing": {
+     "min_gap_income": 9.448518206722767e-07,
+     "min_gap_occupation": 1.0959204268523592e-06,
+     "people_gap_below_1e-9": {
+      "income": 0,
+      "occupation": 0
+     },
+     "occupied": {
+      "income": 24,
+      "occupation": 128,
+      "pair": 1742
+     },
+     "unoccupied_cells": {
+      "I": 0,
+      "O": 0
+     }
+    },
+    "B1_tables_vs_TWB_dec": {
+     "I": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       24,
+       2
+      ],
+      "shape_stored": [
+       24,
+       2
+      ]
+     },
+     "O": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       128,
+       5
+      ],
+      "shape_stored": [
+       128,
+       5
+      ]
+     }
+    },
+    "unoccupied_vs_record": {
+     "I": [
+      0,
+      0
+     ],
+     "O": [
+      0,
+      0
+     ]
+    },
+    "occupied_vs_record": [
+     {
+      "income": 24,
+      "occupation": 128,
+      "pair": 1742
+     },
+     {
+      "income": 24,
+      "occupation": 128,
+      "pair": 1742
+     }
+    ],
+    "table_rows_distinct": {
+     "B1_I": true,
+     "B1_O": true,
+     "A_I": true,
+     "A_O": true
+    },
+    "twb_book_equals_source_book": {
+     "CI": true,
+     "CO": true,
+     "lam": true,
+     "tilt": true,
+     "restrict": true,
+     "w_pair": true,
+     "w_loc": true,
+     "kappa": true,
+     "m_shrink": true,
+     "same_keys": true
+    },
+    "twb_teachers_equal_source_pickled_bytes": {
+     "inc": true,
+     "occ": true,
+     "same_names": true
+    },
+    "metadata": {
+     "construction": "B1",
+     "capacity": [
+      24,
+      128
+     ],
+     "T": {
+      "inc": 332,
+      "occ": 168
+     },
+     "source_T": {
+      "inc": 332,
+      "occ": 168
+     },
+     "feature_names_equal": true
+    },
+    "full_pool_max_abs": {
+     "B1_minus_A": {
+      "I": 0.03520259890568639,
+      "O": 0.14455090512136737
+     },
+     "B1_minus_B0": {
+      "I": 0.00033439499770421266,
+      "O": 0.002581410110749971
+     }
+    },
+    "full_pool_vs_T1_record": {
+     "B1_minus_A": {
+      "I": [
+       0.03520259890568639,
+       0.03520259890568639
+      ],
+      "O": [
+       0.14455090512136737,
+       0.14455090512136737
+      ]
+     },
+     "B1_minus_B0": {
+      "I": [
+       0.00033439499770421266,
+       0.00033439499770421266
+      ],
+      "O": [
+       0.002581410110749971,
+       0.002581410110749971
+      ]
+     },
+     "fallbacks": [
+      {
+       "I": 0,
+       "O": 0
+      },
+      {
+       "labels": "none (out-of-fold teacher means)",
+       "unoccupied_prototype_fallback_I": 0,
+       "unoccupied_prototype_fallback_O": 0
+      }
+     ]
+    },
+    "roles": {
+     "MODEL_FIT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1650
+      },
+      "distinct_twb_vectors": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1650
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 20000
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 20000
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 20000
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "CALIBRATION": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 978
+      },
+      "distinct_twb_vectors": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 978
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 2982
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 2982
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 2982
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "MODEL_SELECT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1371
+      },
+      "distinct_twb_vectors": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1371
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 8001
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "ATTACK_FIT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1358
+      },
+      "distinct_twb_vectors": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1358
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 8001
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "ATTACK_VALIDATION": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 993
+      },
+      "distinct_twb_vectors": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 993
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 3000
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 3000
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 3000
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "DEV_REPORT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1264
+      },
+      "distinct_twb_vectors": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1264
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 5943
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 5943
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 5943
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     }
+    },
+    "A_decoders_from_labels_vs_source_dec": {
+     "I": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       24,
+       2
+      ],
+      "shape_stored": [
+       24,
+       2
+      ]
+     },
+     "O": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       128,
+       5
+      ],
+      "shape_stored": [
+       128,
+       5
+      ]
+     }
+    },
+    "A_and_B1_count_same_people": true,
+    "deployed_routing": {
+     "MODEL_SELECT": {
+      "income_cells_equal": 8001,
+      "occupation_cells_equal": 8001,
+      "people": 8001,
+      "min_gap": [
+       1.248583451129992e-06,
+       7.703725024565955e-08
+      ],
+      "A_release_bitwise_from_own_routing": true,
+      "TWB_release_bitwise_from_own_routing": true,
+      "oof_vs_deployed_agreement_model_fit": null
+     },
+     "MODEL_FIT": {
+      "income_cells_equal": 20000,
+      "occupation_cells_equal": 20000,
+      "people": 20000,
+      "min_gap": [
+       8.309778232185039e-08,
+       4.701946589857897e-07
+      ],
+      "A_release_bitwise_from_own_routing": true,
+      "TWB_release_bitwise_from_own_routing": true,
+      "oof_vs_deployed_agreement_model_fit": 0.39695
+     }
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T23:59:19+00:00",
+   "unit_id": "FRC_VER_ROUTING_V1"
+  },
+  {
+   "id": "V2.TWB.C64_V1__V1",
+   "what": "TWB_C64 V1: own out-of-fold routing and B1 tables (bitwise vs the TWB model), B0 = source book, teachers unchanged, partition identity with the source A release on all six roles, TWB = B1[cell] bitwise, distinct vectors = occupied cells, empty-cell counts; A decoders from MODEL_FIT labels bitwise; deployed routing replay",
+   "inputs": {
+    "source_model": "523f503a7c1a8d27aa9ffd0fecc4388c280ca72ffdd8b248a6412a60228cec4e",
+    "twb_model": "806c7b433e655d7c9e18d29bfa8bb6d4df51fbe9e20802b2488fa06d7c535dff",
+    "source_release": "6338b286a76ab21c63ea2d59c7627cecf07a3029f4ad551ad5d8ed8d0ccdaf2e",
+    "twb_release": "6e6d7ea91b5529a4b1d4d53773ba3df02594525f614c9d46f495df5f9f58d244",
+    "task_cache": "c7ce41adc80f8028051c37faf4ae9c59d96623b3b16af079fc3167b0de9ff60e"
+   },
+   "result": {
+    "hashes": {
+     "source_model": {
+      "sha256": "523f503a7c1a8d27aa9ffd0fecc4388c280ca72ffdd8b248a6412a60228cec4e",
+      "record_agrees": true
+     },
+     "twb_model": {
+      "sha256": "806c7b433e655d7c9e18d29bfa8bb6d4df51fbe9e20802b2488fa06d7c535dff",
+      "record_agrees": true
+     },
+     "source_release": {
+      "sha256": "6338b286a76ab21c63ea2d59c7627cecf07a3029f4ad551ad5d8ed8d0ccdaf2e",
+      "record_agrees": true
+     },
+     "twb_release": {
+      "sha256": "6e6d7ea91b5529a4b1d4d53773ba3df02594525f614c9d46f495df5f9f58d244",
+      "record_agrees": true
+     },
+     "task_cache": {
+      "sha256": "c7ce41adc80f8028051c37faf4ae9c59d96623b3b16af079fc3167b0de9ff60e",
+      "record_agrees": true
+     },
+     "task_cache_equals_source_release_record": true,
+     "task_cache_equals_twb_record": true,
+     "task_rows_are_admitted_model_fit": true
+    },
+    "oof_routing": {
+     "min_gap_income": 1.7047477814668976e-06,
+     "min_gap_occupation": 5.440402713441372e-06,
+     "people_gap_below_1e-9": {
+      "income": 0,
+      "occupation": 0
+     },
+     "occupied": {
+      "income": 16,
+      "occupation": 64,
+      "pair": 710
+     },
+     "unoccupied_cells": {
+      "I": 0,
+      "O": 0
+     }
+    },
+    "B1_tables_vs_TWB_dec": {
+     "I": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       16,
+       2
+      ],
+      "shape_stored": [
+       16,
+       2
+      ]
+     },
+     "O": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       64,
+       5
+      ],
+      "shape_stored": [
+       64,
+       5
+      ]
+     }
+    },
+    "unoccupied_vs_record": {
+     "I": [
+      0,
+      0
+     ],
+     "O": [
+      0,
+      0
+     ]
+    },
+    "occupied_vs_record": [
+     {
+      "income": 16,
+      "occupation": 64,
+      "pair": 710
+     },
+     {
+      "income": 16,
+      "occupation": 64,
+      "pair": 710
+     }
+    ],
+    "table_rows_distinct": {
+     "B1_I": true,
+     "B1_O": true,
+     "A_I": true,
+     "A_O": true
+    },
+    "twb_book_equals_source_book": {
+     "CI": true,
+     "CO": true,
+     "lam": true,
+     "tilt": true,
+     "restrict": true,
+     "w_pair": true,
+     "w_loc": true,
+     "kappa": true,
+     "m_shrink": true,
+     "same_keys": true
+    },
+    "twb_teachers_equal_source_pickled_bytes": {
+     "inc": true,
+     "occ": true,
+     "same_names": true
+    },
+    "metadata": {
+     "construction": "B1",
+     "capacity": [
+      16,
+      64
+     ],
+     "T": {
+      "inc": 393,
+      "occ": 154
+     },
+     "source_T": {
+      "inc": 393,
+      "occ": 154
+     },
+     "feature_names_equal": true
+    },
+    "full_pool_max_abs": {
+     "B1_minus_A": {
+      "I": 0.022782062085369703,
+      "O": 0.10492356949456205
+     },
+     "B1_minus_B0": {
+      "I": 0.00023938662127975796,
+      "O": 0.001889340317475452
+     }
+    },
+    "full_pool_vs_T1_record": {
+     "B1_minus_A": {
+      "I": [
+       0.022782062085369703,
+       0.022782062085369703
+      ],
+      "O": [
+       0.10492356949456205,
+       0.10492356949456205
+      ]
+     },
+     "B1_minus_B0": {
+      "I": [
+       0.00023938662127975796,
+       0.00023938662127975796
+      ],
+      "O": [
+       0.001889340317475452,
+       0.001889340317475452
+      ]
+     },
+     "fallbacks": [
+      {
+       "I": 0,
+       "O": 0
+      },
+      {
+       "labels": "none (out-of-fold teacher means)",
+       "unoccupied_prototype_fallback_I": 0,
+       "unoccupied_prototype_fallback_O": 0
+      }
+     ]
+    },
+    "roles": {
+     "MODEL_FIT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 683
+      },
+      "distinct_twb_vectors": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 683
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 20000
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 20000
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 20000
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "CALIBRATION": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 512
+      },
+      "distinct_twb_vectors": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 512
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 2982
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 2982
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 2982
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "MODEL_SELECT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 616
+      },
+      "distinct_twb_vectors": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 616
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 8001
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "ATTACK_FIT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 620
+      },
+      "distinct_twb_vectors": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 620
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 8001
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "ATTACK_VALIDATION": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 525
+      },
+      "distinct_twb_vectors": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 525
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 3000
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 3000
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 3000
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "DEV_REPORT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 591
+      },
+      "distinct_twb_vectors": {
+       "income": 16,
+       "occupation": 64,
+       "pair": 591
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 5943
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 5943
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 5943
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     }
+    },
+    "A_decoders_from_labels_vs_source_dec": {
+     "I": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       16,
+       2
+      ],
+      "shape_stored": [
+       16,
+       2
+      ]
+     },
+     "O": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       64,
+       5
+      ],
+      "shape_stored": [
+       64,
+       5
+      ]
+     }
+    },
+    "A_and_B1_count_same_people": true,
+    "deployed_routing": {
+     "MODEL_SELECT": {
+      "income_cells_equal": 8001,
+      "occupation_cells_equal": 8001,
+      "people": 8001,
+      "min_gap": [
+       4.155325702859258e-06,
+       8.319043953708416e-07
+      ],
+      "A_release_bitwise_from_own_routing": true,
+      "TWB_release_bitwise_from_own_routing": true,
+      "oof_vs_deployed_agreement_model_fit": null
+     },
+     "MODEL_FIT": {
+      "income_cells_equal": 20000,
+      "occupation_cells_equal": 20000,
+      "people": 20000,
+      "min_gap": [
+       2.8300490857446903e-06,
+       7.682793250474163e-07
+      ],
+      "A_release_bitwise_from_own_routing": true,
+      "TWB_release_bitwise_from_own_routing": true,
+      "oof_vs_deployed_agreement_model_fit": 0.5247
+     }
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T23:59:19+00:00",
+   "unit_id": "FRC_VER_ROUTING_V1"
+  },
+  {
+   "id": "V2.TWB.C128_V1__V1",
+   "what": "TWB_C128 V1: own out-of-fold routing and B1 tables (bitwise vs the TWB model), B0 = source book, teachers unchanged, partition identity with the source A release on all six roles, TWB = B1[cell] bitwise, distinct vectors = occupied cells, empty-cell counts; A decoders from MODEL_FIT labels bitwise; deployed routing replay",
+   "inputs": {
+    "source_model": "5a62d600ae784e3370119d30e752c430f917aa252e474a9f88de0a1ab243e7c5",
+    "twb_model": "063ddb313fa215809eea79edab13587a26e4151fa1f010824c24047ee0643ca0",
+    "source_release": "e4a65b9860eb5bdffec19ce9c90903522ce734130340a1c2f6a9bf3971f4bb0e",
+    "twb_release": "373e20b1f073560f21dcc0121daea17512d54761cd48164630e3d0fb4a94d9f9",
+    "task_cache": "c7ce41adc80f8028051c37faf4ae9c59d96623b3b16af079fc3167b0de9ff60e"
+   },
+   "result": {
+    "hashes": {
+     "source_model": {
+      "sha256": "5a62d600ae784e3370119d30e752c430f917aa252e474a9f88de0a1ab243e7c5",
+      "record_agrees": true
+     },
+     "twb_model": {
+      "sha256": "063ddb313fa215809eea79edab13587a26e4151fa1f010824c24047ee0643ca0",
+      "record_agrees": true
+     },
+     "source_release": {
+      "sha256": "e4a65b9860eb5bdffec19ce9c90903522ce734130340a1c2f6a9bf3971f4bb0e",
+      "record_agrees": true
+     },
+     "twb_release": {
+      "sha256": "373e20b1f073560f21dcc0121daea17512d54761cd48164630e3d0fb4a94d9f9",
+      "record_agrees": true
+     },
+     "task_cache": {
+      "sha256": "c7ce41adc80f8028051c37faf4ae9c59d96623b3b16af079fc3167b0de9ff60e",
+      "record_agrees": true
+     },
+     "task_cache_equals_source_release_record": true,
+     "task_cache_equals_twb_record": true,
+     "task_rows_are_admitted_model_fit": true
+    },
+    "oof_routing": {
+     "min_gap_income": 2.528142265534328e-07,
+     "min_gap_occupation": 4.966075561885219e-07,
+     "people_gap_below_1e-9": {
+      "income": 0,
+      "occupation": 0
+     },
+     "occupied": {
+      "income": 24,
+      "occupation": 128,
+      "pair": 1797
+     },
+     "unoccupied_cells": {
+      "I": 0,
+      "O": 0
+     }
+    },
+    "B1_tables_vs_TWB_dec": {
+     "I": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       24,
+       2
+      ],
+      "shape_stored": [
+       24,
+       2
+      ]
+     },
+     "O": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       128,
+       5
+      ],
+      "shape_stored": [
+       128,
+       5
+      ]
+     }
+    },
+    "unoccupied_vs_record": {
+     "I": [
+      0,
+      0
+     ],
+     "O": [
+      0,
+      0
+     ]
+    },
+    "occupied_vs_record": [
+     {
+      "income": 24,
+      "occupation": 128,
+      "pair": 1797
+     },
+     {
+      "income": 24,
+      "occupation": 128,
+      "pair": 1797
+     }
+    ],
+    "table_rows_distinct": {
+     "B1_I": true,
+     "B1_O": true,
+     "A_I": true,
+     "A_O": true
+    },
+    "twb_book_equals_source_book": {
+     "CI": true,
+     "CO": true,
+     "lam": true,
+     "tilt": true,
+     "restrict": true,
+     "w_pair": true,
+     "w_loc": true,
+     "kappa": true,
+     "m_shrink": true,
+     "same_keys": true
+    },
+    "twb_teachers_equal_source_pickled_bytes": {
+     "inc": true,
+     "occ": true,
+     "same_names": true
+    },
+    "metadata": {
+     "construction": "B1",
+     "capacity": [
+      24,
+      128
+     ],
+     "T": {
+      "inc": 393,
+      "occ": 154
+     },
+     "source_T": {
+      "inc": 393,
+      "occ": 154
+     },
+     "feature_names_equal": true
+    },
+    "full_pool_max_abs": {
+     "B1_minus_A": {
+      "I": 0.026327742774646667,
+      "O": 0.12096416573342772
+     },
+     "B1_minus_B0": {
+      "I": 0.00013327019229636416,
+      "O": 0.00620879993770318
+     }
+    },
+    "full_pool_vs_T1_record": {
+     "B1_minus_A": {
+      "I": [
+       0.026327742774646667,
+       0.026327742774646667
+      ],
+      "O": [
+       0.12096416573342772,
+       0.12096416573342772
+      ]
+     },
+     "B1_minus_B0": {
+      "I": [
+       0.00013327019229636416,
+       0.00013327019229636416
+      ],
+      "O": [
+       0.00620879993770318,
+       0.00620879993770318
+      ]
+     },
+     "fallbacks": [
+      {
+       "I": 0,
+       "O": 0
+      },
+      {
+       "labels": "none (out-of-fold teacher means)",
+       "unoccupied_prototype_fallback_I": 0,
+       "unoccupied_prototype_fallback_O": 0
+      }
+     ]
+    },
+    "roles": {
+     "MODEL_FIT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1702
+      },
+      "distinct_twb_vectors": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1702
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 20000
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 20000
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 20000
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "CALIBRATION": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1025
+      },
+      "distinct_twb_vectors": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1025
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 2982
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 2982
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 2982
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "MODEL_SELECT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1430
+      },
+      "distinct_twb_vectors": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1430
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 8001
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "ATTACK_FIT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1396
+      },
+      "distinct_twb_vectors": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1396
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 8001
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 8001
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "ATTACK_VALIDATION": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1027
+      },
+      "distinct_twb_vectors": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1027
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 3000
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 3000
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 3000
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     },
+     "DEV_REPORT": {
+      "partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "cells_read_off_A_release": true,
+      "twb_equals_B1_of_cell_bitwise": true,
+      "distinct_vectors_equal_occupied_cells": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      },
+      "occupied_cells": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1308
+      },
+      "distinct_twb_vectors": {
+       "income": 24,
+       "occupation": 128,
+       "pair": 1308
+      },
+      "people_routed_into_oof_empty_cells": {
+       "income": 0,
+       "occupation": 0,
+       "people": 5943
+      },
+      "empty_vs_record": [
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 5943
+       },
+       {
+        "income": 0,
+        "occupation": 0,
+        "people": 5943
+       }
+      ],
+      "record_partition_identity": {
+       "income": true,
+       "occupation": true,
+       "pair": true
+      }
+     }
+    },
+    "A_decoders_from_labels_vs_source_dec": {
+     "I": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       24,
+       2
+      ],
+      "shape_stored": [
+       24,
+       2
+      ]
+     },
+     "O": {
+      "bitwise_equal": true,
+      "max_abs_diff": 0.0,
+      "shape_mine": [
+       128,
+       5
+      ],
+      "shape_stored": [
+       128,
+       5
+      ]
+     }
+    },
+    "A_and_B1_count_same_people": true,
+    "deployed_routing": {
+     "MODEL_SELECT": {
+      "income_cells_equal": 8001,
+      "occupation_cells_equal": 8001,
+      "people": 8001,
+      "min_gap": [
+       3.9678272734100517e-07,
+       4.387904719627134e-06
+      ],
+      "A_release_bitwise_from_own_routing": true,
+      "TWB_release_bitwise_from_own_routing": true,
+      "oof_vs_deployed_agreement_model_fit": null
+     },
+     "MODEL_FIT": {
+      "income_cells_equal": 20000,
+      "occupation_cells_equal": 20000,
+      "people": 20000,
+      "min_gap": [
+       4.034979975142683e-07,
+       3.0422792385298436e-07
+      ],
+      "A_release_bitwise_from_own_routing": true,
+      "TWB_release_bitwise_from_own_routing": true,
+      "oof_vs_deployed_agreement_model_fit": 0.39405
+     }
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T23:59:19+00:00",
+   "unit_id": "FRC_VER_ROUTING_V1"
+  },
+  {
+   "id": "V3.NEST.C64_V0__V1",
+   "what": "NEST_C64_V0: every derivable number recomputed from the per-person file with own code (means, spends over CONT with household-clustered SEs, original gate labels, paired differences, own outer folds and fold-level SEs, shares, per-fold entries), label-free partition consistency of A / B0 / B1 on the stored cells, GATE reproduction (<= 1e-12)",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/fa_cache/nested/NEST_C64_V0.npz": "630e544c354348aec6555bf260696d697552b93e9f64269f2b1eee31a6d5e4c7",
+    "results/pcrl_finite_routing_comparison_v1/fa/NEST_C64_V0.json": "fe24051a9c2bce4b88dc13a3a6e9b5a1b015c63420b481754de4e89b5154cfc6"
+   },
+   "result": {
+    "max_abs_difference_all_numbers": 2.168404344971009e-19,
+    "mismatches": [],
+    "n_mismatches": 0,
+    "consistency": {
+     "cells_in_range": true,
+     "tot_equals_sum_A": true,
+     "tot_equals_sum_B0": true,
+     "tot_equals_sum_B1": true,
+     "tot_equals_sum_CONT": true,
+     "A_inc": {
+      "groups": 80,
+      "max_distinct_nll": 2,
+      "allowed": 2,
+      "max_range_brier_plus_2exp_minus_nll": 2.220446049250313e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "A_occ": {
+      "groups": 320,
+      "max_distinct_nll": 5,
+      "allowed": 5,
+      "max_range_brier_plus_2exp_minus_nll": 4.440892098500626e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B0_inc": {
+      "groups": 80,
+      "max_distinct_nll": 2,
+      "allowed": 2,
+      "max_range_brier_plus_2exp_minus_nll": 2.220446049250313e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B0_occ": {
+      "groups": 320,
+      "max_distinct_nll": 5,
+      "allowed": 5,
+      "max_range_brier_plus_2exp_minus_nll": 6.661338147750939e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B1_inc": {
+      "groups": 80,
+      "max_distinct_nll": 2,
+      "allowed": 2,
+      "max_range_brier_plus_2exp_minus_nll": 2.220446049250313e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B1_occ": {
+      "groups": 320,
+      "max_distinct_nll": 5,
+      "allowed": 5,
+      "max_range_brier_plus_2exp_minus_nll": 6.661338147750939e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "ok": true
+    },
+    "gate_reproduction": {
+     "max_abs_difference": 2.168404344971009e-19,
+     "n_numbers": 20,
+     "reproduced": true,
+     "my_gate_label": "FAIL",
+     "record_gate_label": "FAIL",
+     "gate_keys_cover": true,
+     "record_says_reproduced": true,
+     "record_max_abs_difference": 0.0,
+     "gate_file_sha256": "6aed7edc9d276c8a42eb4b942b2057aa4296c34b5d03e9db4a74f0a295a30d94"
+    },
+    "my_original_capacity_gate": {
+     "A": "ORIGINAL_CAPACITY_GATE_FAIL",
+     "B0": "ORIGINAL_CAPACITY_GATE_FAIL",
+     "B1": "ORIGINAL_CAPACITY_GATE_FAIL"
+    },
+    "my_B1_minus_A": {
+     "inc_nll": [
+      -0.0003565376054562345,
+      0.00022073826218932732
+     ],
+     "occ_nll": [
+      -0.0038828610009226266,
+      0.0008288939249260211
+     ],
+     "tot_nll": [
+      -0.004239398606378861,
+      0.0008572019734624337
+     ],
+     "inc_brier": [
+      -0.00029206833250241664,
+      0.00016597725061566536
+     ],
+     "occ_brier": [
+      -0.0009510909301599931,
+      0.00031781589935881403
+     ],
+     "inc_acc": [
+      0.0,
+      0.0
+     ],
+     "occ_acc": [
+      -0.0032,
+      0.0016413998121567732
+     ]
+    },
+    "my_fold_level_B1_minus_A_occ_nll": {
+     "fold_means": [
+      -0.0025681345081550572,
+      -0.005987632038629241,
+      -0.0028805241327003873,
+      -0.0031009923184017307,
+      -0.004832046910785744
+     ],
+     "sd_fold_means_over_sqrt_folds": 0.0006586013227169268,
+     "se_used": 0.0008288939249260211,
+     "negative_folds": 5
+    },
+    "my_share_removed": {
+     "occ_nll": 0.3636110168753679,
+     "inc_nll": 0.23295535122276861,
+     "tot_nll": 0.34723241208448835
+    },
+    "my_spend_over_cont_occ_nll": {
+     "A": [
+      0.010678612090165362,
+      0.001292587652864756
+     ],
+     "B0": [
+      0.00679423257208318,
+      0.0009907775166548341
+     ],
+     "B1": [
+      0.0067957510892427365,
+      0.0009906781909781595
+     ]
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T23:59:52+00:00",
+   "unit_id": "FRC_VER_NESTED_V1"
+  },
+  {
+   "id": "V3.NEST.C64_V1__V1",
+   "what": "NEST_C64_V1: every derivable number recomputed from the per-person file with own code (means, spends over CONT with household-clustered SEs, original gate labels, paired differences, own outer folds and fold-level SEs, shares, per-fold entries), label-free partition consistency of A / B0 / B1 on the stored cells, GATE reproduction (<= 1e-12)",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/fa_cache/nested/NEST_C64_V1.npz": "a669ea61826cc55339d95a04066caf11f89e53a6304326708eeda3abaf85b536",
+    "results/pcrl_finite_routing_comparison_v1/fa/NEST_C64_V1.json": "486566f3c4ad2365eef0f694f0c2fbc735fbde3c028523036a9cb1ef77c977be"
+   },
+   "result": {
+    "max_abs_difference_all_numbers": 2.168404344971009e-19,
+    "mismatches": [],
+    "n_mismatches": 0,
+    "consistency": {
+     "cells_in_range": true,
+     "tot_equals_sum_A": true,
+     "tot_equals_sum_B0": true,
+     "tot_equals_sum_B1": true,
+     "tot_equals_sum_CONT": true,
+     "A_inc": {
+      "groups": 80,
+      "max_distinct_nll": 2,
+      "allowed": 2,
+      "max_range_brier_plus_2exp_minus_nll": 2.220446049250313e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "A_occ": {
+      "groups": 320,
+      "max_distinct_nll": 5,
+      "allowed": 5,
+      "max_range_brier_plus_2exp_minus_nll": 4.440892098500626e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B0_inc": {
+      "groups": 80,
+      "max_distinct_nll": 2,
+      "allowed": 2,
+      "max_range_brier_plus_2exp_minus_nll": 2.220446049250313e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B0_occ": {
+      "groups": 320,
+      "max_distinct_nll": 5,
+      "allowed": 5,
+      "max_range_brier_plus_2exp_minus_nll": 4.440892098500626e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B1_inc": {
+      "groups": 80,
+      "max_distinct_nll": 2,
+      "allowed": 2,
+      "max_range_brier_plus_2exp_minus_nll": 2.220446049250313e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B1_occ": {
+      "groups": 320,
+      "max_distinct_nll": 5,
+      "allowed": 5,
+      "max_range_brier_plus_2exp_minus_nll": 4.440892098500626e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "ok": true
+    },
+    "gate_reproduction": {
+     "max_abs_difference": 0.0,
+     "n_numbers": 20,
+     "reproduced": true,
+     "my_gate_label": "FAIL",
+     "record_gate_label": "FAIL",
+     "gate_keys_cover": true,
+     "record_says_reproduced": true,
+     "record_max_abs_difference": 0.0,
+     "gate_file_sha256": "88cd091e26d41bcdb71041541ee4ade38bc278ef3742788a899eeb3afff13db2"
+    },
+    "my_original_capacity_gate": {
+     "A": "ORIGINAL_CAPACITY_GATE_FAIL",
+     "B0": "ORIGINAL_CAPACITY_GATE_FAIL",
+     "B1": "ORIGINAL_CAPACITY_GATE_FAIL"
+    },
+    "my_B1_minus_A": {
+     "inc_nll": [
+      -0.0006073245536650116,
+      0.00023319667909840112
+     ],
+     "occ_nll": [
+      -0.004864161005304473,
+      0.000831436429827448
+     ],
+     "tot_nll": [
+      -0.005471485558969485,
+      0.0008617318307336348
+     ],
+     "inc_brier": [
+      -0.0005094061724200092,
+      0.00019008800770254229
+     ],
+     "occ_brier": [
+      -0.001164576637079614,
+      0.0002915358252112071
+     ],
+     "inc_acc": [
+      0.0,
+      0.0
+     ],
+     "occ_acc": [
+      -0.00125,
+      0.0014222036686871475
+     ]
+    },
+    "my_fold_level_B1_minus_A_occ_nll": {
+     "fold_means": [
+      -0.002348670859482783,
+      -0.0035332562359703767,
+      -0.0049616724352510595,
+      -0.008334375246268361,
+      -0.0051291809341563795
+     ],
+     "sd_fold_means_over_sqrt_folds": 0.001005512104299287,
+     "se_used": 0.001005512104299287,
+     "negative_folds": 5
+    },
+    "my_share_removed": {
+     "occ_nll": 0.3565599948551445,
+     "inc_nll": 0.6071072968064348,
+     "tot_nll": 0.3736773488884988
+    },
+    "my_spend_over_cont_occ_nll": {
+     "A": [
+      0.01364191461602578,
+      0.0012603122638182847
+     ],
+     "B0": [
+      0.008778727048042683,
+      0.0009400674581666076
+     ],
+     "B1": [
+      0.008777753610721308,
+      0.0009401491761218402
+     ]
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T23:59:52+00:00",
+   "unit_id": "FRC_VER_NESTED_V1"
+  },
+  {
+   "id": "V3.QPE.C64__V1",
+   "what": "C64: Q-PE label (d_v + 2 SE_used < 0 both versions; MODEL_SELECT sign from the recorded T3 paired costs) and the construction choice (nested B1 - A occupation and total NLL < 0 both versions) from my own nested numbers, against QUAL_DECISION.json",
+   "inputs": {
+    "results/pcrl_finite_routing_comparison_v1/decisions/QUAL_DECISION.json": "2b67fd49771a26399172452dbaf8d2dbd341cf6a69a8ef1075c7502daac1740a"
+   },
+   "result": {
+    "d_and_se_used": {
+     "0": [
+      -0.0038828610009226266,
+      0.0008288939249260211
+     ],
+     "1": [
+      -0.004864161005304473,
+      0.001005512104299287
+     ]
+    },
+    "upper": {
+     "0": -0.002225073151070584,
+     "1": -0.0028531367967058988
+    },
+    "label": "PE_ERROR_SUPPORTED",
+    "construction_choice": "B1",
+    "model_select_occ_nll_used": {
+     "0": -0.003744988651238968,
+     "1": -0.005459245626411464
+    },
+    "recorded_label": "PE_ERROR_SUPPORTED",
+    "recorded_choice": "B1",
+    "max_abs_diff_d_se": 1.0842021724855044e-19
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T23:59:52+00:00",
+   "unit_id": "FRC_VER_NESTED_V1"
+  },
+  {
+   "id": "V3.NEST.C128_V0__V1",
+   "what": "NEST_C128_V0: every derivable number recomputed from the per-person file with own code (means, spends over CONT with household-clustered SEs, original gate labels, paired differences, own outer folds and fold-level SEs, shares, per-fold entries), label-free partition consistency of A / B0 / B1 on the stored cells, GATE reproduction (<= 1e-12)",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/fa_cache/nested/NEST_C128_V0.npz": "5d43393bb139c5ce26f475ccbfa8eb31c51f7176fabbe74b5450119892370fd3",
+    "results/pcrl_finite_routing_comparison_v1/fa/NEST_C128_V0.json": "dc5b13a9b5f372ce019b484f22bb0916e1bf646457bde19d0b92482d83bf5e44"
+   },
+   "result": {
+    "max_abs_difference_all_numbers": 4.336808689942018e-19,
+    "mismatches": [],
+    "n_mismatches": 0,
+    "consistency": {
+     "cells_in_range": true,
+     "tot_equals_sum_A": true,
+     "tot_equals_sum_B0": true,
+     "tot_equals_sum_B1": true,
+     "tot_equals_sum_CONT": true,
+     "A_inc": {
+      "groups": 120,
+      "max_distinct_nll": 2,
+      "allowed": 2,
+      "max_range_brier_plus_2exp_minus_nll": 2.220446049250313e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "A_occ": {
+      "groups": 639,
+      "max_distinct_nll": 5,
+      "allowed": 5,
+      "max_range_brier_plus_2exp_minus_nll": 6.661338147750939e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B0_inc": {
+      "groups": 120,
+      "max_distinct_nll": 2,
+      "allowed": 2,
+      "max_range_brier_plus_2exp_minus_nll": 2.220446049250313e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B0_occ": {
+      "groups": 639,
+      "max_distinct_nll": 5,
+      "allowed": 5,
+      "max_range_brier_plus_2exp_minus_nll": 6.661338147750939e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B1_inc": {
+      "groups": 120,
+      "max_distinct_nll": 2,
+      "allowed": 2,
+      "max_range_brier_plus_2exp_minus_nll": 2.220446049250313e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B1_occ": {
+      "groups": 639,
+      "max_distinct_nll": 5,
+      "allowed": 5,
+      "max_range_brier_plus_2exp_minus_nll": 6.661338147750939e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "ok": true
+    },
+    "gate_reproduction": {
+     "max_abs_difference": 4.336808689942018e-19,
+     "n_numbers": 20,
+     "reproduced": true,
+     "my_gate_label": "FAIL",
+     "record_gate_label": "FAIL",
+     "gate_keys_cover": true,
+     "record_says_reproduced": true,
+     "record_max_abs_difference": 0.0,
+     "gate_file_sha256": "4f9e8aa783b0dea8fb8edcc4d5f82f7aae3a05b70da446c0dcd29dabec04549a"
+    },
+    "my_original_capacity_gate": {
+     "A": "ORIGINAL_CAPACITY_GATE_FAIL",
+     "B0": "ORIGINAL_CAPACITY_GATE_FAIL",
+     "B1": "ORIGINAL_CAPACITY_GATE_FAIL"
+    },
+    "my_B1_minus_A": {
+     "inc_nll": [
+      -0.0008476605621410695,
+      0.00029458366470169907
+     ],
+     "occ_nll": [
+      -0.008477782108967116,
+      0.001121592493201969
+     ],
+     "tot_nll": [
+      -0.009325442671108186,
+      0.001160935245790526
+     ],
+     "inc_brier": [
+      -0.0005927380080729188,
+      0.00021248410310586419
+     ],
+     "occ_brier": [
+      -0.0023065257797546357,
+      0.0004227054386352318
+     ],
+     "inc_acc": [
+      0.0,
+      0.0
+     ],
+     "occ_acc": [
+      -0.0052,
+      0.001727230132373976
+     ]
+    },
+    "my_fold_level_B1_minus_A_occ_nll": {
+     "fold_means": [
+      -0.008015262863589301,
+      -0.009391325266514894,
+      -0.01123159027382134,
+      -0.0036854922378834493,
+      -0.010079281493622548
+     ],
+     "sd_fold_means_over_sqrt_folds": 0.0013069572987698288,
+     "se_used": 0.0013069572987698288,
+     "negative_folds": 5
+    },
+    "my_share_removed": {
+     "occ_nll": 0.6180083947090624,
+     "inc_nll": 0.6306953953858011,
+     "tot_nll": 0.6191404848988212
+    },
+    "my_spend_over_cont_occ_nll": {
+     "A": [
+      0.01371790768790151,
+      0.001371354538916836
+     ],
+     "B0": [
+      0.005245323199983553,
+      0.0008248838678322789
+     ],
+     "B1": [
+      0.005240125578934392,
+      0.0008248577649583895
+     ]
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T23:59:52+00:00",
+   "unit_id": "FRC_VER_NESTED_V1"
+  },
+  {
+   "id": "V3.NEST.C128_V1__V1",
+   "what": "NEST_C128_V1: every derivable number recomputed from the per-person file with own code (means, spends over CONT with household-clustered SEs, original gate labels, paired differences, own outer folds and fold-level SEs, shares, per-fold entries), label-free partition consistency of A / B0 / B1 on the stored cells, GATE reproduction (<= 1e-12)",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/fa_cache/nested/NEST_C128_V1.npz": "5e2b487cee876a300092d6792a742096826b00c692d86c4e04a69a349c913ec8",
+    "results/pcrl_finite_routing_comparison_v1/fa/NEST_C128_V1.json": "4cfff8deb636d267d0b173a6a97b4c966ab2c9e4b33a701dedb34067459a64f0"
+   },
+   "result": {
+    "max_abs_difference_all_numbers": 4.336808689942018e-19,
+    "mismatches": [],
+    "n_mismatches": 0,
+    "consistency": {
+     "cells_in_range": true,
+     "tot_equals_sum_A": true,
+     "tot_equals_sum_B0": true,
+     "tot_equals_sum_B1": true,
+     "tot_equals_sum_CONT": true,
+     "A_inc": {
+      "groups": 120,
+      "max_distinct_nll": 2,
+      "allowed": 2,
+      "max_range_brier_plus_2exp_minus_nll": 2.220446049250313e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "A_occ": {
+      "groups": 640,
+      "max_distinct_nll": 5,
+      "allowed": 5,
+      "max_range_brier_plus_2exp_minus_nll": 6.661338147750939e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B0_inc": {
+      "groups": 120,
+      "max_distinct_nll": 2,
+      "allowed": 2,
+      "max_range_brier_plus_2exp_minus_nll": 2.220446049250313e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B0_occ": {
+      "groups": 640,
+      "max_distinct_nll": 5,
+      "allowed": 5,
+      "max_range_brier_plus_2exp_minus_nll": 6.661338147750939e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B1_inc": {
+      "groups": 120,
+      "max_distinct_nll": 2,
+      "allowed": 2,
+      "max_range_brier_plus_2exp_minus_nll": 2.220446049250313e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "B1_occ": {
+      "groups": 640,
+      "max_distinct_nll": 5,
+      "allowed": 5,
+      "max_range_brier_plus_2exp_minus_nll": 6.661338147750939e-16,
+      "groups_correct_people_with_two_nll": 0,
+      "groups_correct_nll_not_smallest": 0
+     },
+     "ok": true
+    },
+    "gate_reproduction": {
+     "max_abs_difference": 0.0,
+     "n_numbers": 20,
+     "reproduced": true,
+     "my_gate_label": "FAIL",
+     "record_gate_label": "FAIL",
+     "gate_keys_cover": true,
+     "record_says_reproduced": true,
+     "record_max_abs_difference": 0.0,
+     "gate_file_sha256": "e9fa86d893ea414318bca4abf5196687f83642c8f71a230fc5dbd0861a4189dd"
+    },
+    "my_original_capacity_gate": {
+     "A": "ORIGINAL_CAPACITY_GATE_FAIL",
+     "B0": "ORIGINAL_CAPACITY_GATE_FAIL",
+     "B1": "ORIGINAL_CAPACITY_GATE_FAIL"
+    },
+    "my_B1_minus_A": {
+     "inc_nll": [
+      -0.0006752425911853453,
+      0.0002751787168415079
+     ],
+     "occ_nll": [
+      -0.009000976902250754,
+      0.0011308362411858147
+     ],
+     "tot_nll": [
+      -0.0096762194934361,
+      0.0011653417327093449
+     ],
+     "inc_brier": [
+      -0.0006004292596135818,
+      0.00021588153885484753
+     ],
+     "occ_brier": [
+      -0.002404240013823527,
+      0.0004053643778774358
+     ],
+     "inc_acc": [
+      -0.00145,
+      0.000986126257337767
+     ],
+     "occ_acc": [
+      -0.00205,
+      0.0017211810826660344
+     ]
+    },
+    "my_fold_level_B1_minus_A_occ_nll": {
+     "fold_means": [
+      -0.006243095428711514,
+      -0.011599231751728887,
+      -0.010886207086618915,
+      -0.007575811950849812,
+      -0.00864927708451927
+     ],
+     "sd_fold_means_over_sqrt_folds": 0.0010016285162466267,
+     "se_used": 0.0011308362411858147,
+     "negative_folds": 5
+    },
+    "my_share_removed": {
+     "occ_nll": 0.6819812342493737,
+     "inc_nll": 0.6454212623285135,
+     "tot_nll": 0.6792960395316775
+    },
+    "my_spend_over_cont_occ_nll": {
+     "A": [
+      0.013198276507062144,
+      0.0013737078109793022
+     ],
+     "B0": [
+      0.004194730909406718,
+      0.0007828624674926031
+     ],
+     "B1": [
+      0.004197299604811389,
+      0.0007828286709281564
+     ]
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-20T23:59:52+00:00",
+   "unit_id": "FRC_VER_NESTED_V1"
+  },
+  {
+   "id": "V3.QPE.C128__V1",
+   "what": "C128: Q-PE label (d_v + 2 SE_used < 0 both versions; MODEL_SELECT sign from the recorded T3 paired costs) and the construction choice (nested B1 - A occupation and total NLL < 0 both versions) from my own nested numbers, against QUAL_DECISION.json",
+   "inputs": {
+    "results/pcrl_finite_routing_comparison_v1/decisions/QUAL_DECISION.json": "2b67fd49771a26399172452dbaf8d2dbd341cf6a69a8ef1075c7502daac1740a"
+   },
+   "result": {
+    "d_and_se_used": {
+     "0": [
+      -0.008477782108967116,
+      0.0013069572987698288
+     ],
+     "1": [
+      -0.009000976902250754,
+      0.0011308362411858147
+     ]
+    },
+    "upper": {
+     "0": -0.005863867511427459,
+     "1": -0.006739304419879124
+    },
+    "label": "PE_ERROR_SUPPORTED",
+    "construction_choice": "B1",
+    "model_select_occ_nll_used": {
+     "0": -0.007224240317788667,
+     "1": -0.006179826535752198
+    },
+    "recorded_label": "PE_ERROR_SUPPORTED",
+    "recorded_choice": "B1",
+    "max_abs_diff_d_se": 0.0
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T23:59:52+00:00",
+   "unit_id": "FRC_VER_NESTED_V1"
+  },
+  {
+   "id": "V4.UTILITY.FA.TWB_C128.EVAL_MS__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors, wires, paired costs and reserve_rules of FA/TWB_C128 vs EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/FA/TWB_C128/EVAL_MS.json": "869624b2e56c2a67476d54f42d1dddf2d21bdf338231df2f356a4dd01cfe6f60",
+    "releases": {
+     "0": "93204e40568d7bcda69ad19a03ec407de004f7fa34b0bba7211e78ea2128d15c",
+     "1": "373e20b1f073560f21dcc0121daea17512d54761cd48164630e3d0fb4a94d9f9"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.1275702593849246e-16,
+     "max_abs_se_diff": 8.673617379884035e-19,
+     "max_abs_cost_diff": 1.0842021724855044e-19,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": -0.0999875015623047,
+     "reserve_met": true,
+     "min_whole_ratio": 3.029132683049883,
+     "binding": "occupation|U0|accuracy_loss",
+     "occ_side_met": true,
+     "min_occ_ratio": 3.029132683049883
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 9.497611030973019e-17,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_cost_diff": 4.336808689942018e-19,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.0,
+     "reserve_met": true,
+     "min_whole_ratio": 3.46452059728047,
+     "binding": "guard|sex0",
+     "occ_side_met": true,
+     "min_occ_ratio": 3.46452059728047
+    },
+    "reserve_rules_mismatches": []
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.UTILITY.FA.TWB_C64.EVAL_MS__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors, wires, paired costs and reserve_rules of FA/TWB_C64 vs EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/FA/TWB_C64/EVAL_MS.json": "498bc76d7658c6fdb86eee31488aae6becb068c1ea7ece6e0ae5d992eaaf3b57",
+    "releases": {
+     "0": "a535021ed8149e90f65a5099558250b75052dc0ff9909b76fa8be4f9e0f331f7",
+     "1": "6e6d7ea91b5529a4b1d4d53773ba3df02594525f614c9d46f495df5f9f58d244"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.6219664500383146e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_cost_diff": 4.336808689942018e-19,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": -0.16373570844425053,
+     "reserve_met": true,
+     "min_whole_ratio": 3.154260730035982,
+     "binding": "guard|sex0",
+     "occ_side_met": true,
+     "min_occ_ratio": 3.154260730035982
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.708702623837155e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_cost_diff": 4.336808689942018e-19,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.037099023302040714,
+     "reserve_met": true,
+     "min_whole_ratio": 2.707301033926128,
+     "binding": "guard|sex0",
+     "occ_side_met": true,
+     "min_occ_ratio": 2.707301033926128
+    },
+    "reserve_rules_mismatches": []
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.UTILITY.SOURCE.FA.PRC_TWIN.EVAL_MS__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors, wires, paired costs and reserve_rules of source FA/PRC_TWIN vs EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/SOURCE/FA/PRC_TWIN/EVAL_MS.json": "124933abf8c3926f2af410e79cce770c0c7071a0c6c56bacdb3989db06d0f894",
+    "releases": {
+     "0": "22718f50dd29f6d409efb243935b0a4f603f52fa8ffb1a2581a7a0c633d9d84c",
+     "1": "6338b286a76ab21c63ea2d59c7627cecf07a3029f4ad551ad5d8ed8d0ccdaf2e"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.3704315460216776e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_cost_diff": 4.336808689942018e-19,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.09981470760019893,
+     "reserve_met": true,
+     "min_whole_ratio": 2.3106970634120283,
+     "binding": "guard|sex0",
+     "occ_side_met": true,
+     "min_occ_ratio": 2.3106970634120283
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.0625181290357943e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_cost_diff": 4.336808689942018e-19,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.5104545835545563,
+     "reserve_met": false,
+     "min_whole_ratio": 1.2890620294864508,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 1.2890620294864508
+    },
+    "reserve_rules_mismatches": []
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.UTILITY.SOURCE.FA.PRC_TWIN_C128.EVAL_MS__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors, wires, paired costs and reserve_rules of source FA/PRC_TWIN_C128 vs EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/SOURCE/FA/PRC_TWIN_C128/EVAL_MS.json": "4fa11ac303babae7e1f8d16dad3099cb11acd87208690f9f3483ca096ba94054",
+    "releases": {
+     "0": "0dbc9527e9e510126a678b14e4f58b5184a252a60774a21901cf68e2e3edaad5",
+     "1": "e4a65b9860eb5bdffec19ce9c90903522ce734130340a1c2f6a9bf3971f4bb0e"
+    }
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.1622647289044608e-16,
+     "max_abs_se_diff": 8.673617379884035e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.20774767056824936,
+     "reserve_met": false,
+     "min_whole_ratio": 1.919164644174021,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 1.919164644174021
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.5178830414797062e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_cost_diff": 4.336808689942018e-19,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.1392402714669309,
+     "reserve_met": true,
+     "min_whole_ratio": 2.223110591098429,
+     "binding": "guard|sex0",
+     "occ_side_met": true,
+     "min_occ_ratio": 2.223110591098429
+    },
+    "reserve_rules_mismatches": []
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "procedural_findings": [],
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.UTILITY.REF.REF_B2TWIN__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors and wires of reference REF:B2TWIN vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/REFERENCES/EVAL_MS.json": "727ecc6b70b6cc4e20abc114ccbc7d9719cc9c9ac7728f71b50f08e4d7f796b0"
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.97758476261356e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.8834731367422273,
+     "reserve_met": false,
+     "min_whole_ratio": 0.3212259380172857,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.3212259380172857
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.3530843112619095e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.7881251574642294,
+     "reserve_met": false,
+     "min_whole_ratio": 0.6244343872131651,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.6244343872131651
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.UTILITY.REF.REF_H3_TASK_REFIT__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors and wires of reference REF:H3+TASK_REFIT vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/REFERENCES/EVAL_MS.json": "727ecc6b70b6cc4e20abc114ccbc7d9719cc9c9ac7728f71b50f08e4d7f796b0"
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 2.0122792321330962e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.012498437695288087,
+     "reserve_met": true,
+     "min_whole_ratio": 3.4116676201851663,
+     "binding": "guard|sex0",
+     "occ_side_met": true,
+     "min_occ_ratio": 3.4116676201851663
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.682681771697503e-16,
+     "max_abs_se_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.17497812773403323,
+     "reserve_met": true,
+     "min_whole_ratio": 2.8619483139645285,
+     "binding": "income|U0|accuracy_loss",
+     "occ_side_met": true,
+     "min_occ_ratio": 3.1861446346889877
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.UTILITY.REF.REF_H3_T_TREE__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors and wires of reference REF:H3+T_TREE vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/REFERENCES/EVAL_MS.json": "727ecc6b70b6cc4e20abc114ccbc7d9719cc9c9ac7728f71b50f08e4d7f796b0"
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.205632815803881e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.012498437695288087,
+     "reserve_met": true,
+     "min_whole_ratio": 3.3255833184169368,
+     "binding": "guard|sex0",
+     "occ_side_met": true,
+     "min_occ_ratio": 3.3255833184169368
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.7954387976359953e-16,
+     "max_abs_se_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.17497812773403323,
+     "reserve_met": true,
+     "min_whole_ratio": 2.5999462814046392,
+     "binding": "guard|sex0",
+     "occ_side_met": true,
+     "min_occ_ratio": 2.5999462814046392
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.UTILITY.REF.REF_H_LJ__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors and wires of reference REF:H_LJ vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/REFERENCES/EVAL_MS.json": "727ecc6b70b6cc4e20abc114ccbc7d9719cc9c9ac7728f71b50f08e4d7f796b0"
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.97758476261356e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.8834731367422273,
+     "reserve_met": false,
+     "min_whole_ratio": 0.3212259380172857,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.3212259380172857
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.205632815803881e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.7881251574642294,
+     "reserve_met": false,
+     "min_whole_ratio": 0.6244343872131651,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.6244343872131651
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.UTILITY.REF.REF_NEURAL_RAW__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors and wires of reference REF:NEURAL_RAW vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/REFERENCES/EVAL_MS.json": "727ecc6b70b6cc4e20abc114ccbc7d9719cc9c9ac7728f71b50f08e4d7f796b0"
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.2750217548429532e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.34043911541955657,
+     "reserve_met": false,
+     "min_whole_ratio": 1.9473360473873678,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 1.9473360473873678
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.7824283715661693e-16,
+     "max_abs_se_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.569917577811761,
+     "reserve_met": false,
+     "min_whole_ratio": 1.557538441245061,
+     "binding": "income|U0|brier_excess",
+     "occ_side_met": false,
+     "min_occ_ratio": 1.7791877014205306
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.UTILITY.REF.REF_RETIRED_B3CTL__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors and wires of reference REF:RETIRED_B3CTL vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/REFERENCES/EVAL_MS.json": "727ecc6b70b6cc4e20abc114ccbc7d9719cc9c9ac7728f71b50f08e4d7f796b0"
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.97758476261356e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.8834731367422273,
+     "reserve_met": false,
+     "min_whole_ratio": 0.3212259380172857,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.3212259380172857
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 9.150666335777657e-17,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.8834786876605435,
+     "reserve_met": false,
+     "min_whole_ratio": 0.34886918959776975,
+     "binding": "income|Ucal|brier_excess",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.6244343872131651
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.UTILITY.REF.REF_SUCC__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors and wires of reference REF:SUCC vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/REFERENCES/EVAL_MS.json": "727ecc6b70b6cc4e20abc114ccbc7d9719cc9c9ac7728f71b50f08e4d7f796b0"
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.97758476261356e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.8834731367422273,
+     "reserve_met": false,
+     "min_whole_ratio": 0.3212259380172857,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.3212259380172857
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.682681771697503e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.7881251574642294,
+     "reserve_met": false,
+     "min_whole_ratio": 0.6244343872131651,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.6244343872131651
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.UTILITY.REF.REF_TWJ__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors and wires of reference REF:TWJ vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/REFERENCES/EVAL_MS.json": "727ecc6b70b6cc4e20abc114ccbc7d9719cc9c9ac7728f71b50f08e4d7f796b0"
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.97758476261356e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.8834731367422273,
+     "reserve_met": false,
+     "min_whole_ratio": 0.3212259380172857,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.3212259380172857
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 9.150666335777657e-17,
+     "max_abs_se_diff": 8.673617379884035e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.7881251574642294,
+     "reserve_met": false,
+     "min_whole_ratio": 0.6244343872131651,
+     "binding": "guard|sex0",
+     "occ_side_met": false,
+     "min_occ_ratio": 0.6244343872131651
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.UTILITY.REF.REF_U0__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors and wires of reference REF:U0 vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/REFERENCES/EVAL_MS.json": "727ecc6b70b6cc4e20abc114ccbc7d9719cc9c9ac7728f71b50f08e4d7f796b0"
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 2.1217836515541322e-16,
+     "max_abs_se_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.10999580474442107,
+     "reserve_met": true,
+     "min_whole_ratio": 2.7566685400832585,
+     "binding": "guard|sex0",
+     "occ_side_met": true,
+     "min_occ_ratio": 2.7566685400832585
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 6.24009172242243e-17,
+     "max_abs_se_diff": 1.3552527156068805e-20,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.027547645405125137,
+     "reserve_met": true,
+     "min_whole_ratio": 2.8221540849816917,
+     "binding": "occupation|U0|accuracy_loss",
+     "occ_side_met": true,
+     "min_occ_ratio": 2.8221540849816917
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.UTILITY.REF.REF_Ucal__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors and wires of reference REF:Ucal vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/REFERENCES/EVAL_MS.json": "727ecc6b70b6cc4e20abc114ccbc7d9719cc9c9ac7728f71b50f08e4d7f796b0"
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 2.1217836515541322e-16,
+     "max_abs_se_diff": 0.0,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.21961629538979052,
+     "reserve_met": true,
+     "min_whole_ratio": 2.2976713434836853,
+     "binding": "guard|sex1",
+     "occ_side_met": true,
+     "min_occ_ratio": 2.2976713434836853
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 6.24009172242243e-17,
+     "max_abs_se_diff": 1.3552527156068805e-20,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.05948023295953603,
+     "reserve_met": true,
+     "min_whole_ratio": 2.7492845825774923,
+     "binding": "guard|sex1",
+     "occ_side_met": true,
+     "min_occ_ratio": 2.7492845825774923
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.UTILITY.REF.W__V1",
+   "what": "own recomputation of the 12 clauses + 2 guards, SEs, point status, reserve, absolute metrics, distinct vectors and wires of reference W vs runs/REFERENCES/EVAL_MS.json",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/runs/REFERENCES/EVAL_MS.json": "727ecc6b70b6cc4e20abc114ccbc7d9719cc9c9ac7728f71b50f08e4d7f796b0"
+   },
+   "result": {
+    "0": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.5872719805187785e-16,
+     "max_abs_se_diff": 2.168404344971009e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.012498437695288087,
+     "reserve_met": true,
+     "min_whole_ratio": 3.511132467535578,
+     "binding": "income|U0|accuracy_loss",
+     "occ_side_met": true,
+     "min_occ_ratio": 4.8814643846635155
+    },
+    "1": {
+     "mismatches": [],
+     "max_abs_value_diff": 1.682681771697503e-16,
+     "max_abs_se_diff": 4.336808689942018e-19,
+     "max_abs_cost_diff": 0.0,
+     "max_abs_absolute_diff": 0.0,
+     "point_pass_12_plus_2": true,
+     "failed": [],
+     "max_value_over_cap": 0.17497812773403323,
+     "reserve_met": true,
+     "min_whole_ratio": 2.8619483139645285,
+     "binding": "income|U0|accuracy_loss",
+     "occ_side_met": true,
+     "min_occ_ratio": 4.299044124207418
+    }
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V4.QUAL_DECISION__V1",
+   "what": "QUAL (Q1 G1 and Q2 S2 slack per version) of A and B1 at each capacity, Q-PE (my nested d / SE_used and my MODEL_SELECT paired occupation NLL B1 - A), construction choice, capacity walk, D1 and the protection record, all from my own numbers, vs decisions/QUAL_DECISION.json",
+   "inputs": {
+    "results/pcrl_finite_routing_comparison_v1/decisions/QUAL_DECISION.json": "2b67fd49771a26399172452dbaf8d2dbd341cf6a69a8ef1075c7502daac1740a",
+    "results/pcrl_finite_routing_comparison_v1/roles/verifier/records/V3_NESTED__V1.json": "d4fa428337cc2b871d5adadc96578b1c2d6d80398d8b25ec6bfbd92585b3ebf8"
+   },
+   "result": {
+    "mine": {
+     "per_capacity": {
+      "C64": {
+       "qual": {
+        "A": {
+         "label": "NOT_QUALIFIED",
+         "reasons": [
+          "Q2_FAILED_V1"
+         ],
+         "per_version": {
+          "0": {
+           "q1": true,
+           "q1_failed": [],
+           "q2": true,
+           "q2_failed": [],
+           "binding": "guard|sex0",
+           "rows": {
+            "income|U0|accuracy_loss": {
+             "value": -0.001999750031246094,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.007999750031246094
+            },
+            "income|U0|nll_excess": {
+             "value": -0.007625936909454308,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013625936909454309
+            },
+            "income|U0|brier_excess": {
+             "value": -0.005423624361235827,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008423624361235827
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": -0.001999750031246094,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.007999750031246094
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.006525978862010097,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012525978862010097
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.00497546089381026,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.00797546089381026
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": -0.003999500062492188,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.007999500062492188
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.0033238981993419735,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005323898199341974
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.002572104855639265,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.004572104855639265
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": -0.003999500062492188,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.007999500062492188
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.002443466405443169,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.004443466405443169
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.0022404429326045878,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.004240442932604588
+            },
+            "guard|sex0": {
+             "value": 0.0004990735380009947,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0015009264619990053
+            },
+            "guard|sex1": {
+             "value": -0.005712376999793677,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.007712376999793677
+            }
+           },
+           "conditions": {
+            "income|U0|accuracy_loss": {
+             "value": -0.001999750031246094,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.007999750031246094
+            },
+            "income|U0|nll_excess": {
+             "value": -0.007625936909454308,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013625936909454309
+            },
+            "income|U0|brier_excess": {
+             "value": -0.005423624361235827,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008423624361235827
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": -0.001999750031246094,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.007999750031246094
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.006525978862010097,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012525978862010097
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.00497546089381026,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.00797546089381026
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": -0.003999500062492188,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.007999500062492188
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.0033238981993419735,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005323898199341974
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.002572104855639265,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.004572104855639265
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": -0.003999500062492188,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.007999500062492188
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.002443466405443169,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.004443466405443169
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.0022404429326045878,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.004240442932604588
+            },
+            "guard|sex0": {
+             "value": 0.0004990735380009947,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0015009264619990053
+            },
+            "guard|sex1": {
+             "value": -0.005712376999793677,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.007712376999793677
+            }
+           }
+          },
+          "1": {
+           "q1": true,
+           "q1_failed": [],
+           "q2": false,
+           "q2_failed": [
+            "guard|sex0"
+           ],
+           "binding": "guard|sex0",
+           "rows": {
+            "income|U0|accuracy_loss": {
+             "value": -0.0007499062617172854,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006749906261717286
+            },
+            "income|U0|nll_excess": {
+             "value": -0.007118502529320553,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013118502529320553
+            },
+            "income|U0|brier_excess": {
+             "value": -0.005305209105985112,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008305209105985112
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": -0.0007499062617172854,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006749906261717286
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.0068430260752693015,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012843026075269302
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.00525595199341055,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.00825595199341055
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": -0.0029996250468691415,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.006999625046869141
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.0011802953606280205,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0031802953606280206
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.0016382210314085392,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0036382210314085395
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": -0.0029996250468691415,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.006999625046869141
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.0011321434630281212,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0031321434630281215
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.0016338309747199692,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.003633830974719969
+            },
+            "guard|sex0": {
+             "value": 0.0025522729177727813,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": false,
+             "slack_after_increment": -0.0005522729177727813
+            },
+            "guard|sex1": {
+             "value": -0.005922990501691259,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.00792299050169126
+            }
+           },
+           "conditions": {
+            "income|U0|accuracy_loss": {
+             "value": -0.0007499062617172854,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006749906261717286
+            },
+            "income|U0|nll_excess": {
+             "value": -0.007118502529320553,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013118502529320553
+            },
+            "income|U0|brier_excess": {
+             "value": -0.005305209105985112,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008305209105985112
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": -0.0007499062617172854,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006749906261717286
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.0068430260752693015,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012843026075269302
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.00525595199341055,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.00825595199341055
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": -0.0029996250468691415,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.006999625046869141
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.0011802953606280205,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0031802953606280206
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.0016382210314085392,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0036382210314085395
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": -0.0029996250468691415,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.006999625046869141
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.0011321434630281212,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0031321434630281215
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.0016338309747199692,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.003633830974719969
+            },
+            "guard|sex0": {
+             "value": 0.0025522729177727813,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": false,
+             "slack_after_increment": -0.0005522729177727813
+            },
+            "guard|sex1": {
+             "value": -0.005922990501691259,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.00792299050169126
+            }
+           }
+          }
+         },
+         "mismatches": [],
+         "max_abs_diff": 1.3704315460216776e-16
+        },
+        "B1": {
+         "label": "QUALIFIED",
+         "reasons": [],
+         "per_version": {
+          "0": {
+           "q1": true,
+           "q1_failed": [],
+           "q2": true,
+           "q2_failed": [],
+           "binding": "guard|sex0",
+           "rows": {
+            "income|U0|accuracy_loss": {
+             "value": -0.003374578177727784,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.009374578177727784
+            },
+            "income|U0|nll_excess": {
+             "value": -0.007581823859540274,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013581823859540274
+            },
+            "income|U0|brier_excess": {
+             "value": -0.005378679338745545,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008378679338745545
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": -0.003374578177727784,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.009374578177727784
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.006481865812096064,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012481865812096064
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.00493051587131998,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.00793051587131998
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": -0.0054993125859267595,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.00949931258592676
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.007068886850580941,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.00906888685058094
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.003530449780857286,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005530449780857287
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": -0.0054993125859267595,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.00949931258592676
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.006188455056682136,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.008188455056682135
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.0031987878578226083,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005198787857822608
+            },
+            "guard|sex0": {
+             "value": -0.0008186785422212527,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.002818678542221253
+            },
+            "guard|sex1": {
+             "value": -0.006303229017531389,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.008303229017531388
+            }
+           },
+           "conditions": {
+            "income|U0|accuracy_loss": {
+             "value": -0.003374578177727784,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.009374578177727784
+            },
+            "income|U0|nll_excess": {
+             "value": -0.007581823859540274,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013581823859540274
+            },
+            "income|U0|brier_excess": {
+             "value": -0.005378679338745545,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008378679338745545
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": -0.003374578177727784,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.009374578177727784
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.006481865812096064,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012481865812096064
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.00493051587131998,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.00793051587131998
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": -0.0054993125859267595,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.00949931258592676
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.007068886850580941,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.00906888685058094
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.003530449780857286,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005530449780857287
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": -0.0054993125859267595,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.00949931258592676
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.006188455056682136,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.008188455056682135
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.0031987878578226083,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005198787857822608
+            },
+            "guard|sex0": {
+             "value": -0.0008186785422212527,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.002818678542221253
+            },
+            "guard|sex1": {
+             "value": -0.006303229017531389,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.008303229017531388
+            }
+           }
+          },
+          "1": {
+           "q1": true,
+           "q1_failed": [],
+           "q2": true,
+           "q2_failed": [],
+           "binding": "guard|sex0",
+           "rows": {
+            "income|U0|accuracy_loss": {
+             "value": -0.0007499062617172854,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006749906261717286
+            },
+            "income|U0|nll_excess": {
+             "value": -0.007664031688644592,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013664031688644593
+            },
+            "income|U0|brier_excess": {
+             "value": -0.005548020038086087,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008548020038086086
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": -0.0007499062617172854,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006749906261717286
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.007388555234593342,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013388555234593341
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.005498762925511527,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008498762925511527
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": -0.0016247969003874516,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.005624796900387452
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.006639540987039487,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.008639540987039486
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.0031996837476546717,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005199683747654672
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": -0.0016247969003874516,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.005624796900387452
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.0065913890894395855,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.008591389089439586
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.0031952936909661013,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005195293690966101
+            },
+            "guard|sex0": {
+             "value": 0.00018549511651020357,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0018145048834897965
+            },
+            "guard|sex1": {
+             "value": -0.006661020579188273,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.008661020579188272
+            }
+           },
+           "conditions": {
+            "income|U0|accuracy_loss": {
+             "value": -0.0007499062617172854,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006749906261717286
+            },
+            "income|U0|nll_excess": {
+             "value": -0.007664031688644592,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013664031688644593
+            },
+            "income|U0|brier_excess": {
+             "value": -0.005548020038086087,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008548020038086086
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": -0.0007499062617172854,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006749906261717286
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.007388555234593342,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013388555234593341
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.005498762925511527,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008498762925511527
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": -0.0016247969003874516,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.005624796900387452
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.006639540987039487,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.008639540987039486
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.0031996837476546717,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005199683747654672
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": -0.0016247969003874516,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.005624796900387452
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.0065913890894395855,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.008591389089439586
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.0031952936909661013,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005195293690966101
+            },
+            "guard|sex0": {
+             "value": 0.00018549511651020357,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0018145048834897965
+            },
+            "guard|sex1": {
+             "value": -0.006661020579188273,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.008661020579188272
+            }
+           }
+          }
+         },
+         "mismatches": [],
+         "max_abs_diff": 1.708702623837155e-16
+        }
+       },
+       "qpe": {
+        "label": "PE_ERROR_SUPPORTED",
+        "model_select_occ_nll_B1_minus_A_mine": {
+         "0": -0.003744988651238968,
+         "1": -0.005459245626411464
+        },
+        "nested_from": "records/V3_NESTED (my numbers)"
+       },
+       "choice": "B1"
+      },
+      "C128": {
+       "qual": {
+        "A": {
+         "label": "QUALIFIED",
+         "reasons": [],
+         "per_version": {
+          "0": {
+           "q1": true,
+           "q1_failed": [],
+           "q2": true,
+           "q2_failed": [],
+           "binding": "guard|sex0",
+           "rows": {
+            "income|U0|accuracy_loss": {
+             "value": -0.006124234470691163,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012124234470691164
+            },
+            "income|U0|nll_excess": {
+             "value": -0.008126384640395787,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.014126384640395787
+            },
+            "income|U0|brier_excess": {
+             "value": -0.005575298779753919,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.00857529877975392
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": -0.006124234470691163,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012124234470691164
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.007026426592951577,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013026426592951577
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.005127135312328352,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008127135312328351
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": 0.0003749531308586427,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.0036250468691413572
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.003241220017365607,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005241220017365607
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.0026966021206077232,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.004696602120607723
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": 0.0003749531308586427,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.0036250468691413572
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.0023607882234668036,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.004360788223466803
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.002364940197573046,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.004364940197573046
+            },
+            "guard|sex0": {
+             "value": 0.0010387383528412469,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0009612616471587532
+            },
+            "guard|sex1": {
+             "value": -0.0065159783124937405,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.00851597831249374
+            }
+           },
+           "conditions": {
+            "income|U0|accuracy_loss": {
+             "value": -0.006124234470691163,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012124234470691164
+            },
+            "income|U0|nll_excess": {
+             "value": -0.008126384640395787,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.014126384640395787
+            },
+            "income|U0|brier_excess": {
+             "value": -0.005575298779753919,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.00857529877975392
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": -0.006124234470691163,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012124234470691164
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.007026426592951577,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013026426592951577
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.005127135312328352,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008127135312328351
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": 0.0003749531308586427,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.0036250468691413572
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.003241220017365607,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005241220017365607
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.0026966021206077232,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.004696602120607723
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": 0.0003749531308586427,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.0036250468691413572
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.0023607882234668036,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.004360788223466803
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.002364940197573046,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.004364940197573046
+            },
+            "guard|sex0": {
+             "value": 0.0010387383528412469,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0009612616471587532
+            },
+            "guard|sex1": {
+             "value": -0.0065159783124937405,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.00851597831249374
+            }
+           }
+          },
+          "1": {
+           "q1": true,
+           "q1_failed": [],
+           "q2": true,
+           "q2_failed": [],
+           "binding": "guard|sex0",
+           "rows": {
+            "income|U0|accuracy_loss": {
+             "value": 0.0,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006
+            },
+            "income|U0|nll_excess": {
+             "value": -0.006810129839559239,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012810129839559238
+            },
+            "income|U0|brier_excess": {
+             "value": -0.004967902990423794,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.007967902990423794
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": 0.0,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.006534653385507988,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012534653385507988
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.004918645877849233,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.007918645877849233
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": -0.004624421947256593,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.008624421947256593
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.0016843741431856775,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0036843741431856775
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.001964396204392277,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.003964396204392278
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": -0.004624421947256593,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.008624421947256593
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.0016362222455857773,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.003636222245585777
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.0019600061477037063,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.003960006147703706
+            },
+            "guard|sex0": {
+             "value": 0.0006962013573346546,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0013037986426653455
+            },
+            "guard|sex1": {
+             "value": -0.004684850485783946,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.006684850485783946
+            }
+           },
+           "conditions": {
+            "income|U0|accuracy_loss": {
+             "value": 0.0,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006
+            },
+            "income|U0|nll_excess": {
+             "value": -0.006810129839559239,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012810129839559238
+            },
+            "income|U0|brier_excess": {
+             "value": -0.004967902990423794,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.007967902990423794
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": 0.0,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.006534653385507988,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012534653385507988
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.004918645877849233,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.007918645877849233
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": -0.004624421947256593,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.008624421947256593
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.0016843741431856775,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0036843741431856775
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.001964396204392277,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.003964396204392278
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": -0.004624421947256593,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.008624421947256593
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.0016362222455857773,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.003636222245585777
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.0019600061477037063,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.003960006147703706
+            },
+            "guard|sex0": {
+             "value": 0.0006962013573346546,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.0013037986426653455
+            },
+            "guard|sex1": {
+             "value": -0.004684850485783946,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.006684850485783946
+            }
+           }
+          }
+         },
+         "mismatches": [],
+         "max_abs_diff": 1.5178830414797062e-16
+        },
+        "B1": {
+         "label": "QUALIFIED",
+         "reasons": [],
+         "per_version": {
+          "0": {
+           "q1": true,
+           "q1_failed": [],
+           "q2": true,
+           "q2_failed": [],
+           "binding": "guard|sex0",
+           "rows": {
+            "income|U0|accuracy_loss": {
+             "value": -0.006124234470691163,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012124234470691164
+            },
+            "income|U0|nll_excess": {
+             "value": -0.00824642883747658,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.01424642883747658
+            },
+            "income|U0|brier_excess": {
+             "value": -0.005673396831672162,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008673396831672162
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": -0.006124234470691163,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012124234470691164
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.0071464707900323705,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.01314647079003237
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.0052252333642465966,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008225233364246597
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": -0.000999875015623047,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.004999875015623047
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.010465460335154273,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.012465460335154274
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.004647187334463788,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.006647187334463788
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": -0.000999875015623047,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.004999875015623047
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.00958502854125547,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.01158502854125547
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.00431552541142911,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.00631552541142911
+            },
+            "guard|sex0": {
+             "value": -0.0019125798496185985,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.003912579849618599
+            },
+            "guard|sex1": {
+             "value": -0.007443316575161157,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.009443316575161157
+            }
+           },
+           "conditions": {
+            "income|U0|accuracy_loss": {
+             "value": -0.006124234470691163,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012124234470691164
+            },
+            "income|U0|nll_excess": {
+             "value": -0.00824642883747658,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.01424642883747658
+            },
+            "income|U0|brier_excess": {
+             "value": -0.005673396831672162,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008673396831672162
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": -0.006124234470691163,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.012124234470691164
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.0071464707900323705,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.01314647079003237
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.0052252333642465966,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008225233364246597
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": -0.000999875015623047,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.004999875015623047
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.010465460335154273,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.012465460335154274
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.004647187334463788,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.006647187334463788
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": -0.000999875015623047,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.004999875015623047
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.00958502854125547,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.01158502854125547
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.00431552541142911,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.00631552541142911
+            },
+            "guard|sex0": {
+             "value": -0.0019125798496185985,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.003912579849618599
+            },
+            "guard|sex1": {
+             "value": -0.007443316575161157,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.009443316575161157
+            }
+           }
+          },
+          "1": {
+           "q1": true,
+           "q1_failed": [],
+           "q2": true,
+           "q2_failed": [],
+           "binding": "guard|sex0",
+           "rows": {
+            "income|U0|accuracy_loss": {
+             "value": 0.0,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006
+            },
+            "income|U0|nll_excess": {
+             "value": -0.007502922486537814,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013502922486537814
+            },
+            "income|U0|brier_excess": {
+             "value": -0.005151741844574575,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008151741844574574
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": 0.0,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.007227446032486563,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013227446032486562
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.005102484732000013,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008102484732000013
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": -0.0029996250468691415,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.006999625046869141
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.007864200678937875,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.009864200678937875
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.003843772064369523,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005843772064369522
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": -0.0029996250468691415,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.006999625046869141
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.007816048781337976,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.009816048781337976
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.003839382007680952,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005839382007680952
+            },
+            "guard|sex0": {
+             "value": -0.001076939799615225,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.003076939799615225
+            },
+            "guard|sex1": {
+             "value": -0.006672851061065966,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.008672851061065967
+            }
+           },
+           "conditions": {
+            "income|U0|accuracy_loss": {
+             "value": 0.0,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006
+            },
+            "income|U0|nll_excess": {
+             "value": -0.007502922486537814,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013502922486537814
+            },
+            "income|U0|brier_excess": {
+             "value": -0.005151741844574575,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008151741844574574
+            },
+            "income|Ucal|accuracy_loss": {
+             "value": 0.0,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.006
+            },
+            "income|Ucal|nll_excess": {
+             "value": -0.007227446032486563,
+             "cap": 0.01,
+             "increment": 0.004,
+             "slack_limit": 0.006,
+             "pass": true,
+             "slack_after_increment": 0.013227446032486562
+            },
+            "income|Ucal|brier_excess": {
+             "value": -0.005102484732000013,
+             "cap": 0.005,
+             "increment": 0.002,
+             "slack_limit": 0.003,
+             "pass": true,
+             "slack_after_increment": 0.008102484732000013
+            },
+            "occupation|U0|accuracy_loss": {
+             "value": -0.0029996250468691415,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.006999625046869141
+            },
+            "occupation|U0|nll_excess": {
+             "value": -0.007864200678937875,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.009864200678937875
+            },
+            "occupation|U0|brier_excess": {
+             "value": -0.003843772064369523,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005843772064369522
+            },
+            "occupation|Ucal|accuracy_loss": {
+             "value": -0.0029996250468691415,
+             "cap": 0.01,
+             "increment": 0.006,
+             "slack_limit": 0.004,
+             "pass": true,
+             "slack_after_increment": 0.006999625046869141
+            },
+            "occupation|Ucal|nll_excess": {
+             "value": -0.007816048781337976,
+             "cap": 0.01,
+             "increment": 0.008,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.009816048781337976
+            },
+            "occupation|Ucal|brier_excess": {
+             "value": -0.003839382007680952,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.005839382007680952
+            },
+            "guard|sex0": {
+             "value": -0.001076939799615225,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.003076939799615225
+            },
+            "guard|sex1": {
+             "value": -0.006672851061065966,
+             "cap": 0.005,
+             "increment": 0.003,
+             "slack_limit": 0.002,
+             "pass": true,
+             "slack_after_increment": 0.008672851061065967
+            }
+           }
+          }
+         },
+         "mismatches": [],
+         "max_abs_diff": 1.1275702593849246e-16
+        }
+       },
+       "qpe": {
+        "label": "PE_ERROR_SUPPORTED",
+        "model_select_occ_nll_B1_minus_A_mine": {
+         "0": -0.007224240317788667,
+         "1": -0.006179826535752198
+        },
+        "nested_from": "records/V3_NESTED (my numbers)"
+       },
+       "choice": "B1"
+      }
+     },
+     "walk": [
+      {
+       "capacity": "16x64",
+       "choice": "B1",
+       "qual": "QUALIFIED",
+       "qpe": "PE_ERROR_SUPPORTED",
+       "other_would_qualify": false
+      },
+      {
+       "capacity": "24x128",
+       "choice": "B1",
+       "qual": "QUALIFIED",
+       "qpe": "PE_ERROR_SUPPORTED",
+       "other_would_qualify": true
+      }
+     ],
+     "capacity_decision": {
+      "state": "PROTECT",
+      "capacity": "16x64",
+      "construction": "B1",
+      "qpe": "PE_ERROR_SUPPORTED"
+     },
+     "d1": "REPAIRED_TASK_ONLY_RELEASE"
+    },
+    "mismatches": [],
+    "nested_record_present": true
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-21T00:04:04+00:00",
+   "unit_id": "FRC_VER_UTILITY_V1"
+  },
+  {
+   "id": "V1.RECEIPT__V2",
+   "what": "registration receipt re-verified with own git calls (R1): record verified; own ls-remote of publication/pcrl-finite-routing-comparison-v1 on https://github.com/Bostesa/PCRL.git equals the receipt commit; registration files committed, unchanged, equal to the receipt hashes, to the research commit and to the published copies; research commit an ancestor of HEAD and earlier than the verification",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/access/REGISTRATION_RECEIPT_VERIFIED.json": "65079e41003bd1c2dc058daaaf187bace3890b6c22d8c96537a81db7988d9275",
+    ".private/pcrl_finite_routing_comparison_v1/access/RECEIPT_ATTEMPTS.jsonl": "2bc5fd4e5aec36d1acbe0ddb530d1d2953e2f4cbcd073c6e97367bf807f3829a",
+    "results/pcrl_finite_routing_comparison_v1/RECEIPTS.json": "fca327018ca36eb55f4b2b3a328a01a21de865ac44883369a000ee31159f133d",
+    "results/pcrl_finite_routing_comparison_v1/PROTOCOL.md": "b3c2be39e9b2a74cbc6e9ca7047a0038001cc78f4b77af64350c6d5b5e0e68b4",
+    "results/pcrl_finite_routing_comparison_v1/EXPOSURE_MAP.md": "e12e4eab1753cf8400e31cb0f652b3121834776ac9e69f41cd87225bedbcb41f",
+    "results/pcrl_finite_routing_comparison_v1/ACCESS_POLICY.json": "d71e7b28308bb8372d9e760bcb4328fa42e81dfb4d949e1c4ca37478626d0d8d",
+    "results/pcrl_finite_routing_comparison_v1/SOURCE_ADMISSION.json": "ca9d1f53104d215134d170191bbbe2e3c7fe93a8abbf6292d6497926c9d3ae67",
+    "results/pcrl_finite_routing_comparison_v1/READER_SPLITS.json": "bc85c72b1bf23ca190ccbf262bf5224435e62ef2da14d2c5b3663527b6dedca1",
+    "results/pcrl_finite_routing_comparison_v1/FAILURE_MAP.md": "0f15ba10099df07e4af40084986415bba893fd7b91f20cd34e348694cceb404c",
+    "results/pcrl_finite_routing_comparison_v1/roles/statistical_reviewer/RULES.md": "2b7e0be8672cb5eb32a195e91c21b4d6b67284b5a14e7a1a584fdc4ffe256fd0",
+    "results/pcrl_finite_routing_comparison_v1/roles/statistical_reviewer/RULES.json": "a0dc0fc7f377c26339df0c96e6abda9784d725ccab8cb204e1cfa7d789029510"
+   },
+   "result": {
+    "record_exists": true,
+    "kind": "registration",
+    "receipt_commit": "7fed2ca443048ab35d0ceb2981fb5d0f76a7d414",
+    "research_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+    "remote_sha": "7fed2ca443048ab35d0ceb2981fb5d0f76a7d414",
+    "remote_url": "https://github.com/Bostesa/PCRL.git",
+    "verified_utc": "2026-10-20T23:48:04+00:00",
+    "remote_sha_verified": true,
+    "remote_sha_equals_receipt_commit": true,
+    "own_ls_remote": "7fed2ca443048ab35d0ceb2981fb5d0f76a7d414\trefs/heads/publication/pcrl-finite-routing-comparison-v1",
+    "own_remote_tip_equals_receipt_commit": true,
+    "origin_url": "https://github.com/Bostesa/PCRL.git",
+    "origin_is_github_remote": true,
+    "files_sha256_equal_now": true,
+    "files_committed_unchanged": {
+     "PROTOCOL.md": true,
+     "EXPOSURE_MAP.md": true,
+     "ACCESS_POLICY.json": true,
+     "SOURCE_ADMISSION.json": true,
+     "READER_SPLITS.json": true,
+     "FAILURE_MAP.md": true,
+     "roles/statistical_reviewer/RULES.md": true,
+     "roles/statistical_reviewer/RULES.json": true
+    },
+    "research_commit_ancestor_of_HEAD": true,
+    "research_commit_utc": "2026-10-20T19:47:33-04:00",
+    "research_commit_before_verification": true,
+    "research_commit_bytes_equal_receipt": true,
+    "receipt_commit_available_locally": true,
+    "receipt_commit_utc": "2026-10-20T19:47:52-04:00",
+    "published_bytes_equal_research": {
+     "PROTOCOL.md": true,
+     "EXPOSURE_MAP.md": true,
+     "ACCESS_POLICY.json": true,
+     "SOURCE_ADMISSION.json": true,
+     "READER_SPLITS.json": true,
+     "FAILURE_MAP.md": true,
+     "roles/statistical_reviewer/RULES.md": true,
+     "roles/statistical_reviewer/RULES.json": true
+    },
+    "attempts": [
+     {
+      "outcome": "verified",
+      "verified_utc": "2026-10-20T23:48:04+00:00",
+      "problems": []
+     }
+    ],
+    "public_RECEIPTS_json_matches_private_record": true
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-21T00:04:54+00:00",
+   "unit_id": "FRC_VER_ACCESS_V2"
+  },
+  {
+   "id": "V1.ACCESS_POLICY_CODE__V2",
+   "what": "frc.common POLICY / ENTRY_POINTS equal the registered ACCESS_POLICY.json",
+   "inputs": {
+    "results/pcrl_finite_routing_comparison_v1/ACCESS_POLICY.json": "d71e7b28308bb8372d9e760bcb4328fa42e81dfb4d949e1c4ca37478626d0d8d",
+    "frc/common.py": "ac6078918cf9bd71ef7c4804143f7442a1b9ee9b3eeb540f130ccd61f19d26cb"
+   },
+   "result": {
+    "differences": []
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-21T00:04:54+00:00",
+   "unit_id": "FRC_VER_ACCESS_V2"
+  },
+  {
+   "id": "V1.ACCESS_LOG__V2",
+   "what": "label-access log audit R2-R10 (receipt order, closed roles, policy, MODEL_SELECT entry points and module chains, cards committed before fitting reads, unit intervals, row sets, committed code at launch, unit main modules)",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/access/LABEL_ACCESS.jsonl": "ea1ce8a3a7b0a796db981e9682fbb890d2feef57a7b5b9c1c5a236479881f795",
+    ".private/pcrl_finite_routing_comparison_v1/compute/ledger.jsonl": "f4eef682cf250e421ff8818413b9b5b44ca729f9b9602f3e50ae6e8d46d39aef",
+    ".private/pcrl_finite_routing_comparison_v1/access/REGISTRATION_RECEIPT_VERIFIED.json": "65079e41003bd1c2dc058daaaf187bace3890b6c22d8c96537a81db7988d9275",
+    "n_events": 13
+   },
+   "result": {
+    "summary": {
+     "n_events": 13,
+     "first_utc": "2026-10-20T23:48:32+00:00",
+     "last_utc": "2026-10-21T00:04:03+00:00",
+     "by_operation_role": {
+      "fit|MODEL_FIT|income,occupation|frc.fa.route": 4,
+      "benchmark|MODEL_SELECT|income,occupation,sex|frc.evaluate": 5,
+      "fit|MODEL_FIT|income,occupation,sex|frc.fa.route": 2,
+      "verify|MODEL_FIT|income,occupation|results/pcrl_finite_routing_comparison_v1/roles/verifier/code/v2_routing.py": 1,
+      "verify|MODEL_SELECT|income,occupation,sex|results/pcrl_finite_routing_comparison_v1/roles/verifier/code/v4_utility.py": 1
+     },
+     "units_with_reads": [
+      "FRC_EVAL_REFS_V1",
+      "FRC_EVAL_SRC_PRC_TWIN_C128_V1",
+      "FRC_EVAL_SRC_PRC_TWIN_V1",
+      "FRC_EVAL_TWB_C128_V1",
+      "FRC_EVAL_TWB_C64_V1",
+      "FRC_NEST_C128_V0_V1",
+      "FRC_NEST_C128_V1_V1",
+      "FRC_NEST_C64_V0_V1",
+      "FRC_NEST_C64_V1_V1",
+      "FRC_PATHS_V0_V1",
+      "FRC_PATHS_V1_V1",
+      "FRC_VER_ROUTING_V1",
+      "FRC_VER_UTILITY_V1"
+     ]
+    },
+    "findings_by_rule": {
+     "FAIL|R6_card_changed_after_use": [
+      0,
+      1,
+      2,
+      3
+     ]
+    },
+    "fail_examples": [
+     {
+      "severity": "FAIL",
+      "rule": "R6_card_changed_after_use",
+      "event": 0,
+      "detail": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md"
+     },
+     {
+      "severity": "FAIL",
+      "rule": "R6_card_changed_after_use",
+      "event": 1,
+      "detail": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md"
+     },
+     {
+      "severity": "FAIL",
+      "rule": "R6_card_changed_after_use",
+      "event": 2,
+      "detail": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md"
+     },
+     {
+      "severity": "FAIL",
+      "rule": "R6_card_changed_after_use",
+      "event": 3,
+      "detail": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md"
+     }
+    ],
+    "attention_examples": [],
+    "fit_reads": [
+     {
+      "utc": "2026-10-20T23:48:32+00:00",
+      "unit_id": "FRC_NEST_C64_V1_V1",
+      "role": "MODEL_FIT",
+      "fields": [
+       "income",
+       "occupation"
+      ],
+      "card": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md",
+      "card_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+      "card_commit_utc": "2026-10-20T19:47:33-04:00"
+     },
+     {
+      "utc": "2026-10-20T23:48:33+00:00",
+      "unit_id": "FRC_NEST_C64_V0_V1",
+      "role": "MODEL_FIT",
+      "fields": [
+       "income",
+       "occupation"
+      ],
+      "card": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md",
+      "card_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+      "card_commit_utc": "2026-10-20T19:47:33-04:00"
+     },
+     {
+      "utc": "2026-10-20T23:49:06+00:00",
+      "unit_id": "FRC_NEST_C128_V1_V1",
+      "role": "MODEL_FIT",
+      "fields": [
+       "income",
+       "occupation"
+      ],
+      "card": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md",
+      "card_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+      "card_commit_utc": "2026-10-20T19:47:33-04:00"
+     },
+     {
+      "utc": "2026-10-20T23:49:06+00:00",
+      "unit_id": "FRC_NEST_C128_V0_V1",
+      "role": "MODEL_FIT",
+      "fields": [
+       "income",
+       "occupation"
+      ],
+      "card": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md",
+      "card_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+      "card_commit_utc": "2026-10-20T19:47:33-04:00"
+     },
+     {
+      "utc": "2026-10-20T23:56:21+00:00",
+      "unit_id": "FRC_PATHS_V1_V1",
+      "role": "MODEL_FIT",
+      "fields": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "card": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md",
+      "card_commit": "b538fa7a483713fc9f5ab23c96c35c666224426a",
+      "card_commit_utc": "2026-10-20T19:56:09-04:00"
+     },
+     {
+      "utc": "2026-10-20T23:56:21+00:00",
+      "unit_id": "FRC_PATHS_V0_V1",
+      "role": "MODEL_FIT",
+      "fields": [
+       "income",
+       "occupation",
+       "sex"
+      ],
+      "card": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md",
+      "card_commit": "b538fa7a483713fc9f5ab23c96c35c666224426a",
+      "card_commit_utc": "2026-10-20T19:56:09-04:00"
+     }
+    ],
+    "amendments": [],
+    "receipt_verified_utc": "2026-10-20T23:48:04+00:00"
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "FAIL",
+   "utc": "2026-10-21T00:04:54+00:00",
+   "unit_id": "FRC_VER_ACCESS_V2"
+  },
+  {
+   "id": "V1.ROW_SETS__V2",
+   "what": "logged row-set hashes, people and households equal the admitted roles (R8)",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/access/LABEL_ACCESS.jsonl": "ea1ce8a3a7b0a796db981e9682fbb890d2feef57a7b5b9c1c5a236479881f795"
+   },
+   "result": {
+    "n_events": 13,
+    "admitted": {
+     "MODEL_FIT": [
+      "7c9bb634f7bdfe3ed5ac4d8f309aca296a2142f575840e0a417b0c109e8a866a",
+      20000,
+      13337
+     ],
+     "CALIBRATION": [
+      "65792eb1e813c0f3cd81877a7aa6d416a9bf6a852db93af2eb66a68ef919b580",
+      2982,
+      1974
+     ],
+     "MODEL_SELECT": [
+      "fe7e553bbe5c2c8016e35076a062f95450f04c6d006d8dce1e63b98fab5595e4",
+      8001,
+      5306
+     ],
+     "ATTACK_FIT": [
+      "12f6f5e5e7d196ff6dae588f9d409265484e9de604acd623d508969a867d68a8",
+      8001,
+      5319
+     ],
+     "ATTACK_VALIDATION": [
+      "90c323af06fb8d68a807f7156029047c616798978480a80c5f8dcb175f46b42e",
+      3000,
+      1974
+     ],
+     "DEV_REPORT": [
+      "de4afc1d163845a05a0f69bc48096c797dd08ebdeb36d1d6082a07038f5701ee",
+      5943,
+      3955
+     ]
+    },
+    "row_set_failures": []
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-21T00:04:54+00:00",
+   "unit_id": "FRC_VER_ACCESS_V2"
+  }
+ ],
+ "entry_sha256": [
+  "075b29e74e2e86698320dd816a026cda4684acd05f3546c25635a398e3a40720",
+  "e50eea43c98db0004daf1b5a5867eb3e1a209d0666ec5339fefd20ca616e4394",
+  "aa1a1aebf0acd702be3bfc5ff9a2f48b9c406a74acabce40ce5259763e3c1edb",
+  "2fcab09dd4938580b96371036f17c5093e057ac4589460ad589c74f356c53b57",
+  "301f19ed568c6bc65d0e066f6abe08a1fafe6670ab995716de3a52d3354d6949",
+  "20413d6449d7eb584cfab7176aba1d86d37b0bc8459ad4600541bd086ac0b1cf",
+  "e5e879eac2f612449fa62aa48c30cb8988d334010928a76b890dbf89d4a82d28",
+  "12c82afbc03cfe5dd794a8759c383556e94d17bda12c96c7804227b4c9134f93",
+  "d52801c6a753826bad7583495000562677ed731d25f6801372191414e53284ca",
+  "d74a177dea059e0b986b2d9390b1c1d2935a5f4f9a3a7416190b2097148b860a",
+  "f780e023bb45fe0e23e271586e63c64fddef2521e0ff1bc9b0761d0aae756209",
+  "bcf15ba81a05831d3a537382dc1506c7202b00514cb49fd7aedf74ecd3bb38cf",
+  "9a77e25f4429d3d56bcadd60d4fbb242303c2bc06e11403383292e70662f3f22",
+  "0d5cdf69866ca94ab6998231df1d9c30839dc4ec35f693f6dd1bbfd92384a6e2",
+  "416e6f66e35ea81ddbf86e452b09edc53def3fc675ce77799f0b440e34189a67",
+  "d41248b21d6dfba33732b1e59937f7c5b662f370883c71535d363c0282a48dfa",
+  "4221fdfa03bc42ea938e996b6aae080a70f7ea388127838eb058c3d15adc2742",
+  "c4a43592e6426e520f119924a9bfcf64825373520ea49092e902da73d56b2217",
+  "9aeed92ef4853575fdf095845b3e460ffdde24a397cdc957fad0d7242ed536e3",
+  "d20d86a0a01e25c265da43dc2d5eddde37fcb266fa7a6289de653e619f1f7ef2",
+  "10a7390b1153ad4a327903735ea23419d07477289bfdd93efc0b739de8309cfa",
+  "d061cf765a74de65fddbd99c1393c45ebe381b7e75c69685e068ea20984916ef",
+  "0f7f3defd0067e450d217bad8f91659fc0b81fc3b62e8c92b09541708a6c5914",
+  "53f6c79413bc7521c1a608e6c2ff5b0cde71f01dd6800739d30eb3715578d609",
+  "acc6d5f39026b70785a816f0ba8e08066003acb6fbe778ca0f98a86db7b03619",
+  "c1f8fa4695e6309f0f0e4d9e4d1061b7ed9ec57ac6a709c94bb83461e70978ec",
+  "20c606613cd31d908064467df6840d76949967cc5b1913c3098a1bc2f1a74d11",
+  "9f91bb6654e7ad0738debf2a09c9c32e1207725dd5136b4a98fd929fd6b30c02",
+  "795135f922068058769fce10940b535ce096b433274b2ccd3dcca95a9287c56d",
+  "13e6e929129873b939882201e548919231b2ab29565a59241eb22b4fee9e7306",
+  "f160305e71d0dea593be07a021d3b0a1711f2adc8ed9c49e3da4124cea91c09a",
+  "10ec9aa2a4b8bdf3d56b1e4ee4361af9b1de1aa9697610fa0d4f64c1fceea638",
+  "3d49293291e9b3c34c9c81aa0ec88dc4ca4d5c1886521883fedfa52175f6672a",
+  "39561237af4b19d7393a98b58e57c1b2050ae7229cb99d8e61203104b7e09d09",
+  "c6a87eacf33276ec5bbc9cf6bd4c2800499268f9abc661a736621d1572ec1a88"
+ ],
+ "summary": {
+  "n_checks": 35,
+  "numerical": {
+   "PASS": 29,
+   "FAIL": 0,
+   "ATTENTION": 0,
+   "NOT_APPLICABLE": 6,
+   "NOT_RUN": 0
+  },
+  "procedural": {
+   "PASS": 18,
+   "FAIL": 1,
+   "ATTENTION": 0,
+   "NOT_APPLICABLE": 16,
+   "NOT_RUN": 0
+  },
+  "updated_utc": "2026-10-21T00:04:54+00:00"
+ }
+}

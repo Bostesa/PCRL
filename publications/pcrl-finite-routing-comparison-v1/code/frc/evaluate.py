@@ -225,6 +225,9 @@ def release_cmd(family, config, compare=(), tag=None, source=False):
         pp = per_person(S, rel)
         costs = {}
         for spec in compare:
+            if '/' in spec and ':' not in spec and not RL.exists(*spec.split('/'), v):
+                costs[spec] = {'missing': True, 'note': f'{spec} has no version {v} release (an alias or NOT_FEASIBLE there)'}
+                continue
             other, prov = comparator_release(spec, v)
             costs[spec] = {'provenance': prov, 'costs': paired_costs(pp, per_person(S, other), S)}
         absolute = {t: {m: float(pp[t][m].mean()) for m in ('acc_loss', 'nll', 'brier')} for t in C.TASKS}

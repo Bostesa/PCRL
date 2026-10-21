@@ -34,7 +34,7 @@ Integration (about eight lines in nrm.devreaders; see roles/reader_robustness/PR
     entry[view]['extras'] = ex[view]; entry[view]['extras_boot'] = eb[view]    # per view
   strip() drops 'extras_boot'; run_bank writes BOOT_EXTRAS.npz with keys f'{cell}__{name}__{view}__{NOLOOKUP|TABLE_CV|ENHANCED}'.
 
-    python3 -m nrm.readerextra selftest        invented data only (no real data, no label)
+    python3 -m frc.readerextra selftest        invented data only (no real data, no label)
 """
 from __future__ import annotations
 import hashlib
@@ -46,12 +46,12 @@ import warnings
 
 import numpy as np
 
-SCHEMA = 'NRM1-readerextra-v1'
+SCHEMA = 'FRC1-readerextra-v1'
 TABLE_READERS = ('LOOKUP', 'TABLE_CV')
 A_GRID = (0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, math.inf)
 C_GRID = (0.01, 0.1, 1.0, 10.0)
 CV_K = 5
-CV_TAG = 'NRM1_tablecv'
+CV_TAG = 'FRC1_tablecv'
 MIN_KEY_COUNT = 2
 EPS = 1e-6
 

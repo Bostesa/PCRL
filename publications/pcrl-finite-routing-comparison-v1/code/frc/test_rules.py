@@ -562,6 +562,47 @@ def t_grid_validity_frc_offsets():
     assert any('not checked' in e for e in g['errors'])
 
 
+@test
+def t_grid_validity_er1():
+    """ER1 (post hoc engineering repair): an explained minimum-set equality passes, an unexplained one fails, seeds still checked."""
+    reg = {k: x for k, x in seeds8().items() if k[-1] in '01'}
+    di = {'CAND|V0': {'income': 16, 'occupation': 64, 'pair': 900}, 'TWIN|V1': {'income': 16, 'occupation': 64, 'pair': 950}}
+
+    def with_eq(groups):
+        ch = checks(reps=('R1', 'R2'))
+        for c in ch:
+            if (c['wire'], c['view'], c['v'], c['R'], c['recipe']) in groups:
+                c['equal_k0_k1'] = True
+        return ch
+    ch = with_eq({('CAND', 'income', 0, 'R1', 'ET5'), ('TWIN', 'occupation', 1, 'R2', 'ET25')})
+    g = R.grid_validity(reg, ch, ['CAND', 'TWIN'], di)
+    assert g['label'] == 'READER_SEEDS_EFFECTIVE' and g['repair'].startswith('ER1')
+    assert g['explained_minimum_set_equalities']['count'] == 2 and g['unexplained_minimum_set_equalities'] == 0
+    ne = g['explained_minimum_set_equalities']['n_eff_implied']['CAND|income|ET5']
+    assert ne['blocks_checked'] == 4 and ne['blocks_k0_equals_k1'] == 1 and ne['n_eff_seed_cells_if_this_recipe_wins'] == 7
+    assert g['pre_ER1']['label'] == 'READER_SEEDS_NOT_EFFECTIVE'                       # the frozen rule failed it
+    assert R.grid_validity(reg, ch, ['CAND', 'TWIN'], di, er1=False)['label'] == 'READER_SEEDS_NOT_EFFECTIVE'
+    g = R.grid_validity(reg, ch, ['CAND', 'TWIN'], {'CAND|V0': {'income': 16}})       # (c) missing for TWIN occupation
+    assert g['label'] == 'READER_SEEDS_NOT_EFFECTIVE' and g['unexplained_minimum_set_equalities'] == 1
+    assert any('unexplained seed-dependent equalities on the minimum set' in e for e in g['errors'])
+    allrec = with_eq({('CAND', 'income', 0, 'R1', r) for r in NR.SEED_DEPENDENT})         # (a) fails: no recipe differs there
+    assert R.grid_validity(reg, allrec, ['CAND'], di)['unexplained_minimum_set_equalities'] == len(NR.SEED_DEPENDENT)
+    allview = with_eq({('CAND', w, 0, 'R1', 'ET5') for w in NR.VIEWS})                  # (b) fails: equal on every view
+    assert R.grid_validity(reg, allview, ['CAND'], di)['label'] == 'READER_SEEDS_NOT_EFFECTIVE'
+    six = {k: x for k, x in seeds8(600).items() if k[-1] in '01'}                       # seeds are still checked
+    g = R.grid_validity(six, ch, ['CAND', 'TWIN'], di)
+    assert g['label'] == 'READER_SEEDS_NOT_EFFECTIVE' and any('reuse earlier' in e for e in g['errors'])
+    other = with_eq({('REF', 'income', 0, 'R1', 'ET5')})                                # off the minimum set: unchanged
+    assert R.grid_validity(reg, other, ['CAND'], {})['label'] == 'READER_SEEDS_NOT_EFFECTIVE'
+    assert R.grid_validity(reg, other, ['CAND'], {'REF|V0': {'income': 16}})['label'] == 'READER_SEEDS_EFFECTIVE'
+    # refit_effectiveness keeps the frozen (strict) rule: an explained minimum-set equality still fails it
+    ch8 = checks()
+    for c in ch8:
+        if (c['wire'], c['view'], c['v'], c['R'], c['recipe']) == ('CAND', 'income', 0, 'R3', 'ET5'):
+            c['equal_k0_k1'] = True
+    assert R.refit_effectiveness(splits(), seeds8(), ch8, ['CAND', 'TWIN'], di)['label'] == 'REFIT_NOT_GENUINELY_EFFECTIVE'
+
+
 def main():
     t0 = time.process_time()
     res = []

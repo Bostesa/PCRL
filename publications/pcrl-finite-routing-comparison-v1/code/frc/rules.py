@@ -750,7 +750,7 @@ def refit_effectiveness(splits, seeds, checks, minimum_set, distinct_inputs):
                     o = (((splits or {}).get(q) or {}).get('score_overlap') or {}).get(r)
                 if not _fin(o) or not 0 <= o < 1:
                     errs.append(f'SCORE_OVERLAP_{r}_{q}_NOT_RECORDED_OR_IDENTICAL')
-    gv = grid_validity(seeds, checks, minimum_set, distinct_inputs, required_k=NR.REG_K + NR.ROB_K)
+    gv = grid_validity(seeds, checks, minimum_set, distinct_inputs, required_k=NR.REG_K + NR.ROB_K, er1=False)   # unchanged
     if not gv['effective']:
         errs.append('READER_SEEDS_NOT_EFFECTIVE')
     count_once = ([] if not any(e.startswith(('SPLITS', 'SCORE')) for e in errs) else ['robustness repetitions']) + \
@@ -770,13 +770,9 @@ def registered_seed(v, k):
     return NR.MODEL_SEED_BASE + SEED_OFFSET + 10 * int(v) + int(k)
 
 
-def grid_validity(seeds, checks, minimum_set, distinct_inputs, required_k=NR.REG_K):
-    """nrm.rules.grid_validity (A-SC1, unchanged) with its reader-seed part replaced by this grid's: the seeds of `required_k`
-    for both versions must be recorded distinct integers, every recorded seed key must be S<v>k<k> and equal the registered
-    MODEL_SEED_BASE + 700 + 10 v + k, and none may equal an earlier grid's seed (offsets 300, 400, 500, 600). The recipe-
-    equality parts (ii) and (iii) are nrm's, unchanged."""
-    base = NR.grid_validity(seeds, checks, minimum_set, distinct_inputs)
-    errors = [e for e in base['errors'] if not e.startswith('reader seeds')]
+def _seed_errors(seeds, required_k):
+    """This grid's reader-seed part (replaces nrm's): recorded distinct integers for the required keys, every key S<v>k<k> equal
+    to the registered MODEL_SEED_BASE + 700 + 10 v + k, none an earlier grid's seed (offsets 300, 400, 500, 600)."""
     keys = [f'S{v}k{k}' for v in VERSIONS for k in required_k]
     s = seeds if isinstance(seeds, dict) else {}
     sv = [s.get(k) for k in keys] + [x for k, x in s.items() if k not in keys]
@@ -794,6 +790,75 @@ def grid_validity(seeds, checks, minimum_set, distinct_inputs, required_k=NR.REG
                        and x != registered_seed(*_SEEDKEY.fullmatch(str(k)).groups()))
         if wrong:
             local.append(f'reader seeds differ from the registered MODEL_SEED_BASE + {SEED_OFFSET} + 10 v + k: {wrong}')
-    errors = local + errors
-    return {**base, 'label': 'READER_SEEDS_NOT_EFFECTIVE' if errors else 'READER_SEEDS_EFFECTIVE', 'effective': not errors,
-            'errors': errors, 'forbidden_offsets': list(FORBIDDEN_OFFSETS), 'offset': SEED_OFFSET}
+    return local
+
+
+def _explained(c, diff, distinct_inputs):
+    """The NRM1 (iii) explanation of one seed-dependent k0 / k1 equality, as nrm.rules.grid_validity states it: (a) another
+    seed-dependent recipe differs in the same wire, view, version and repetition; (b) the same recipe differs on another view of
+    the same wire (same version and repetition); (c) the view's distinct-input count is recorded label-free. 'Differs' = a
+    RECORDED check with equal_k0_k1 False. Used for reporting; nrm.rules.grid_validity remains the authority (counts asserted)."""
+    a = any((c['wire'], c['view'], c['v'], c['R'], r) in diff for r in NR.SEED_DEPENDENT if r != c['recipe'])
+    b = any((c['wire'], w, c['v'], c['R'], c['recipe']) in diff for w in NR.VIEWS if w != c['view'])
+    n = ((distinct_inputs or {}).get(f"{c['wire']}|V{c['v']}") or {}).get(c['view'])
+    return bool(a and b and isinstance(n, int))
+
+
+def grid_validity(seeds, checks, minimum_set, distinct_inputs, required_k=NR.REG_K, er1=True):
+    """Reader-seed validity of the FRC1 grid. Call: grid_validity(seeds, checks, minimum_set, distinct_inputs) (signature
+    unchanged; er1=True is the default and the rule for claims).
+    - Seed part (this grid's, replacing nrm's): _seed_errors.
+    - Recipe-equality part: nrm.rules.grid_validity (A-SC1), unchanged, EXCEPT engineering repair ER1 (post hoc, 2026-10-21
+      00:2xZ, RULES.md section 15): a seed-dependent equality on the minimum set is judged by the same NRM1 (iii) explanation
+      (a) + (b) + (c) as on other wires, i.e. nrm.rules.grid_validity is called with an empty minimum set. Explained minimum-set
+      equalities do not invalidate the grid; they are reported separately ('explained_minimum_set_equalities': count, items and
+      the n_eff they imply per wire / view / recipe); an unexplained minimum-set equality still invalidates. The strict pre-ER1
+      result is reported beside ('pre_ER1').
+    - er1=False gives the frozen pre-ER1 rule (used by refit_effectiveness, which is unchanged)."""
+    local = _seed_errors(seeds, required_k)
+    strict = NR.grid_validity(seeds, checks, minimum_set, distinct_inputs)
+    strict_errors = local + [e for e in strict['errors'] if not e.startswith('reader seeds')]
+    out = {'forbidden_offsets': list(FORBIDDEN_OFFSETS), 'offset': SEED_OFFSET}
+    if not er1:
+        return {**strict, **out, 'label': 'READER_SEEDS_NOT_EFFECTIVE' if strict_errors else 'READER_SEEDS_EFFECTIVE',
+                'effective': not strict_errors, 'errors': strict_errors, 'repair': None}
+    base = NR.grid_validity(seeds, checks, [], distinct_inputs)            # (iii) applied to every wire, minimum set included
+    eq = [c for c in checks or [] if c.get('recipe') in NR.SEED_DEPENDENT and c.get('equal_k0_k1') is not False]
+    diff = {(c['wire'], c['view'], c['v'], c['R'], c['recipe']) for c in checks or []
+            if c.get('recipe') in NR.SEED_DEPENDENT and c.get('equal_k0_k1') is False}
+    mins = set(minimum_set or ())
+    on_min = [c for c in eq if c['wire'] in mins]
+    exp_min = [c for c in on_min if _explained(c, diff, distinct_inputs)]
+    unexp_min = [c for c in on_min if not _explained(c, diff, distinct_inputs)]
+    unexp_other = [c for c in eq if c['wire'] not in mins and not _explained(c, diff, distinct_inputs)]
+    if len(eq) - base['explained_equalities'] != len(unexp_min) + len(unexp_other):
+        raise AssertionError('ER1 classification disagrees with nrm.rules.grid_validity')
+    errors = local + [e for e in base['errors'] if not e.startswith('reader seeds') and 'unexplained seed-dependent' not in e]
+    if unexp_min:
+        errors.append(f'{len(unexp_min)} unexplained seed-dependent equalities on the minimum set')
+    if unexp_other:
+        errors.append(f'{len(unexp_other)} unexplained seed-dependent equalities')
+    n_eff = {}
+    for c in exp_min:
+        key = f"{c['wire']}|{c['view']}|{c['recipe']}"
+        if key in n_eff:
+            continue
+        same = lambda x: x.get('wire') == c['wire'] and x.get('view') == c['view'] and x.get('recipe') == c['recipe']
+        blocks = {(x['v'], x['R']) for x in checks if same(x)}
+        eqb = {(x['v'], x['R']) for x in exp_min if same(x)}
+        n_eff[key] = {'blocks_checked': len(blocks), 'blocks_k0_equals_k1': len(eqb),
+                      'n_eff_seed_cells_if_this_recipe_wins': 2 * len(blocks) - len(eqb),
+                      'distinct_inputs': {f'V{v}': ((distinct_inputs or {}).get(f"{c['wire']}|V{v}") or {}).get(c['view'])
+                                          for v in VERSIONS}}
+    return {**base, **out, 'label': 'READER_SEEDS_NOT_EFFECTIVE' if errors else 'READER_SEEDS_EFFECTIVE',
+            'effective': not errors, 'errors': errors,
+            'explained_minimum_set_equalities': {
+                'count': len(exp_min), 'n_eff_implied': n_eff,
+                'items': [{k: c.get(k) for k in ('wire', 'view', 'v', 'R', 'recipe')} for c in exp_min],
+                'note': 'the recipe reduces to a seed-invariant table on this view; its k0 / k1 cells count once (n_eff), the '
+                        'reader seed is effective for the other recipes (explanation a)'},
+            'unexplained_minimum_set_equalities': len(unexp_min),
+            'pre_ER1': {'label': 'READER_SEEDS_NOT_EFFECTIVE' if strict_errors else 'READER_SEEDS_EFFECTIVE',
+                        'errors': strict_errors},
+            'repair': 'ER1 (post hoc engineering repair, written after the FRC1_MAIN validity failure and before any D2-D4 '
+                      'comparison was read)'}

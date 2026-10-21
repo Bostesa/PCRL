@@ -93,6 +93,11 @@ CONFIGS = {
     'ORD_BR': {'kind': 'control', 'bracket': 'ORD', 'nrm_cfg': None,
                'what': 'ordinary compression at its bracketing rung: the first ladder rung whose nested MODEL_FIT total-NLL spend over '
                        'the twin is >= that of the PRC configuration selected at S2'},
+    'UNT_BR': {'kind': 'control', 'bracket': 'UNT', 'nrm_cfg': None, 'revision': 'R1',
+               'what': 'revision R1 untargeted re-routing control (card FA_FRC_R1): a keyed-hash share f_O of people moved to their '
+                       'second-nearest occupation codeword and a share f_I = f_O x r to their second-nearest income codeword (r = the '
+                       'income / occupation re-routing ratio of PRC_S2 on MODEL_FIT out-of-fold), f_O the first grid value whose nested '
+                       'total-NLL spend over the twin is >= that of PRC_S2; deployable, SEX-blind; B1 tables on its partition'},
     'ABL_LOC': {'kind': 'ablation', 'nrm_cfg': 'PRC_S2', 'route_override': {'w_pair': 0.0},
                 'what': 'ablation of the strongest feasible nonzero release: pair weight 0 (income and occupation dependence terms '
                         'only; separately designed recipients), same lambda and capacity'},
@@ -151,10 +156,46 @@ def entry_embedding(E, book):
     return E
 
 
+UNT_GRID = (0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.15, 0.20, 0.25, 0.30)      # revision R1: occupation move shares f_O
+UNT_TAG = 'FRC_UNT_S{v}'
+
+
+def _unit_hash(Z, tag):
+    """Keyed hash of each row's compact features in [0, 1): SHA-256(tag | row bytes), first 8 bytes / 2^64 (deployable)."""
+    Z = np.ascontiguousarray(np.asarray(Z, dtype=np.float64))
+    t_ = tag.encode()
+    return np.array([int.from_bytes(hashlib.sha256(t_ + Z[i].tobytes()).digest()[:8], 'big') / 2.0 ** 64 for i in range(len(Z))])
+
+
+def unt_route(E, book):
+    """Revision R1 untargeted re-routing: the nearest-codeword (twin) rule, except that people whose keyed hash falls below f_O
+    (occupation, tag | 'O') or f_I (income, tag | 'I') take their second-nearest codeword. SEX-blind; a function of x only."""
+    AI, AO = P._xent(E['qI'], book['CI']), P._xent(E['qO'], book['CO'])
+    oi, oo = np.argsort(AI, axis=1, kind='stable'), np.argsort(AO, axis=1, kind='stable')
+    uI, uO = _unit_hash(E['Z'], book['unt_tag'] + '|I'), _unit_hash(E['Z'], book['unt_tag'] + '|O')
+    k = np.where(uI < book['unt_f_I'], oi[:, 1], oi[:, 0])
+    l = np.where(uO < book['unt_f_O'], oo[:, 1], oo[:, 0])
+    return k, l
+
+
+def unt_book(twin, f_O, ratio, tag):
+    b = {key: (v.copy() if isinstance(v, np.ndarray) else v) for key, v in twin.items()}
+    b.update({'frc_route': 'unt', 'unt_f_O': float(f_O), 'unt_f_I': float(min(1.0, f_O * ratio)), 'unt_ratio': float(ratio),
+              'unt_tag': tag, 'tilt': 0.0, 'lam': 0.0})
+    return b
+
+
+def route_any(E, book):
+    """The partition an entry's deployed rule produces from statistics E."""
+    if book.get('frc_route') == 'unt':
+        return unt_route(E, book)
+    return P.route(entry_embedding(E, book), book)
+
+
 def emit(E, book, tabs):
     """Release of runtime statistics E through the routing book and the emitted tables (the partition depends on the book and the
     statistics only, never on the tables)."""
-    k, l = P.route(entry_embedding(E, book), book)
+    k, l = route_any(E, book)
     return {'income': tabs['I'][k].copy(), 'occupation': tabs['O'][l].copy()}, k, l
 
 
@@ -189,14 +230,8 @@ def fit_twin(Z, lab, unit, version, capacity, T_fixed=None, hp=None, constructio
     tabs, infos = {}, {}
     for c in constructions:
         tabs[c], infos[c] = tables(c, tb, k0, l0, E, lab)
-    KI, KO = tb['CI'].shape[0], tb['CO'].shape[0]
-    same_people = None
-    if 'income' in lab:
-        cnt_i = np.bincount(k0 * 2 + lab['income'], minlength=KI * 2).reshape(KI, 2).sum(1)
-        cnt_o = np.bincount(l0 * 5 + lab['occupation'], minlength=KO * 5).reshape(KO, 5).sum(1)
-        same_people = bool(np.array_equal(cnt_i, np.bincount(k0, minlength=KI)) and np.array_equal(cnt_o, np.bincount(l0, minlength=KO)))
     return {'models': tch['models'], 'T': tch['T'], 'book': tb, 'cells': (k0, l0), 'tables': tabs, 'tables_info': infos, 'E_fit': E,
-            'A_and_B1_count_the_same_people': same_people}
+            'oof_partition_sha256': P.array_sha(k0, l0)}
 
 
 METRICS = ('inc_nll', 'occ_nll', 'tot_nll', 'inc_brier', 'occ_brier', 'inc_acc', 'occ_acc')
@@ -256,7 +291,7 @@ def nested_twin(Z, lab, unit, version, capacity, T_fixed, outer=P.N_OUTER, hp=No
                 vectors[c][task][te] = rel[task]
         folds.append({'fold': o, 'train_people': int(tr.sum()), 'heldout_people': int(te.sum()),
                       'occupied_train': P._occupied(*st['cells']), 'partition_identity': ident,
-                      'b1_fallbacks': st['tables_info']['B1'], 'A_and_B1_count_the_same_people': st['A_and_B1_count_the_same_people'],
+                      'b1_fallbacks': st['tables_info']['B1'], 'oof_partition_sha256_all_constructions': st['oof_partition_sha256'],
                       'paired_fold_means': {f'{a}_minus_{b}': {key: float(_pdiff(store, a, b, key, te).mean()) for key in METRICS}
                                             for a, b in PAIRS},
                       'max_abs_B1_minus_A': {t: float(np.abs(st['tables']['B1'][t] - st['tables']['A'][t]).max()) for t in ('I', 'O')},
@@ -532,7 +567,8 @@ def cells_of(config_id, version, X, feature_names):
     """Internal diagnostic (never released): the routed cells of a saved configuration."""
     M = load_model(config_id, version)
     from ohn import fam_a as FA
-    return P.route(P.embed(M['teachers'], FA.compact_po(X, tuple(map(str, feature_names)))), M['book'])
+    E = P.embed(M['teachers'], FA.compact_po(X, tuple(map(str, feature_names))))
+    return route_any(E, M['book'])
 
 
 def _payload(config_id, version, names, teachers, book, dec, T, construction, capacity, extra=None):
@@ -598,9 +634,51 @@ def _no_stats(**kw):
     return None
 
 
+# ---------------------------------------------------------------- source pins (engineering review finding 1)
+_PIN = {'on': True}                                         # the selftest turns the pins off (its fake source is not admitted)
+
+
+def _admitted():
+    from frc import common as C
+    return json.loads((C.RESULTS / 'SOURCE_ADMISSION.json').read_text())['source_private_artefacts']
+
+
+def _sha_file(path):
+    return _sha_bytes(Path(path).read_bytes())
+
+
+def pinned(kind, version=None, src=None, path=None):
+    """SHA-256 of a read-only source artefact, required to equal its pin in SOURCE_ADMISSION.json: kind 'task' (TASK.pkl), 'model'
+    (MODEL.pkl of a saved NRM1 twin), 'release' (its RELEASE.npz) or 'gate' (a GATE record). Raises PermissionError on a mismatch."""
+    if kind == 'task':
+        f = P._paths()[1] / f'V{int(version)}' / 'TASK.pkl'
+        key, field = f'fa_cache/V{int(version)}/TASK.pkl', 'sha256'
+    elif kind in ('model', 'release'):
+        f = P.model_dir(src, version) / ('MODEL.pkl' if kind == 'model' else 'RELEASE.npz')
+        key, field = f'runs/FA/{src}/V{int(version)}', 'MODEL.pkl' if kind == 'model' else 'RELEASE.npz'
+    elif kind == 'gate':
+        f = Path(path)
+        key, field = f'results/designer_a/{f.name}', 'sha256'
+    else:
+        raise ValueError(kind)
+    got = _sha_file(f)
+    if _PIN['on']:
+        want = (_admitted().get(key) or {}).get(field)
+        if want != got:
+            raise PermissionError(f'source artefact {key} ({field}) differs from its pin in SOURCE_ADMISSION.json')
+    return got
+
+
+def source_model(src, version):
+    """A saved NRM1 twin model, pinned and hash-checked (read-only)."""
+    pinned('model', version, src=src)
+    return P._load_model(src, version)
+
+
 # ---------------------------------------------------------------- stages (data and storage injected; queue units below)
 def source_task(version, row_sha):
-    """The NRM1 stage-1 task cache (teachers, out-of-fold predictions) of version v, hash-checked, read-only."""
+    """The NRM1 stage-1 task cache (teachers, out-of-fold predictions) of version v, pinned and hash-checked, read-only."""
+    pinned('task', version)
     return P._cache_get(version, 'TASK', row_sha)
 
 
@@ -614,7 +692,8 @@ def stage_repro(version, mf, role_features, log=print):
     E = P.embed_oof(task)
     out = {}
     for cid, src in SOURCE_TWIN.items():
-        M = P._load_model(src, version)
+        M = source_model(src, version)
+        pinned('release', version, src=src)
         saved, rec = NRL.load('FA', src, version)
         eq = {}
         for r, F in role_features.items():
@@ -649,6 +728,10 @@ def stage_nest(version, capacity_id, data, log=print, stats=_no_stats, outer=P.N
     t0 = time.process_time()
     if 'sex' in data:
         raise PermissionError('the fixed-routing comparison never reads SEX')
+    priv = _paths()[1] / 'nested' / f'NEST_{capacity_id}_V{int(version)}.npz'
+    pub = _paths()[2] / f'NEST_{capacity_id}_V{int(version)}.json'
+    if priv.exists() or pub.exists():                         # engineering review finding 3: refuse before any computation
+        raise PermissionError(f'{priv.name} / {pub.name} exist (write-once; a new attempt needs a new record name)')
     Z, lab, unit, names, row_sha = _prep(data)
     capacity = CAPACITIES[capacity_id]
     task = source_task(version, row_sha)
@@ -658,8 +741,9 @@ def stage_nest(version, capacity_id, data, log=print, stats=_no_stats, outer=P.N
     if capacity_id in SOURCE_TWIN:
         from nrm import common as NC
         g = NC.RESULTS / 'roles' / 'designer_a' / f'GATE_V{int(version)}_{capacity[0]}x{capacity[1]}.json'
+        repro['gate_record_sha256'] = pinned('gate', path=g)
         repro['gate'] = gate_reproduction(summ, json.loads(g.read_text())) if outer == P.N_OUTER else {'skipped': 'outer != 5'}
-        M = P._load_model(SOURCE_TWIN[capacity_id], version)
+        M = source_model(SOURCE_TWIN[capacity_id], version)
         E = P.embed_oof(task)
         k0, l0 = P.route(E, M['book'])
         tA, _ = tables('A', M['book'], k0, l0, E, lab)
@@ -669,15 +753,15 @@ def stage_nest(version, capacity_id, data, log=print, stats=_no_stats, outer=P.N
         repro['full_pool_max_abs_B1_minus_B0'] = {t: float(np.abs(tB1[t] - M['book']['C' + t]).max()) for t in ('I', 'O')}
         repro['full_pool_b1_fallbacks'] = infB1
     summ['source_reproduction'] = repro
+    summ['task_cache_sha256'] = pinned('task', version)
     summ['cpu_s'] = round(time.process_time() - t0, 1)
     summ['utc'] = _utc()
-    priv = _paths()[1] / 'nested' / f'NEST_{capacity_id}_V{int(version)}.npz'
     priv.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     with open(priv, 'xb') as f:
         np.savez(f, unit=unit, k=cells['k'], l=cells['l'],
                  **{f'{nm}__{key}': v for nm, d in store.items() for key, v in d.items()})
     summ['per_person_private_file_sha256'] = _sha_bytes(priv.read_bytes())
-    _write_once_json(_paths()[2] / f'NEST_{capacity_id}_V{int(version)}.json', summ)
+    _write_once_json(pub, summ)
     stats(n_model_fits=2 * outer, n_crossfit_fits=2 * P.N_XF * outer)
     log(json.dumps({'stage': 'nest', 'capacity': capacity_id, 'version': int(version),
                     'B1_minus_A_occ_nll': summ['paired_differences']['B1_minus_A']['occ_nll'], 'repro': repro.get('gate')}))
@@ -688,6 +772,7 @@ def stage_nest(version, capacity_id, data, log=print, stats=_no_stats, outer=P.N
 
 def _source_release(src, version):
     from nrm import release as NRL
+    pinned('release', version, src=src)
     return NRL.load('FA', src, version)[0]
 
 
@@ -706,7 +791,7 @@ def stage_twb(version, config_id, mf, role_features, save, card, log=print, stat
     task = source_task(version, row_sha)
     E = P.embed_oof(task)
     if cid in SOURCE_TWIN:
-        M = P._load_model(SOURCE_TWIN[cid], version)
+        M = source_model(SOURCE_TWIN[cid], version)
         if tuple(M['feature_names']) != names:
             raise PermissionError('source model feature names differ')
         book, teachers, T = M['book'], dict(M['teachers']), dict(M['T'])
@@ -764,6 +849,13 @@ def protection_decision():
         raise PermissionError(f'qualification outcome {d.get("outcome")}: the protected stage is not fitted')
     if d['construction'] not in ('A', 'B1') or d['capacity_id'] not in CAPACITIES:
         raise ValueError('malformed qualification decision')
+    cid = d['capacity_id']
+    if list(d.get('capacity') or []) != list(CAPACITIES[cid]):
+        raise ValueError('qualification decision: capacity differs from its capacity id')
+    want = ({'source': 'frc', 'config': f'TWB_{cid}'} if d['construction'] == 'B1' else
+            {'source': 'nrm', 'config': SOURCE_TWIN[cid]} if cid in SOURCE_TWIN else {'source': 'frc', 'config': f'TWA_{cid}'})
+    if d.get('twin') != want:
+        raise ValueError(f'qualification decision: twin {d.get("twin")} does not belong to {cid} / {d["construction"]}')
     return d
 
 
@@ -839,6 +931,9 @@ def stage_paths(version, data, construction, capacity_id, log=print, stats=_no_s
     """P1 (MODEL_FIT income, occupation, SEX as a training label): full-pool SEX-side teachers (cached), then the nested estimator
     over the PRC / HQ / SHUF strength chains and the ORD ladder with the selected construction, and the predeclared selection."""
     t0 = time.process_time()
+    out_path = _paths()[2] / f'SELECTION_V{int(version)}.json'
+    if out_path.exists():                                     # engineering review finding 3: refuse before any computation
+        raise PermissionError(f'{out_path.name} exists (write-once; a new attempt needs a new record name)')
     Z, lab, unit, names, row_sha = _prep(data)
     if 'sex' not in lab:
         raise PermissionError('this stage reads SEX as a training label')
@@ -869,7 +964,10 @@ def stage_paths(version, data, construction, capacity_id, log=print, stats=_no_s
         f4 = {'entry': s2, 'diff_twin_minus_prc': r['diff_twin_minus_entry'], 'se_boot': r['se_boot'],
               'pass_2se': bool(r['diff_twin_minus_entry'] - 2 * r['se_boot'] > 0),
               'rule': 'nested held-out pair LOOKUP AUC of the PRC configuration selected at S2 below the twin by more than 2 '
-                      'household-bootstrap SE (MODEL_FIT; FA_PRC_v1 falsifier 4; a D2 conjunct, not a stop)'}
+                      'household-bootstrap SE (MODEL_FIT; FA_PRC_v1 falsifier 4; a D2 conjunct, not a stop)',
+              'bootstrap': 'B = 400 MODEL_FIT household draws, numpy default_rng(SeedSequence([2026102100, v, 4])), the same weights '
+                           'for the twin and every entry (paired); the SE is conditional on the fitted LOOKUP tables (table refit '
+                           'variance excluded)'}
     out = {'stage': 'P1_paths_and_selection', 'version': int(version), 'construction': construction, 'capacity_id': capacity_id,
            'capacity': list(capacity), 'selection': sel, 'audit_spend_over_twin': audit, 'budgets': B,
            'brackets': br, 'nested_lookup_pair': look, 'F4': f4,
@@ -881,7 +979,7 @@ def stage_paths(version, data, construction, capacity_id, log=print, stats=_no_s
            'shuf_donor_overlap_full_pool': shuf_overlap,
            'verdict_note': 'selection only; verdicts use MODEL_SELECT spend measured by frc.evaluate and the reader grid, never these '
                            'nested MODEL_FIT estimates', 'cpu_s': round(time.process_time() - t0, 1), 'utc': _utc()}
-    _write_once_json(_paths()[2] / f'SELECTION_V{int(version)}.json', out)
+    _write_once_json(out_path, out)
     stats(n_model_fits=2 * (P.N_INNER + 1) + 4 * outer, n_crossfit_fits=2 * P.N_XF + 4 * P.N_XF * outer)
     log(json.dumps({'stage': 'paths', 'version': int(version), 'selection': sel, 'cpu_s': out['cpu_s']}))
     return out
@@ -890,7 +988,7 @@ def stage_paths(version, data, construction, capacity_id, log=print, stats=_no_s
 def _twin_book_for(decision, version, E):
     tw = decision['twin']
     if tw['source'] == 'nrm':
-        return P._load_model(tw['config'], version)['book']
+        return source_model(tw['config'], version)['book']
     return load_model(tw['config'], version)['book']
 
 
@@ -957,11 +1055,21 @@ def stage_configs(version, config_ids, mf, role_features, save, card, decision, 
     if selrec['construction'] != cons or selrec['capacity_id'] != cid:
         raise PermissionError('the P1 selection record was made with another construction or capacity')
     sel, brackets = selrec['selection'], selrec.get('brackets')
+    sx = _sha_file(_paths()[1] / f'V{int(version)}' / 'SEXSIDE.pkl')
+    if sx != selrec['sexside_cache_sha256']:                 # engineering review finding 2
+        raise PermissionError('SEXSIDE.pkl differs from the teachers the P1 selection used (sexside_cache_sha256)')
+    if ablation_lambda is not None:                          # engineering review finding 4
+        lams = {float(c.split('@')[1]): b for b, c in sel['PRC'].items() if c}
+        if float(ablation_lambda) not in P.LAMBDA_GRID or float(ablation_lambda) not in lams:
+            raise ValueError(f'ablation lambda {ablation_lambda} is not the selected lambda of a saved PRC configuration '
+                             f'of version {version} ({sorted(lams)})')
     E, task, ss = oof_statistics(version, row_sha, Z)
     task_teachers = {'inc': task['models']['inc'], 'occ': task['models']['occ']}
     teachers = {**dict(task['models']), **dict(ss['models'])}
     T = {**dict(task['T']), **dict(ss['T'])}
     tb = _twin_book_for(decision, version, E)
+    if (tb['CI'].shape[0], tb['CO'].shape[0]) != tuple(CAPACITIES[cid]) or list(decision['capacity']) != list(CAPACITIES[cid]):
+        raise ValueError('the twin book or the decision capacity differs from the protection capacity')
     k0, l0 = P.route(E, tb)
     from ohn import fam_a as FA
     Fms = role_features['MODEL_SELECT']
@@ -1005,7 +1113,7 @@ def stage_configs(version, config_ids, mf, role_features, save, card, decision, 
                            'guarantees about other classifiers'}
         moved = None
         if book['CO'].shape == tb['CO'].shape and book['CI'].shape == tb['CI'].shape:
-            km, lm = P.route(entry_embedding(Ems, book), book)
+            km, lm = route_any(Ems, book)
             moved = {'model_fit_oof_rerouted_vs_twin': float(((k != k0) | (l != l0)).mean()),
                      'model_select_rerouted_vs_twin': float(((km != kt) | (lm != lt)).mean()),
                      'model_select_income_rerouted': float((km != kt).mean()),
@@ -1013,7 +1121,7 @@ def stage_configs(version, config_ids, mf, role_features, save, card, decision, 
         expo = ('MODEL_FIT income and occupation labels reach the shared task teachers (NRM1 stage 1)'
                 + (' and the label-refit decoders' if cons == 'A' else '; the B1 tables use only out-of-fold teacher predictions')
                 + EXPOSURE[fam])
-        mf_cells = P.route(entry_embedding(P.embed(used, Z), book), book)
+        mf_cells = route_any(P.embed(used, Z), book)
         rec = _record(card, spec['kind'], spec['what'], (0, 0),
                       ('MODEL_FIT: income, occupation (this unit; decoders)' if cons == 'A' else 'none in this unit')
                       + ('; SEX via the P1 cache' if fam != 'ORD' else ''), expo, len(Z), len(np.unique(unit)),
@@ -1024,6 +1132,9 @@ def stage_configs(version, config_ids, mf, role_features, save, card, decision, 
                        'distinct_vectors_equal_cells_model_fit': distinct_equals_cells(arrays['MODEL_FIT'], *mf_cells),
                        'reader_budget': {r: P.reader_budget(arrays[r]) for r in arrays}, 'twin': decision['twin'],
                        'stored_teachers': sorted(used),
+                       'ablation_of': ({b: f'PRC_{b}' for b, c in sel['PRC'].items() if c == choice}
+                                       if spec['kind'] == 'ablation' else None),
+                       'sexside_cache_sha256': sx,
                        'teacher_fits_shared_with': 'NRM1 stage-1 task teachers and the P1 SEX-side teachers'})
         save(FAMILY, cfg, version, arrays, rec)
         out[cfg] = 'SAVED'
@@ -1037,14 +1148,17 @@ def stage_check(version, data, config_ids, log=print, loader=None):
     these people). SEX is read as an evaluation label only. The decision-relevant MODEL_FIT reader check is the P1 nested held-out
     LOOKUP (adjudication, challenger 2)."""
     Z, lab, unit, names, row_sha = _prep(data)
-    try:
+    selp = _paths()[2] / f'SELECTION_V{int(version)}.json'
+    if selp.is_file():
+        if _sha_file(_paths()[1] / f'V{int(version)}' / 'SEXSIDE.pkl') != json.loads(selp.read_text())['sexside_cache_sha256']:
+            raise PermissionError('SEXSIDE.pkl differs from the teachers the P1 selection used')
         E, _, _ = oof_statistics(version, row_sha, Z, sexside=True)
-    except FileNotFoundError:
+    else:
         E, _, _ = oof_statistics(version, row_sha, Z, sexside=False)
     out = {}
     for cfg in config_ids:
         M = (loader or load_model)(cfg, version)
-        k, l = P.route(entry_embedding(E, M['book']), M['book'])
+        k, l = route_any(E, M['book'])
         v = P.views(k, l, M['book']['CO'].shape[0])
         out[cfg] = {'lookup_crossfit_model_fit_oof_cells': {vw: P.lookup_crossfit(v[vw], lab['sex'], unit, f'NRM_FA_check_S{int(version)}')
                                                             for vw in ('pair', 'income', 'occupation')},
@@ -1056,6 +1170,115 @@ def stage_check(version, data, config_ids, log=print, loader=None):
     _write_once_json(_paths()[2] / f'CHECK1_V{int(version)}_{time.strftime("%H%M%S", time.gmtime())}.json', rec)
     log(json.dumps({'stage': 'check', 'version': int(version),
                     'pair_auc': {c: round(v['lookup_crossfit_model_fit_oof_cells']['pair']['auc'], 4) for c, v in out.items()}}))
+    return rec
+
+
+def unt_ratio(E, tb, prc_book):
+    """Income / occupation re-routing ratio of PRC_S2 relative to the twin on the MODEL_FIT out-of-fold statistics."""
+    k0, l0 = P.route(E, tb)
+    kp, lp = route_any(E, prc_book)
+    rI, rO = float((kp != k0).mean()), float((lp != l0).mean())
+    return (rI / rO if rO > 0 else 0.0), rI, rO
+
+
+def stage_unt(version, data, decision, mf, role_features, save, card, log=print, stats=_no_stats, outer=P.N_OUTER, grid=UNT_GRID,
+              hp=None, capacity=None, prc_cfg='PRC_S2'):
+    """Revision R1 (card FA_FRC_R1; MODEL_FIT income and occupation for the held-out losses, SEX as the evaluation label of the
+    held-out LOOKUP only): the nested estimator of the twin and of the untargeted re-routing rule at every share of UNT_GRID (the
+    same outer folds, teachers and twin books as P1), the bracket = the first share whose nested total-NLL spend over the twin is
+    >= PRC_S2's (P1 record), then the full-pool configuration UNT_BR with the decision's construction recomputed on its partition."""
+    t0 = time.process_time()
+    out_path = _paths()[2] / f'UNT_SELECTION_V{int(version)}.json'
+    if out_path.exists():
+        raise PermissionError(f'{out_path.name} exists (write-once)')
+    Z, lab, unit, names, row_sha = _prep(data)
+    if 'sex' not in lab:
+        raise PermissionError('the R1 stage reads SEX as the evaluation label of its held-out LOOKUP')
+    cons, cid = decision['construction'], decision['capacity_id']
+    capacity = tuple(capacity or CAPACITIES[cid])
+    selrec = json.loads((_paths()[2] / f'SELECTION_V{int(version)}.json').read_text())
+    target = selrec['brackets']['target_total_nll_spend']
+    tag = UNT_TAG.format(v=int(version))
+    Ef, task, ss = oof_statistics(version, row_sha, Z)
+    if _sha_file(_paths()[1] / f'V{int(version)}' / 'SEXSIDE.pkl') != selrec['sexside_cache_sha256']:
+        raise PermissionError('SEXSIDE.pkl differs from the teachers the P1 selection used')
+    tb = _twin_book_for(decision, version, Ef)
+    ratio, rI, rO = unt_ratio(Ef, tb, load_model(prc_cfg, version)['book'])
+    of = P.household_folds(unit, outer, OUTER_TAG.format(v=int(version)))
+    names_ = ['TWIN'] + [f'UNT@{f}' for f in grid]
+    store = {nm: {} for nm in names_}
+    for o in range(outer):
+        tr, te = of != o, of == o
+        if np.intersect1d(unit[tr], unit[te]).size:
+            raise AssertionError('household in both outer parts')
+        ltr = {k: v[tr] for k, v in lab.items()}
+        st = fit_twin(Z[tr], ltr, unit[tr], version, capacity, T_fixed=task['T'], hp=hp, constructions=(cons,), log=log)
+        Etr = st['E_fit']
+        Ete = P.embed(st['models'], Z[te])
+        k0tr, l0tr = st['cells']
+        books = {'TWIN': (st['book'], (k0tr, l0tr), st['tables'][cons])}
+        for f in grid:
+            b = unt_book(st['book'], f, ratio, tag)
+            kk, ll = unt_route(Etr, b)
+            books[f'UNT@{f}'] = (b, (kk, ll), tables(cons, b, kk, ll, Etr, ltr)[0])
+        lte = {k: v[te] for k, v in lab.items()}
+        for nm, (b, (ktr, lltr), tabs) in books.items():
+            rel, k, l = emit(Ete, b, tabs)
+            m = _metrics(rel, lte)
+            KO = b['CO'].shape[0]
+            vtr, vte = P.views(ktr, lltr, KO), P.views(k, l, KO)
+            m['look_pair'] = P.lookup_scores(vtr['pair'], lab['sex'][tr], vte['pair'])
+            for key, v in m.items():
+                store[nm].setdefault(key, np.zeros(len(Z)))[te] = v
+    nest = {nm: {'_per_person': d} for nm, d in store.items()}
+    twin_means = {key: float(v.mean()) for key, v in store['TWIN'].items() if key in ('inc_nll', 'occ_nll')}
+    p1_twin = {key: selrec['nested_means']['PRC_TWIN'][key] for key in ('inc_nll', 'occ_nll')}
+    spend = {nm: total_spend(nest, nm, ref='TWIN') for nm in names_ if nm != 'TWIN'}
+    br = next((nm for nm in names_[1:] if spend[nm] >= target), None)
+    look = nested_lookup(nest, lab, unit, version, names_[1:], ref='TWIN')
+    rec = {'stage': 'R1_untargeted_rerouting', 'version': int(version), 'construction': cons, 'capacity_id': cid,
+           'card': card, 'grid_f_O': list(grid), 'ratio_f_I_over_f_O': ratio, 'prc_s2_reroute_rates_oof': {'income': rI, 'occupation': rO},
+           'target_total_nll_spend_prc_s2': target, 'spend_over_twin': spend, 'bracket': br or 'CONTROL_DID_NOT_REACH_SPEND',
+           'nested_lookup_pair': look, 'twin_nested_means_equal_p1': max(abs(twin_means[k] - p1_twin[k]) for k in twin_means) <= 1e-12,
+           'twin_nested_means': twin_means, 'p1_twin_nested_means': p1_twin, 'hash_tag': tag,
+           'note': 'MODEL_FIT nested estimates; the bracket is chosen on MODEL_FIT only; SEX enters only as the evaluation label of the '
+                   'held-out LOOKUP', 'utc': _utc()}
+    if br is not None:
+        f = float(br.split('@')[1])
+        b = unt_book(tb, f, ratio, tag)
+        k, l = unt_route(Ef, b)
+        tabs, info = tables(cons, b, k, l, Ef, None if cons != 'A' else lab)
+        teach = {'inc': task['models']['inc'], 'occ': task['models']['occ']}
+        write_model('UNT_BR', version, _payload('UNT_BR', version, names, teach, b, tabs, dict(task['T']), cons, capacity,
+                                                {'selected': br, 'revision': 'R1'}))
+        arrays = _release_all('UNT_BR', version, role_features)
+        k0, l0 = P.route(Ef, tb)
+        from ohn import fam_a as FA
+        Fms = role_features['MODEL_SELECT']
+        Ems = P.embed(teach, FA.compact_po(Fms['X'], Fms['feature_names']))
+        km, lm = unt_route(Ems, b)
+        kt, lt = P.route(Ems, tb)
+        r2 = _record(card, 'control', CONFIGS['UNT_BR']['what'], (0, 0), 'none in this unit for the release (SEX only as the '
+                     'nested held-out LOOKUP evaluation label)',
+                     'MODEL_FIT income and occupation labels reach the shared task teachers (NRM1 stage 1); the B1 tables use only '
+                     'out-of-fold teacher predictions; no SEX reaches the release (the share was chosen on MODEL_FIT nested spend)',
+                     len(Z), len(np.unique(unit)), time.process_time() - t0,
+                     {'selected': br, 'family': 'UNT', 'construction': cons, 'capacity_id': cid, 'capacity': list(capacity),
+                      'occupied_cells_oof': P._occupied(k, l), 'tables_info': info, 'T_star': dict(task['T']),
+                      'f_O': b['unt_f_O'], 'f_I': b['unt_f_I'],
+                      'rerouted': {'model_fit_oof_rerouted_vs_twin': float(((k != k0) | (l != l0)).mean()),
+                                   'model_select_rerouted_vs_twin': float(((km != kt) | (lm != lt)).mean()),
+                                   'model_select_income_rerouted': float((km != kt).mean()),
+                                   'model_select_occupation_rerouted': float((lm != lt).mean())},
+                      'distinct_vectors_equal_cells_model_fit': distinct_equals_cells(arrays['MODEL_FIT'], *route_any(P.embed(teach, Z), b)),
+                      'reader_budget': {r: P.reader_budget(arrays[r]) for r in arrays}, 'twin': decision['twin'],
+                      'stored_teachers': ['inc', 'occ'], 'revision': 'R1'})
+        save(FAMILY, 'UNT_BR', version, arrays, r2)
+        rec['saved'] = 'UNT_BR'
+    rec['cpu_s'] = round(time.process_time() - t0, 1)
+    _write_once_json(out_path, rec)
+    stats(n_model_fits=2 * outer, n_crossfit_fits=2 * P.N_XF * outer)
+    log(json.dumps({'stage': 'unt', 'version': int(version), 'bracket': rec['bracket'], 'ratio': ratio, 'cpu_s': rec['cpu_s']}))
     return rec
 
 
@@ -1151,7 +1374,6 @@ def selftest():
     labp = {k2: np.random.default_rng(11).permutation(v) for k2, v in lab_t.items()}
     checks['labels_never_reach_B0_B1'] = all(np.array_equal(tables(c, tw['book'], k0, l0, tw['E_fit'], labp)[0][tt],
                                                             tw['tables'][c][tt]) for c in ('B0', 'B1') for tt in ('I', 'O'))
-    checks['A_and_B1_count_the_same_people'] = bool(tw['A_and_B1_count_the_same_people'])
     # (challenger 12c) at a converged Lloyd fixed point the stored prototype equals the out-of-fold cell mean (B1 = B0)
     bk, kk2, ll2 = P.lloyd(tw['E_fit'], dict(tw['book']), 2000)
     upd2 = P.update_book(tw['E_fit'], dict(bk), kk2, ll2)
@@ -1169,9 +1391,9 @@ def selftest():
     plan_ab = {'PRC_TWIN': ('twin',), 'L': ('prc', 'PRC_S2', 2.0, {'w_pair': 0.0}), 'Q': ('prc', 'PRC_S2', 2.0, {'w_loc': 0.0})}
     s4 = fit_pipeline_c(Z, lab, unit, 0, plan_ab, 'B1', hp=hp, capacity=cap)
     checks['ablation_overrides_reach_the_chain'] = bool(s4['books']['L']['w_pair'] == 0.0 and s4['books']['Q']['w_loc'] == 0.0)
-    n1 = P.nested(Z, lab, unit, 0, {'PRC_TWIN': ('twin',), 'P': ('prc', 'PRC_S2', 2.0)}, hp=hp, T_fixed=s1['T'], capacity=cap, outer=3)
-    n2 = nested_c(Z, lab, unit, 0, {'PRC_TWIN': ('twin',), 'P': ('prc', 'PRC_S2', 2.0)}, 'A', hp=hp, T_fixed=s1['T'], capacity=cap,
-                  outer=3)
+    nplan = {'PRC_TWIN': ('twin',), 'P': ('prc', 'PRC_S2', 2.0), 'H': ('prc', 'HQ_S2', 2.0), 'O': ('ord', 3, 8)}
+    n1 = P.nested(Z, lab, unit, 0, nplan, hp=hp, T_fixed=s1['T'], capacity=cap, outer=3)
+    n2 = nested_c(Z, lab, unit, 0, nplan, 'A', hp=hp, T_fixed=s1['T'], capacity=cap, outer=3)
     checks['nested_c_A_equals_source'] = all(np.array_equal(n1[nm]['_per_person'][key], n2[nm]['_per_person'][key])
                                              for nm in n1 for key in n1[nm]['_per_person'])
     checks['nested_c_records_rerouting'] = 'mean_heldout_rerouted_vs_twin' in n2['P']
@@ -1190,6 +1412,7 @@ def selftest():
         _ROOT.update(runs=f'{tmp}/frc_runs', cache=f'{tmp}/frc_cache', records=f'{tmp}/frc_records')
         P._ROOT.update(runs=f'{tmp}/nrm_runs', cache=f'{tmp}/nrm_cache', records=f'{tmp}/nrm_records')
         bak = (dict(SOURCE_TWIN), dict(CAPACITIES))
+        _PIN['on'] = False                                    # the fake source twin is not admitted
         try:
             quiet = lambda *a, **k: None
             X2 = P._fake_population(500, np.random.default_rng(9))[0]
@@ -1239,7 +1462,7 @@ def selftest():
             ok_tab = True
             for c in got:
                 M = load_model(c, 0)
-                k, l = P.route(entry_embedding(Eo, M['book']), M['book'])
+                k, l = route_any(Eo, M['book'])
                 ok_tab &= all(np.array_equal(M['dec'][tt], tables('B1', M['book'], k, l, Eo)[0][tt]) for tt in ('I', 'O'))
             checks['configs_B1_tables_recomputed_on_their_partition'] = ok_tab
             checks['configs_record_objective_and_rerouting'] = all(saved[('FA', c, 0)][1]['objective'] is not None and
@@ -1248,6 +1471,11 @@ def selftest():
                                                              for c in got if c.startswith('ORD_'))
             lam = float(saved[('FA', prc[-1], 0)][1]['selected'].split('@')[1]) if prc else 2.0
             r3 = stage_configs(0, ['ABL_LOC', 'ABL_PAIR'], mf, roles, fake_save, 'card', dec, log=quiet, ablation_lambda=lam)
+            try:
+                stage_configs(0, ['ABL_LOC'], mf, roles, fake_save, 'card', dec, log=quiet, ablation_lambda=0.3)
+                checks['ablation_lambda_off_grid_refused'] = False
+            except ValueError:
+                checks['ablation_lambda_off_grid_refused'] = True
             checks['ablations_saved_with_overrides'] = r3 == {'ABL_LOC': 'SAVED', 'ABL_PAIR': 'SAVED'} and \
                 load_model('ABL_LOC', 0)['book']['w_pair'] == 0.0 and load_model('ABL_PAIR', 0)['book']['w_loc'] == 0.0
             chk = stage_check(0, {'X': X, 'feature_names': names, 'unit': unit, 'row_id': np.arange(n), 'sex': lab['sex']}, got,
@@ -1278,9 +1506,30 @@ def selftest():
             except PermissionError:
                 pr.append(True)
             checks['deploy_refusals'] = all(pr) and len(pr) == 3
+            # revision R1: the untargeted re-routing rule (share 0 = the twin; shares move about f; SEX-blind; deployable)
+            Eo2 = dict(Eo)
+            b0 = unt_book(load_model('TWB_C64', 0)['book'], 0.0, 0.5, 'selftest_unt')
+            kz, lz = unt_route(Eo2, b0)
+            ktw, ltw = P.route(Eo2, load_model('TWB_C64', 0)['book'])
+            checks['unt_share_zero_is_twin'] = bool(np.array_equal(kz, ktw) and np.array_equal(lz, ltw))
+            b3 = unt_book(load_model('TWB_C64', 0)['book'], 0.3, 0.5, 'selftest_unt')
+            k3, l3 = unt_route(Eo2, b3)
+            checks['unt_moves_about_f'] = bool(abs(float((l3 != ltw).mean()) - 0.3) < 0.05 and abs(float((k3 != ktw).mean()) - 0.15) < 0.05)
+            Ep2 = {kk: (np.random.default_rng(2).permutation(vv) if kk in ('pi', 'qO0', 'qO1') else vv) for kk, vv in Eo2.items()}
+            checks['unt_ignores_sex_statistics'] = all(np.array_equal(a, b) for a, b in zip(unt_route(Eo2, b3), unt_route(Ep2, b3)))
+            r5 = stage_unt(0, data_s, dec, mf, roles, fake_save, 'card', log=quiet, outer=3, grid=(0.05, 0.3, 0.6), hp=hp, capacity=cap,
+                           prc_cfg='PRC_S1')
+            info['unt_selftest'] = {kk: r5[kk] for kk in ('bracket', 'spend_over_twin', 'ratio_f_I_over_f_O')}
+            checks['unt_stage_runs_and_twin_matches_p1'] = bool(r5['twin_nested_means_equal_p1']) and 'nested_lookup_pair' in r5
+            if r5['bracket'] != 'CONTROL_DID_NOT_REACH_SPEND':
+                checks['unt_predict_reproduces_saved'] = all(
+                    np.array_equal(predict('UNT_BR', 0, F['X'], F['feature_names'])[tt], saved[('FA', 'UNT_BR', 0)][0][r][tt])
+                    for r, F in roles.items() for tt in ('income', 'occupation')) and \
+                    sorted(load_model('UNT_BR', 0)['teachers']) == ['inc', 'occ']
         finally:
             SOURCE_TWIN.clear(); SOURCE_TWIN.update(bak[0])
             CAPACITIES.clear(); CAPACITIES.update(bak[1])
+            _PIN['on'] = True
             _ROOT.update(runs=None, cache=None, records=None)
             P._ROOT.update(runs=None, cache=None, records=None)
     info['cpu_s'] = round(time.process_time() - t0, 2)
@@ -1298,6 +1547,8 @@ PURPOSE = {
     'paths': 'FRC P1: SEX-side teachers and the nested strength-path selection on MODEL_FIT (SEX as a training label)',
     'cfg': 'FRC P2: label-refit decoders of the selected configurations on MODEL_FIT income and occupation (construction A only)',
     'check': 'FRC P3: household cross-fitted LOOKUP of saved FA releases on MODEL_FIT (SEX as an evaluation label only)',
+    'unt': 'FRC R1: nested selection and fit of the untargeted re-routing control on MODEL_FIT income and occupation (SEX as the '
+           'evaluation label of the held-out LOOKUP only)',
 }
 
 
@@ -1311,6 +1562,15 @@ def _roles():
     return {r: C.features(r) for r in C.ROLES6}
 
 
+def _aligned(d):
+    """Labels read for decoders must be in the admitted MODEL_FIT row order (engineering review finding 10)."""
+    from frc import common as C
+    f = C.features('MODEL_FIT')
+    if not (np.array_equal(np.asarray(d['row_id']), np.asarray(f['row_id'])) and np.array_equal(np.asarray(d['unit']),
+                                                                                                np.asarray(f['unit']))):
+        raise PermissionError('label rows differ from the admitted MODEL_FIT feature rows')
+
+
 def run(cmd, version, card, capacity_id=None, configs=None, ablation_lambda=None):
     from frc import common as C
     from frc import release as RL
@@ -1320,10 +1580,13 @@ def run(cmd, version, card, capacity_id=None, configs=None, ablation_lambda=None
     if cmd == 'nest':
         return stage_nest(version, capacity_id, _real(base, PURPOSE['nest'], card), stats=C.unit_stats)
     if cmd == 'twb':
+        if not configs or len(configs) != 1:
+            raise SystemExit('twb fits exactly one configuration per unit')
         cfg = configs[0]
         lab = None
         if CONFIGS[cfg]['construction'] == 'A':
             d = _real(base, PURPOSE['twa'], card)
+            _aligned(d)
             lab = {k: np.asarray(d[k], dtype=np.int64) for k in ('income', 'occupation')}
         return stage_twb(version, cfg, C.features('MODEL_FIT'), _roles(), RL.save, card, stats=C.unit_stats, lab=lab)
     dec = protection_decision()
@@ -1334,11 +1597,15 @@ def run(cmd, version, card, capacity_id=None, configs=None, ablation_lambda=None
         lab = None
         if dec['construction'] == 'A':
             d = _real(base, PURPOSE['cfg'], card)
+            _aligned(d)
             lab = {k: np.asarray(d[k], dtype=np.int64) for k in ('income', 'occupation')}
         return stage_configs(version, configs, C.features('MODEL_FIT'), _roles(), RL.save, card, dec, stats=C.unit_stats, lab=lab,
                              ablation_lambda=ablation_lambda)
     if cmd == 'check':
         return stage_check(version, _real(('features', 'sex'), PURPOSE['check'], card), configs)
+    if cmd == 'unt':
+        return stage_unt(version, _real(base + ('sex',), PURPOSE['unt'], card), dec, C.features('MODEL_FIT'), _roles(), RL.save,
+                         card, stats=C.unit_stats)
     raise ValueError(cmd)
 
 
@@ -1346,7 +1613,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog='frc.fa.route')
     sub = ap.add_subparsers(dest='cmd', required=True)
     sub.add_parser('selftest')
-    for name in ('repro', 'nest', 'twb', 'paths', 'cfg', 'check'):
+    for name in ('repro', 'nest', 'twb', 'paths', 'cfg', 'check', 'unt'):
         p = sub.add_parser(name)
         p.add_argument('--version', type=int, required=True, choices=(0, 1))
         p.add_argument('--card', required=True)

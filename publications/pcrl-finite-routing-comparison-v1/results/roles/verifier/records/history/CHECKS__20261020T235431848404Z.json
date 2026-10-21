@@ -1,0 +1,450 @@
+{
+ "schema": "FRC1-verifier-checks-v1",
+ "campaign": "pcrl_finite_routing_comparison_v1",
+ "role": "independent verifier (own code under roles/verifier/code/; labels only via frc.common.load, operation verify, inside queue units, logged)",
+ "rules": [
+  "append-only: an entry is never edited or removed; each written version is snapshotted to records/history/ and the hashes of all earlier entries are re-checked before every write",
+  "numerical_status (own code recomputes a recorded number) and procedural_status (process, access, record evidence) are recorded separately; values PASS, FAIL, ATTENTION, NOT_APPLICABLE, NOT_RUN",
+  "an acceptance rule is never widened after a failure; a corrected check gets a new id and an entry in CHECK_CHANGES.json (before, after, cause); the earlier result is kept"
+ ],
+ "checks": [
+  {
+   "id": "V1.SOURCE_ADMISSION__V1",
+   "what": "source admission replayed label-free with own calls: remote pin of the NRM publication, branch base, pinned private artefacts re-hashed against their own records (TASK.sha256, MODEL.json, RELEASE.json, published GATE blobs) and against SOURCE_ADMISSION.json, source files unmodified since the campaign start, 26 reference MODEL_SELECT wires, interpreter versions",
+   "inputs": {
+    "results/pcrl_finite_routing_comparison_v1/SOURCE_ADMISSION.json": "ca9d1f53104d215134d170191bbbe2e3c7fe93a8abbf6292d6497926c9d3ae67"
+   },
+   "result": {
+    "nrm_remote_tip": "682068d52147bc1bdfc75d9e49199115b1deaaed",
+    "branch_base_ancestor_of_HEAD": true,
+    "artefacts": {
+     "fa_cache/V0/TASK.pkl": {
+      "sha256": "907e75a435e854728958643ef117d02ba2abc3505d50a3d71dd330468179355d",
+      "equals_TASK.sha256": true
+     },
+     "runs/FA/PRC_TWIN/V0": {
+      "MODEL.pkl": "d728bb0386c10b58c003306ca59676071ba60314a5568fd52c14f66f976792b9",
+      "RELEASE.npz": "22718f50dd29f6d409efb243935b0a4f603f52fa8ffb1a2581a7a0c633d9d84c",
+      "model_json_agrees": true,
+      "release_json_agrees": true,
+      "record_task_cache_sha256_agrees": true,
+      "model_json_identity": true
+     },
+     "runs/FA/PRC_TWIN_C128/V0": {
+      "MODEL.pkl": "d519b09dee8a41e5e14e222482b70567165ab21991748b74b6c44d593ce8f422",
+      "RELEASE.npz": "0dbc9527e9e510126a678b14e4f58b5184a252a60774a21901cf68e2e3edaad5",
+      "model_json_agrees": true,
+      "release_json_agrees": true,
+      "record_task_cache_sha256_agrees": true,
+      "model_json_identity": true
+     },
+     "fa_cache/V1/TASK.pkl": {
+      "sha256": "c7ce41adc80f8028051c37faf4ae9c59d96623b3b16af079fc3167b0de9ff60e",
+      "equals_TASK.sha256": true
+     },
+     "runs/FA/PRC_TWIN/V1": {
+      "MODEL.pkl": "523f503a7c1a8d27aa9ffd0fecc4388c280ca72ffdd8b248a6412a60228cec4e",
+      "RELEASE.npz": "6338b286a76ab21c63ea2d59c7627cecf07a3029f4ad551ad5d8ed8d0ccdaf2e",
+      "model_json_agrees": true,
+      "release_json_agrees": true,
+      "record_task_cache_sha256_agrees": true,
+      "model_json_identity": true
+     },
+     "runs/FA/PRC_TWIN_C128/V1": {
+      "MODEL.pkl": "5a62d600ae784e3370119d30e752c430f917aa252e474a9f88de0a1ab243e7c5",
+      "RELEASE.npz": "e4a65b9860eb5bdffec19ce9c90903522ce734130340a1c2f6a9bf3971f4bb0e",
+      "model_json_agrees": true,
+      "release_json_agrees": true,
+      "record_task_cache_sha256_agrees": true,
+      "model_json_identity": true
+     },
+     "results/designer_a/GATE_V0_16x64.json": {
+      "sha256": "6aed7edc9d276c8a42eb4b942b2057aa4296c34b5d03e9db4a74f0a295a30d94",
+      "published_blob_equal": true
+     },
+     "results/designer_a/GATE_V0_24x128.json": {
+      "sha256": "4f9e8aa783b0dea8fb8edcc4d5f82f7aae3a05b70da446c0dcd29dabec04549a",
+      "published_blob_equal": true
+     },
+     "results/designer_a/GATE_V1_16x64.json": {
+      "sha256": "88cd091e26d41bcdb71041541ee4ade38bc278ef3742788a899eeb3afff13db2",
+      "published_blob_equal": true
+     },
+     "results/designer_a/GATE_V1_24x128.json": {
+      "sha256": "e9fa86d893ea414318bca4abf5196687f83642c8f71a230fc5dbd0861a4189dd",
+      "published_blob_equal": true
+     }
+    },
+    "differences_from_SOURCE_ADMISSION": [],
+    "source_files_modified_after_campaign_start": [],
+    "reference_wires_mine": {
+     "U0/S0": {
+      "income": "32200386e45cadad7315272aadac98d468be5f73e0a982230a0e87b1dbafda2e",
+      "occupation": "7d54173bad3e67f3159bb8b239fc4d659d7ee57c1b79d29c290abf87e7acb242"
+     },
+     "Ucal/S0": {
+      "income": "57639bebdfdf16aa55015b9247c8595d6bc5700a8128043cd8bed833a623a94a",
+      "occupation": "4357bf8c20fe273aa7c1a009bb700b129a81e1b8b0029b07202fa658e92c7c79"
+     },
+     "T_TREE/S0": {
+      "income": "38261e0ee6a1cb4c3983c472a31e5fae65c4d77a804aa53d5130009a95f624f8",
+      "occupation": "d25e553bee94c34815b207549e0e1c69dc9a7b92f44c0bfef9777bf1050869ca"
+     },
+     "TASK_REFIT/S0": {
+      "income": "0ca4afeea53695ef7b6ba34f0fad8974186c32f3186b3fa3a2d276c73469ac4e",
+      "occupation": "fb25885ef678c956eeaf210c60c8e734286eba76bf7c6dfe99957bed64c9c784"
+     },
+     "NEURAL_RAW/S0": {
+      "income": "f4de1c9f2c2ec9048435f9b3c9e2fc96a301c5d529a3ab52b0a1b9118505781d",
+      "occupation": "8311ca98c5e32f237d7fd34fe6a4538853d12a908771e2b0fde66a48784c1a1b"
+     },
+     "H_LJ/S0": {
+      "income": "63bf93b2795d03820c86fabafe59b18cef51d5a143f68ef1975271056a79c7d4",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "B2TWIN/S0": {
+      "income": "25bf1c8d580dba6c5bbfa201e9bbb134458310bf2790fca10771dc6b280147b5",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "RETIRED_B3CTL/S0": {
+      "income": "fb9e28d3dc54283dc2c8b83efaa3406cc97f954869528f6c5ed7766ab69d53b2",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "SUCC/S0": {
+      "income": "067a21bbda07f398404c3b44b319c031b7c5a233e37361523a4388c8e52f1d83",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "TWJ/S0": {
+      "income": "0ef5b6bb7cd7cf03da836b2115b40c00c049db355139aab50995814c375539bb",
+      "occupation": "a7451cc6aa0da3892ed40d8faf6e095f0b8f28e19cf106ee53c73fdf59400c13"
+     },
+     "H3+TASK_REFIT/S0": {
+      "income": "067a21bbda07f398404c3b44b319c031b7c5a233e37361523a4388c8e52f1d83",
+      "occupation": "fb25885ef678c956eeaf210c60c8e734286eba76bf7c6dfe99957bed64c9c784"
+     },
+     "H3+T_TREE/S0": {
+      "income": "067a21bbda07f398404c3b44b319c031b7c5a233e37361523a4388c8e52f1d83",
+      "occupation": "d25e553bee94c34815b207549e0e1c69dc9a7b92f44c0bfef9777bf1050869ca"
+     },
+     "W/S0": {
+      "income": "067a21bbda07f398404c3b44b319c031b7c5a233e37361523a4388c8e52f1d83",
+      "occupation": "0db3238d45b3c8e950e524efd9a9f3015fa57c4eb2482f160aa9ee4a08d0a369"
+     },
+     "U0/S1": {
+      "income": "a93d957d85c0259a92e9252c33a353af29b9dc851e3d918e7c110dc7d18235a4",
+      "occupation": "cd203cfb7936ac26b3922e804c0d04b898d96e3d6b40b67f5d76ac0be137da8e"
+     },
+     "Ucal/S1": {
+      "income": "866c559f2b0d4c0e21241aedefa4ca919dd2e876f122e56aea783a73af31410b",
+      "occupation": "46118ff04e3cc8ba8904a78f6c3c7a85a17b75925429b87871bd483e2060370f"
+     },
+     "T_TREE/S1": {
+      "income": "4afb951e7b59c27f4f898d19a215f74e4caed47c796fdc2062e7509eb8c068ec",
+      "occupation": "dc430989262545b7cd9c54dba0b20b1179a7cf3ae8b46dc84466952c10473b04"
+     },
+     "TASK_REFIT/S1": {
+      "income": "0cd0daf3da5a02775dd683e15f2510dfb83c1ce979d7ff4987e51895ea1bc1a2",
+      "occupation": "3de7490b23fb8d339b14d01c2ee8c00c0a1319d7abf55dbba558e05aa87aacaa"
+     },
+     "NEURAL_RAW/S1": {
+      "income": "4456081555060788171a4360bd4f5dc5d8c0c76bf48596457e2fdb45bec9ef37",
+      "occupation": "1c6d084053ae16cdcb279044c35fe95772d05da78e576cd97cbfbe32628f91be"
+     },
+     "H_LJ/S1": {
+      "income": "bb58a741754397c93f858f45855df0d0d081020311234d15cc9723c9fba83afc",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     },
+     "B2TWIN/S1": {
+      "income": "03955dd1305d2ccdce1bc789f763203097bf2a8932956f93fadde5066bbabc98",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     },
+     "RETIRED_B3CTL/S1": {
+      "income": "73ad209aaede370c2ba546a5bb87a035ca381432205346510ea533a9e49b980c",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     },
+     "SUCC/S1": {
+      "income": "1e028f72aed7fbbfc739508db9e965acda92dee2f38db32af8d6ec70bd6a5d52",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     },
+     "TWJ/S1": {
+      "income": "57e25911d064c3997d760985af15c7b054dd60b1992cc0fde62553325760783b",
+      "occupation": "1bc06ccc20686ee6fa7f500a0861d64955bc32d979389c88fab32bf3896ec058"
+     },
+     "H3+TASK_REFIT/S1": {
+      "income": "1e028f72aed7fbbfc739508db9e965acda92dee2f38db32af8d6ec70bd6a5d52",
+      "occupation": "3de7490b23fb8d339b14d01c2ee8c00c0a1319d7abf55dbba558e05aa87aacaa"
+     },
+     "H3+T_TREE/S1": {
+      "income": "1e028f72aed7fbbfc739508db9e965acda92dee2f38db32af8d6ec70bd6a5d52",
+      "occupation": "dc430989262545b7cd9c54dba0b20b1179a7cf3ae8b46dc84466952c10473b04"
+     },
+     "W/S1": {
+      "income": "1e028f72aed7fbbfc739508db9e965acda92dee2f38db32af8d6ec70bd6a5d52",
+      "occupation": "10eb87e58575a00d8af6790bd5e6252a9da50c85f84bd8305a06f0b632b0d5df"
+     }
+    },
+    "reference_wires_differ": [],
+    "python3_versions": {
+     "numpy": "2.4.4",
+     "scipy": "1.17.1",
+     "scikit-learn": "1.8.0"
+    },
+    "admission_ok_flag": true,
+    "problems": []
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T23:54:30+00:00",
+   "unit_id": "FRC_VER_ADMISSION_V1"
+  },
+  {
+   "id": "V1.RECEIPT__V1",
+   "what": "registration receipt re-verified with own git calls (R1): record verified; own ls-remote of publication/pcrl-finite-routing-comparison-v1 on https://github.com/Bostesa/PCRL.git equals the receipt commit; registration files committed, unchanged, equal to the receipt hashes, to the research commit and to the published copies; research commit an ancestor of HEAD and earlier than the verification",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/access/REGISTRATION_RECEIPT_VERIFIED.json": "65079e41003bd1c2dc058daaaf187bace3890b6c22d8c96537a81db7988d9275",
+    ".private/pcrl_finite_routing_comparison_v1/access/RECEIPT_ATTEMPTS.jsonl": "2bc5fd4e5aec36d1acbe0ddb530d1d2953e2f4cbcd073c6e97367bf807f3829a",
+    "results/pcrl_finite_routing_comparison_v1/RECEIPTS.json": "fca327018ca36eb55f4b2b3a328a01a21de865ac44883369a000ee31159f133d",
+    "results/pcrl_finite_routing_comparison_v1/PROTOCOL.md": "b3c2be39e9b2a74cbc6e9ca7047a0038001cc78f4b77af64350c6d5b5e0e68b4",
+    "results/pcrl_finite_routing_comparison_v1/EXPOSURE_MAP.md": "e12e4eab1753cf8400e31cb0f652b3121834776ac9e69f41cd87225bedbcb41f",
+    "results/pcrl_finite_routing_comparison_v1/ACCESS_POLICY.json": "d71e7b28308bb8372d9e760bcb4328fa42e81dfb4d949e1c4ca37478626d0d8d",
+    "results/pcrl_finite_routing_comparison_v1/SOURCE_ADMISSION.json": "ca9d1f53104d215134d170191bbbe2e3c7fe93a8abbf6292d6497926c9d3ae67",
+    "results/pcrl_finite_routing_comparison_v1/READER_SPLITS.json": "bc85c72b1bf23ca190ccbf262bf5224435e62ef2da14d2c5b3663527b6dedca1",
+    "results/pcrl_finite_routing_comparison_v1/FAILURE_MAP.md": "0f15ba10099df07e4af40084986415bba893fd7b91f20cd34e348694cceb404c",
+    "results/pcrl_finite_routing_comparison_v1/roles/statistical_reviewer/RULES.md": "2b7e0be8672cb5eb32a195e91c21b4d6b67284b5a14e7a1a584fdc4ffe256fd0",
+    "results/pcrl_finite_routing_comparison_v1/roles/statistical_reviewer/RULES.json": "a0dc0fc7f377c26339df0c96e6abda9784d725ccab8cb204e1cfa7d789029510"
+   },
+   "result": {
+    "record_exists": true,
+    "kind": "registration",
+    "receipt_commit": "7fed2ca443048ab35d0ceb2981fb5d0f76a7d414",
+    "research_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+    "remote_sha": "7fed2ca443048ab35d0ceb2981fb5d0f76a7d414",
+    "remote_url": "https://github.com/Bostesa/PCRL.git",
+    "verified_utc": "2026-10-20T23:48:04+00:00",
+    "remote_sha_verified": true,
+    "remote_sha_equals_receipt_commit": true,
+    "own_ls_remote": "7fed2ca443048ab35d0ceb2981fb5d0f76a7d414\trefs/heads/publication/pcrl-finite-routing-comparison-v1",
+    "own_remote_tip_equals_receipt_commit": true,
+    "origin_url": "https://github.com/Bostesa/PCRL.git",
+    "origin_is_github_remote": true,
+    "files_sha256_equal_now": true,
+    "files_committed_unchanged": {
+     "PROTOCOL.md": true,
+     "EXPOSURE_MAP.md": true,
+     "ACCESS_POLICY.json": true,
+     "SOURCE_ADMISSION.json": true,
+     "READER_SPLITS.json": true,
+     "FAILURE_MAP.md": true,
+     "roles/statistical_reviewer/RULES.md": true,
+     "roles/statistical_reviewer/RULES.json": true
+    },
+    "research_commit_ancestor_of_HEAD": true,
+    "research_commit_utc": "2026-10-20T19:47:33-04:00",
+    "research_commit_before_verification": true,
+    "research_commit_bytes_equal_receipt": true,
+    "receipt_commit_available_locally": true,
+    "receipt_commit_utc": "2026-10-20T19:47:52-04:00",
+    "published_bytes_equal_research": {
+     "PROTOCOL.md": true,
+     "EXPOSURE_MAP.md": true,
+     "ACCESS_POLICY.json": true,
+     "SOURCE_ADMISSION.json": true,
+     "READER_SPLITS.json": true,
+     "FAILURE_MAP.md": true,
+     "roles/statistical_reviewer/RULES.md": true,
+     "roles/statistical_reviewer/RULES.json": true
+    },
+    "attempts": [
+     {
+      "outcome": "verified",
+      "verified_utc": "2026-10-20T23:48:04+00:00",
+      "problems": []
+     }
+    ],
+    "public_RECEIPTS_json_matches_private_record": true
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T23:54:31+00:00",
+   "unit_id": "FRC_VER_ACCESS_V1"
+  },
+  {
+   "id": "V1.ACCESS_POLICY_CODE__V1",
+   "what": "frc.common POLICY / ENTRY_POINTS equal the registered ACCESS_POLICY.json",
+   "inputs": {
+    "results/pcrl_finite_routing_comparison_v1/ACCESS_POLICY.json": "d71e7b28308bb8372d9e760bcb4328fa42e81dfb4d949e1c4ca37478626d0d8d",
+    "frc/common.py": "ac6078918cf9bd71ef7c4804143f7442a1b9ee9b3eeb540f130ccd61f19d26cb"
+   },
+   "result": {
+    "differences": []
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T23:54:31+00:00",
+   "unit_id": "FRC_VER_ACCESS_V1"
+  },
+  {
+   "id": "V1.ACCESS_LOG__V1",
+   "what": "label-access log audit R2-R10 (receipt order, closed roles, policy, MODEL_SELECT entry points and module chains, cards committed before fitting reads, unit intervals, row sets, committed code at launch, unit main modules)",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/access/LABEL_ACCESS.jsonl": "a206a7373c0e33d53a830df281748b9036fea1a76ce513f1a1427704aba070e3",
+    ".private/pcrl_finite_routing_comparison_v1/compute/ledger.jsonl": "f662362e0b9f0fea24a28ba68796f25c567e1553b983fcab7a848663d86656c7",
+    ".private/pcrl_finite_routing_comparison_v1/access/REGISTRATION_RECEIPT_VERIFIED.json": "65079e41003bd1c2dc058daaaf187bace3890b6c22d8c96537a81db7988d9275",
+    "n_events": 9
+   },
+   "result": {
+    "summary": {
+     "n_events": 9,
+     "first_utc": "2026-10-20T23:48:32+00:00",
+     "last_utc": "2026-10-20T23:50:50+00:00",
+     "by_operation_role": {
+      "fit|MODEL_FIT|income,occupation|frc.fa.route": 4,
+      "benchmark|MODEL_SELECT|income,occupation,sex|frc.evaluate": 5
+     },
+     "units_with_reads": [
+      "FRC_EVAL_REFS_V1",
+      "FRC_EVAL_SRC_PRC_TWIN_C128_V1",
+      "FRC_EVAL_SRC_PRC_TWIN_V1",
+      "FRC_EVAL_TWB_C128_V1",
+      "FRC_EVAL_TWB_C64_V1",
+      "FRC_NEST_C128_V0_V1",
+      "FRC_NEST_C128_V1_V1",
+      "FRC_NEST_C64_V0_V1",
+      "FRC_NEST_C64_V1_V1"
+     ]
+    },
+    "findings_by_rule": {},
+    "fail_examples": [],
+    "attention_examples": [],
+    "fit_reads": [
+     {
+      "utc": "2026-10-20T23:48:32+00:00",
+      "unit_id": "FRC_NEST_C64_V1_V1",
+      "role": "MODEL_FIT",
+      "fields": [
+       "income",
+       "occupation"
+      ],
+      "card": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md",
+      "card_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+      "card_commit_utc": "2026-10-20T19:47:33-04:00"
+     },
+     {
+      "utc": "2026-10-20T23:48:33+00:00",
+      "unit_id": "FRC_NEST_C64_V0_V1",
+      "role": "MODEL_FIT",
+      "fields": [
+       "income",
+       "occupation"
+      ],
+      "card": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md",
+      "card_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+      "card_commit_utc": "2026-10-20T19:47:33-04:00"
+     },
+     {
+      "utc": "2026-10-20T23:49:06+00:00",
+      "unit_id": "FRC_NEST_C128_V1_V1",
+      "role": "MODEL_FIT",
+      "fields": [
+       "income",
+       "occupation"
+      ],
+      "card": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md",
+      "card_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+      "card_commit_utc": "2026-10-20T19:47:33-04:00"
+     },
+     {
+      "utc": "2026-10-20T23:49:06+00:00",
+      "unit_id": "FRC_NEST_C128_V0_V1",
+      "role": "MODEL_FIT",
+      "fields": [
+       "income",
+       "occupation"
+      ],
+      "card": "results/pcrl_finite_routing_comparison_v1/cards/FA_FRC_v1.md",
+      "card_commit": "98ede167e427854c14064cf35bc0fa8343b442bd",
+      "card_commit_utc": "2026-10-20T19:47:33-04:00"
+     }
+    ],
+    "amendments": [],
+    "receipt_verified_utc": "2026-10-20T23:48:04+00:00"
+   },
+   "numerical_status": "NOT_APPLICABLE",
+   "procedural_status": "PASS",
+   "utc": "2026-10-20T23:54:31+00:00",
+   "unit_id": "FRC_VER_ACCESS_V1"
+  },
+  {
+   "id": "V1.ROW_SETS__V1",
+   "what": "logged row-set hashes, people and households equal the admitted roles (R8)",
+   "inputs": {
+    ".private/pcrl_finite_routing_comparison_v1/access/LABEL_ACCESS.jsonl": "a206a7373c0e33d53a830df281748b9036fea1a76ce513f1a1427704aba070e3"
+   },
+   "result": {
+    "n_events": 9,
+    "admitted": {
+     "MODEL_FIT": [
+      "7c9bb634f7bdfe3ed5ac4d8f309aca296a2142f575840e0a417b0c109e8a866a",
+      20000,
+      13337
+     ],
+     "CALIBRATION": [
+      "65792eb1e813c0f3cd81877a7aa6d416a9bf6a852db93af2eb66a68ef919b580",
+      2982,
+      1974
+     ],
+     "MODEL_SELECT": [
+      "fe7e553bbe5c2c8016e35076a062f95450f04c6d006d8dce1e63b98fab5595e4",
+      8001,
+      5306
+     ],
+     "ATTACK_FIT": [
+      "12f6f5e5e7d196ff6dae588f9d409265484e9de604acd623d508969a867d68a8",
+      8001,
+      5319
+     ],
+     "ATTACK_VALIDATION": [
+      "90c323af06fb8d68a807f7156029047c616798978480a80c5f8dcb175f46b42e",
+      3000,
+      1974
+     ],
+     "DEV_REPORT": [
+      "de4afc1d163845a05a0f69bc48096c797dd08ebdeb36d1d6082a07038f5701ee",
+      5943,
+      3955
+     ]
+    },
+    "row_set_failures": []
+   },
+   "numerical_status": "PASS",
+   "procedural_status": "NOT_APPLICABLE",
+   "utc": "2026-10-20T23:54:31+00:00",
+   "unit_id": "FRC_VER_ACCESS_V1"
+  }
+ ],
+ "entry_sha256": [
+  "075b29e74e2e86698320dd816a026cda4684acd05f3546c25635a398e3a40720",
+  "e50eea43c98db0004daf1b5a5867eb3e1a209d0666ec5339fefd20ca616e4394",
+  "aa1a1aebf0acd702be3bfc5ff9a2f48b9c406a74acabce40ce5259763e3c1edb",
+  "2fcab09dd4938580b96371036f17c5093e057ac4589460ad589c74f356c53b57",
+  "301f19ed568c6bc65d0e066f6abe08a1fafe6670ab995716de3a52d3354d6949"
+ ],
+ "summary": {
+  "n_checks": 5,
+  "numerical": {
+   "PASS": 2,
+   "FAIL": 0,
+   "ATTENTION": 0,
+   "NOT_APPLICABLE": 3,
+   "NOT_RUN": 0
+  },
+  "procedural": {
+   "PASS": 4,
+   "FAIL": 0,
+   "ATTENTION": 0,
+   "NOT_APPLICABLE": 1,
+   "NOT_RUN": 0
+  },
+  "updated_utc": "2026-10-20T23:54:31+00:00"
+ }
+}

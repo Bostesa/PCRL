@@ -43,6 +43,43 @@ def load_grid(bank):
     return out
 
 
+def distinct_inputs(bank):
+    """Label-free distinct released-vector counts per (member, version) and view, from the bank's own members (A-SC1)."""
+    import numpy as np
+    from . import devreaders as DR
+    spec = json.loads((C.RESULTS / 'grid_specs' / f'{bank}.json').read_text())
+    out = {}
+    for name, m in spec['members'].items():
+        for v in C.VERSIONS:
+            rel, _ = DR.load_member(m, v)
+            inc, occ = rel['income'], rel['occupation']
+            out[f'{name}|V{v}'] = {'income': int(np.unique(inc, axis=0).shape[0]), 'occupation': int(np.unique(occ, axis=0).shape[0]),
+                                   'pair': int(np.unique(np.column_stack((inc, occ)), axis=0).shape[0])}
+    return out
+
+
+def validity(grid, minimum_set, distinct=None, ks=(0, 1)):
+    """frc.rules.grid_validity (the NRM1 A-SC1 check with this grid's seed rule) from the extras' score fingerprints: k0 vs k1 per
+    recipe, view, member, version and repetition (as nrm.claims.validity)."""
+    man = json.loads((C.RESULTS / 'READER_SPLITS.json').read_text())
+    seeds = {f'S{v}k{k}': man['reader_seeds'][f'V{v}k{k}'] for v in C.VERSIONS for k in ks}
+    checks = []
+    for cell, cres in grid['cells'].items():
+        if '@' in cell or not cell.endswith('k0'):
+            continue
+        v, rep = int(cell[1]), cell[2:4]
+        other = cell[:-2] + 'k1'
+        for member, ent in cres.items():
+            for view, e in ent.items():
+                f0 = (e.get('extras') or {}).get('score_sha256') or {}
+                f1 = (((grid['cells'].get(other) or {}).get(member) or {}).get(view, {}).get('extras') or {}).get('score_sha256') or {}
+                for recipe in NR.SEED_DEPENDENT + NR.SEED_INVARIANT:
+                    if recipe in f0 and recipe in f1:
+                        checks.append({'recipe': recipe, 'view': view, 'wire': member, 'v': v, 'R': rep,
+                                       'equal_k0_k1': f0[recipe] == f1[recipe]})
+    return RU.grid_validity(seeds, checks, minimum_set, distinct or {}), checks
+
+
 def nolookup_benefit(grid, cand, comp):
     """Per registered cell: the non-table pair winner's SCORE AUC of comp minus that of cand (positive favours cand)."""
     cells = {}
@@ -123,12 +160,15 @@ def run(plan_path, bank, out):
     if not C.committed(Path(plan_path)):
         raise PermissionError('the claims plan must be committed before the grid outputs it governs are read')
     grid = load_grid(bank)
+    gv, checks = validity(grid, plan.get('minimum_set') or [], distinct_inputs(bank))
+    plan = {**plan, 'grid_valid': bool(gv['effective'])}
     rec = build(plan, grid)
     dec = RU.decisions(rec)
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     C.write_json_x(out / 'DECISIONS.json', {'schema': 'FRC1-decisions-v1', 'utc': C.now(), 'plan': plan.get('plan_id'), 'bank': bank,
-                                            'rules_sha256': C.sha(RU.RULES_PATH), 'decisions': dec,
+                                            'rules_sha256': C.sha(RU.RULES_PATH), 'decisions': dec, 'grid_validity': gv,
+                                            'grid_validity_checks': len(checks),
                                             'inputs_summary': {'grid_entries': sorted(rec.get('grid') or {}),
                                                                'costs_vs': sorted(k for k, v in (rec.get('costs_vs') or {}).items()
                                                                                   if v is not None),
@@ -138,12 +178,91 @@ def run(plan_path, bank, out):
     return dec
 
 
+def split_records():
+    """Label-free split identities of the FRC1 repetitions: assignment hash (FIT 0 / VALIDATION 1 / SCORE 2 per admitted MODEL_SELECT
+    row) and the share of SCORE households each repetition shares with every other (frc.rules.refit_effectiveness input)."""
+    import hashlib
+    import numpy as np
+    from . import devreaders as DR
+    unit = C.features('MODEL_SELECT')['unit']
+    roles = {r: DR.roles_of(unit, r) for r in DR.ALL_REPS}
+    out = {}
+    for r, m in roles.items():
+        a = np.where(m['FIT'], 0, np.where(m['VALIDATION'], 1, 2)).astype(np.int8)
+        sc = set(np.unique(unit[m['SCORE']]).tolist())
+        ov = {}
+        for q, mq in roles.items():
+            if q != r:
+                sq = set(np.unique(unit[mq['SCORE']]).tolist())
+                ov[q] = len(sc & sq) / len(sc)
+        out[r] = {'assignment_sha256': hashlib.sha256(a.tobytes()).hexdigest(), 'score_overlap': ov,
+                  'score_households': len(sc)}
+    return out
+
+
+def stability(main_bank, rob_bank, out):
+    """Classifier-stability results: nrm.rules.reader_stability of PRC_S2 against its matched controls and target references on the
+    registered grid; nrm.rules.robustness on the robustness cells of the refit bank; frc.rules.refit_effectiveness (split identities
+    and reader-seed checks on all eight seeds); the ablation comparisons."""
+    gm = load_grid(main_bank)
+    rec = {'schema': 'FRC1-classifier-stability-v1', 'utc': C.now(), 'main_bank': main_bank, 'rob_bank': rob_bank,
+           'reader_stability': {}, 'robustness': {}, 'ablation': {}}
+    wires = {m: {v: (gm['members'][v].get(m) or {}).get('wire_sha256') for v in C.VERSIONS} for m in gm['members'][0]}
+    for comp in ('TWIN', 'HQ_S2', 'SHUF_S2', 'UNT_BR', 'ORD_S2', 'NEURAL_RAW', 'H_LJ'):
+        rec['reader_stability'][comp] = NR.reader_stability(gm['cells'], 'PRC_S2', comp, wires=wires)
+    gr = load_grid(rob_bank)
+    for comp in ('TWIN', 'HQ_S2', 'SHUF_S2', 'UNT_BR', 'ORD_S2', 'NEURAL_RAW', 'H_LJ'):
+        e = gr['paired'].get('PRC_S2', {}).get(comp)
+        rec['robustness'][comp] = NR.robustness(e) if e else {'label': 'NOT_RUN'}
+    for abl in ('ABL_LOC', 'ABL_PAIR'):
+        for comp in ('PRC_S2', 'TWIN'):
+            e = gr['paired'].get(abl, {}).get(comp)
+            if e:
+                rec['ablation'][f'{abl}_vs_{comp}'] = {'registered': NR.comparison(e), 'robustness': NR.robustness(e)}
+    man = json.loads((C.RESULTS / 'READER_SPLITS.json').read_text())
+    seeds = {f'S{v}k{k}': man['reader_seeds'][f'V{v}k{k}'] for v in C.VERSIONS for k in range(4)}
+    checks = []
+    for cell, cres in gr['cells'].items():
+        if '@' in cell:
+            continue
+        v, rep, k = NR.parse_cell(cell)
+        if k not in (0, 2):
+            continue
+        other = cell[:-1] + str(k + 1)
+        for member, ent in cres.items():
+            for view, e in ent.items():
+                f0 = (e.get('extras') or {}).get('score_sha256') or {}
+                f1 = (((gr['cells'].get(other) or {}).get(member) or {}).get(view, {}).get('extras') or {}).get('score_sha256') or {}
+                for recipe in NR.SEED_DEPENDENT + NR.SEED_INVARIANT:
+                    if recipe in f0 and recipe in f1:
+                        checks.append({'recipe': recipe, 'view': view, 'wire': member, 'v': v, 'R': rep, 'k_pair': [k, k + 1],
+                                       'equal_k0_k1': f0[recipe] == f1[recipe]})
+    splits = split_records()
+    rec['splits'] = splits
+    rec['refit_effectiveness'] = RU.refit_effectiveness(splits, seeds, checks, ['PRC_S2', 'TWIN', 'HQ_S2', 'UNT_BR', 'ORD_S2'],
+                                                        distinct_inputs(rob_bank))
+    rec['refit_checks'] = len(checks)
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    C.write_json_x(out / 'CLASSIFIER_STABILITY.json', rec)
+    print(json.dumps({'robustness': {k: v.get('label') for k, v in rec['robustness'].items()},
+                      'refit': rec['refit_effectiveness']['label'], 'ablation': {k: (v['registered']['benefit']['label'],
+                                                                                     v['robustness']['label'])
+                                                                                  for k, v in rec['ablation'].items()}}, indent=1))
+    return rec
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest='cmd', required=True)
     r = sub.add_parser('run'); r.add_argument('--plan', required=True); r.add_argument('--bank', required=True)
     r.add_argument('--out', required=True)
+    s = sub.add_parser('stability'); s.add_argument('--main', required=True); s.add_argument('--rob', required=True)
+    s.add_argument('--out', required=True)
     a = ap.parse_args(argv)
-    run(a.plan, a.bank, a.out)
+    if a.cmd == 'run':
+        run(a.plan, a.bank, a.out)
+    else:
+        stability(a.main, a.rob, a.out)
     return 0
 
 
