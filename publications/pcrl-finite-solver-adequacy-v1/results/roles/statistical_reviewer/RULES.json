@@ -1,0 +1,97 @@
+{
+ "schema": "FSA1-rules-v1",
+ "campaign": "pcrl_finite_solver_adequacy_v1",
+ "role": "statistical and challenger reviewer",
+ "status": "frozen before the registration and before any outcome of this campaign; no label read; prospective",
+ "human_readable": "RULES.md (same folder)",
+ "implementation": "fsa/rules.py (pure functions; nrm.rules as NR and frc.rules as FR imported unchanged, never monkeypatched); tests: python3 -m fsa.test_rules",
+ "inherited": {
+  "nrm1_rules_json_sha256": "84f187768817e79ef9f2bb36151bea81f00b8f62d9179c8cd523069550674652",
+  "frc1_rules_json_sha256": "a0dc0fc7f377c26339df0c96e6abda9784d725ccab8cb204e1cfa7d789029510",
+  "nrm_rules_py_sha256": "d5df868678d483a3452e251d8f24575932d23f0e5d22e3ef1ca3627a35030df1",
+  "frc_rules_py_sha256": "11d3df7ffac404831167645ae565604af4d140f1b189c8b96f665613e62c01a4",
+  "ohn_rules_py_sha256": "8686a78f59a609f3391c877129a954c0b7c0c708e94f60dfbeaf547b894122ba",
+  "card_FA_PRC_v1_sha256": "26d2f5c28248dc41205810f46c74fd2658d2c1900df93e60ee00188406825771",
+  "original_limits": "NRM1 section 0 unchanged: accuracy loss <= 0.010, NLL excess <= 0.010, summed Brier excess <= 0.005, guards <= 0.005; 24 clauses + 4 guards"
+ },
+ "tolerances": {
+  "objective_tie_abs": 1e-09,
+  "auc_material": 0.001,
+  "task_no_worse": 0.0005,
+  "task_material_total_nll": 0.001,
+  "recipient_allowance_auc": 0.01,
+  "z": 2.0,
+  "numerical_guard_abs": 1e-12,
+  "conventions": "differences revised - original of losses and AUCs (negative favours the revised solver); 'no material change' |dAUC| < 0.001; material reduction dAUC <= -0.001; 'no worse' task dloss < 0.0005; material task gain dTotalNLL <= -0.001"
+ },
+ "advancement": {
+  "labels": ["ADVANCE", "OPTIMIZER_REPAIR_CLOSED", "INCOMPLETE"],
+  "routes": ["D", "E", "S"],
+  "max_registered_revisions": 2,
+  "registered_strengths": [0.25, 0.5, 1.0, 2.0, 4.0, 8.0],
+  "task_metrics": ["inc_nll", "occ_nll", "inc_acc_loss", "occ_acc_loss", "inc_brier", "occ_brier", "occ_brier_men", "occ_brier_women"],
+  "route_D": {
+   "documented_approximations": ["SHRUNK_ROUTING_TABLES", "CELL_MEAN_CODEWORD_REFRESH", "B1_EMISSION_DIFFERS_FROM_SEARCH_PROTOTYPES", "SEVEN_TILT_FIRST_IMPROVEMENT_SEARCH"],
+   "specification_sources": ["FA_PRC_v1 section 1", "FA_FRC_v1", "FA_FRC_R1", "code docstring contract"],
+   "per_claim_labels": ["NOT_A_DEFECT_DOCUMENTED_APPROXIMATION", "NOT_A_DEFECT_NO_COMMITTED_SPECIFICATION", "NOT_A_DEFECT_NO_CONTRADICTION", "NOT_A_DEFECT_NOT_IN_REAL_PIPELINE", "NOT_A_DEFECT_NO_EFFECT", "DEFECT_UNVERIFIED", "DEFECT_VERIFIED_IMMATERIAL", "DEFECT_VERIFIED_MATERIAL"],
+   "effect_tolerance_abs": 1e-12,
+   "material": "partition of >= 1 MODEL_FIT person changed, or a discrete decision input changed, or an AUC input by >= 0.001, or a task input by >= 0.0005",
+   "labels": ["D_ADVANCES", "D_NO_MATERIAL_DEFECT", "INCOMPLETE"]
+  },
+  "route_E": {
+   "labels": ["E_ADVANCES", "E_OLD_MATCHES_REFERENCE", "E_PROXY_ONLY", "E_REVISED_WORSE_SOMEWHERE", "E_REVISED_NOT_DEPLOYABLE", "E_GAP_WITHOUT_RUNNABLE_REVISION", "E_NO_DISTINCT_SOURCE_POINT", "E_INVALID", "E_SUPERSEDED_BY_S", "INCOMPLETE"],
+   "same_class": "same objective (nrm.fa.prc.objective), routing family (nrm.fa.prc.route, constants free, tilt 0 <= t <= lambda), capacity, teachers and start; deployability checked by the unchanged route on every support point",
+   "unrestricted_enumeration": "reported only; never advances and never defines the applicable reference",
+   "excluded_laws": "any law run by a solver before the registration receipt, including the coordinator's 02:48Z invented-data timing trace (6,000 rows)"
+  },
+  "route_S": {
+   "labels": ["S_ADVANCES", "S_OLD_MATCHES_REFERENCE", "S_PROXY_ONLY", "S_REVISED_WORSE_SOMEWHERE", "S_REVISED_NOT_DEPLOYABLE", "S_NO_FEASIBLE_REVISED_POINT", "S_INVALID", "INCOMPLETE"],
+   "statistics": "cached MODEL_FIT out-of-fold statistics, derived from MODEL_FIT training labels (income, occupation, SEX); never described as label-free or untouched",
+   "gating_budget": "S2",
+   "recovery_rationale": "both versions: d pair LOOKUP AUC vs the spend bracket <= -0.001, d total-NLL spend < +0.0005, single views <= +0.010; pooled mean d AUC + 2 x mean SE < 0",
+   "task_rationale": "both versions vs the original S2 point: d total-NLL spend <= -0.001, d pair AUC < +0.001, single views <= +0.010; pooled mean d spend + 2 x mean SE < 0",
+   "bracket": "the cheapest original path point whose nested spend >= the revised point's spend - 0.0005, else the most-spending one",
+   "nested_bootstrap": "B = 400 MODEL_FIT household draws, numpy default_rng(SeedSequence([2026102200, v, 4])), the same weights for both solvers"
+  },
+  "supersession": "for one revision, a closing route-S label overrides E_ADVANCES (E_SUPERSEDED_BY_S); an incomplete S makes it INCOMPLETE",
+  "equal_effort_control": "SV1_first (card FA_FSA_v2): evaluated with the same functions and reported; never advances; equal_effort_attribution is descriptive",
+  "closing_statement": "the optimizer-repair hypothesis closes: the original solver matches the applicable reference, or a revised solver improves only the surrogate objective without a usefulness / recovery rationale"
+ },
+ "reader_validity": {
+  "labels": ["GRID_VALID", "GRID_INVALID"],
+  "model_seed_base": 2026101205,
+  "seed_offset": 800,
+  "forbidden_offsets": [300, 400, 500, 600, 700],
+  "split_tag": "FSA1_devgrid_R{r}",
+  "bootstrap_seed_base": 2026102200,
+  "bootstrap_seed_rule": "2026102200 + 100 v + repetition index (R1 0, R2 1, R3 2, R4 3)",
+  "large_support_min_distinct_inputs": 2048,
+  "seed_implementation_error": "a seed-dependent recipe equal between its two seeds on a large-support view, or with no large-support check in some (version, repetition) block",
+  "expected_invariance": "an equality on a view with fewer than 2048 recorded distinct inputs never invalidates; its duplicate cells count once (nrm.rules.aggregate n_eff)",
+  "retroactive": false
+ },
+ "pilot": {
+  "authorized_only_after": "ADVANCE",
+  "gating_budget": "S2",
+  "max_nonzero_points_per_version": 3,
+  "operating_points": "identity (TWIN) + the distinct select_path selections at S1, S2, S3 on MODEL_FIT nested estimates; identical outputs count once",
+  "comparators": ["original PRC and HQ (frc PRC_S2 / HQ_S2 may be reused)", "revised PRC and HQ (same variant, initialization TWB_C64, settings and effort rules)", "TWB_C64", "one registered untargeted or ordinary-compression control path", "the nine admitted references"],
+  "task_feasibility": "nrm.rules.point_eligibility (24 clauses + 4 guards, original limits); reserve reported, never gating; the 0.004 capacity gate is not reopened",
+  "claims": ["C1", "C2", "C3", "C4", "C5", "C6", "C7"],
+  "C1": {"labels": ["BETTER_OPTIMIZATION", "MIXED", "NOT_BETTER", "INCOMPLETE"]},
+  "C3": {"comparisons": ["TWIN", "HQ_FRONTIER", "CONTROL_FRONTIER"]},
+  "R_VS_O": {"labels": ["RECOVERY_GAIN_AT_MATCHED_SPEND", "TASK_GAIN_AT_NO_WORSE_RECOVERY", "NO_MEASURED_GAIN_OVER_ORIGINAL", "INCOMPLETE"]},
+  "outcome_classes": ["METHOD_CANDIDATE", "COMPONENT", "ENGINEERING_RESULT", "BOUNDED_NEGATIVE_RESULT", "INCOMPLETE"],
+  "diagnostics": "frc.rules.strongest_nonzero; one component ablation; effective comparator refits (reader_validity on R1-R4, k0-k3); never decision inputs"
+ },
+ "p1_replay": {
+  "labels": ["P1_REPLAY_VERIFIED", "P1_NOT_REPRODUCED", "P1_VERIFICATION_DISAGREES", "P1_ESTIMATOR_CHANGED", "INCOMPLETE"],
+  "reproduction_tolerance_abs": 1e-12,
+  "verifier_tolerance_abs": 1e-09,
+  "fields": ["nested_means", "audit_spend_over_twin", "brackets", "nested_lookup_pair", "F4", "selection"],
+  "verifier_minimum_fields": ["audit_spend_over_twin", "selection", "F4", "nested_lookup_pair"],
+  "estimator_sha256": {"nrm/fa/prc.py": "1192f34dc931fee3426be3423b807296b7fd79c47b098f35ffbea3f1f7ad210a", "frc/fa/route.py": "933d0d6f9d8c97bf04bfd075ac4b1db166a81ae5921524748bb74bb414eb5988"},
+  "old_labels_changed": false
+ },
+ "change_record": []
+}

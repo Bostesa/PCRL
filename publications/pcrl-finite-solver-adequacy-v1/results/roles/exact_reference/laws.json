@@ -1,0 +1,105 @@
+{
+ "schema": "FSA_EXACT_LAWS_v1",
+ "campaign": "pcrl_finite_solver_adequacy_v1",
+ "role": "exact_reference",
+ "written_utc": "2026-10-21T02:41Z (date -u); committed before any numerical experiment on these laws",
+ "encoding": {
+  "n": "rows of support state x among N replicated rows; P(x) = n / N",
+  "pi_pct": "P(S=1 | x) in percent (integer); S = 1 plays women, 0 men",
+  "inc_S0_pct / inc_S1_pct": "P(Y_inc = 0, 1 | x, S = 0 / 1) in percent",
+  "occ_S0_pct / occ_S1_pct": "P(Y_occ = 0..4 | x, S = 0 / 1) in percent",
+  "derived": "qI(x) = (1 - pi) inc_S0 + pi inc_S1; qO(x) = (1 - pi) occ_S0 + pi occ_S1; qO0 = occ_S0; qO1 = occ_S1 (all exact rationals with denominator 10^4)",
+  "cells": "witness / comparator cell index per state, in state order: inc_cell in 0..KI-1, occ_cell in 0..KO-1"
+ },
+ "common": {
+  "KI": 2,
+  "KO": 3,
+  "lambda_grid": [0.25, 0.5, 1.0, 2.0, 4.0, 8.0],
+  "kappa": 1.0,
+  "m_shrink": 20.0,
+  "w_pair": 1.0,
+  "w_loc": 1.0,
+  "path_steps": 30,
+  "init_steps": 50,
+  "twin_seeds": [0, 1],
+  "route_params": "nrm.fa.prc.route_params('PRC_S2') for the protected path and route_params('PRC_TWIN') for the twin (code defaults; only KI, KO and the rows differ)",
+  "tilt_ranges": {"card": "t in (0, lambda] (card FA_PRC_v1: t <= lambda)", "wide": "t in (0, 4 lambda] (outside the card's declared tilt range; informative only)"},
+  "emitted_tables": "B1 analogue: exact posterior means of the final cells (population teacher means = population label refit)",
+  "limits_vs_full_posterior_release": {
+   "acc_loss_per_task": 0.010,
+   "nll_excess_nats_per_task": 0.010,
+   "summed_brier_excess_per_task": 0.005,
+   "occ_summed_brier_excess_men_S0": 0.005,
+   "occ_summed_brier_excess_women_S1": 0.005
+  },
+  "tolerances": {"objective_tie_abs": 1e-9, "auc_no_material_change": 0.001, "task_no_worse": 0.0005}
+ },
+ "laws": {
+  "A_null": {
+   "kind": "(a) calibrated null: S independent of X (pi = 0.40 for every x); occupation depends on S, so the guard term is active, but every release has exact Bayes AUC 0.5 in every view",
+   "N": 2000,
+   "states": [
+    {"id": "a1", "n": 400, "pi_pct": 40, "inc_S0_pct": [80, 20], "inc_S1_pct": [80, 20], "occ_S0_pct": [50, 20, 10, 10, 10], "occ_S1_pct": [40, 30, 10, 10, 10]},
+    {"id": "a2", "n": 300, "pi_pct": 40, "inc_S0_pct": [75, 25], "inc_S1_pct": [75, 25], "occ_S0_pct": [46, 24, 10, 10, 10], "occ_S1_pct": [36, 34, 10, 10, 10]},
+    {"id": "a3", "n": 400, "pi_pct": 40, "inc_S0_pct": [30, 70], "inc_S1_pct": [30, 70], "occ_S0_pct": [10, 10, 50, 20, 10], "occ_S1_pct": [10, 10, 40, 30, 10]},
+    {"id": "a4", "n": 300, "pi_pct": 40, "inc_S0_pct": [25, 75], "inc_S1_pct": [25, 75], "occ_S0_pct": [10, 10, 46, 24, 10], "occ_S1_pct": [10, 10, 36, 34, 10]},
+    {"id": "a5", "n": 300, "pi_pct": 40, "inc_S0_pct": [70, 30], "inc_S1_pct": [70, 30], "occ_S0_pct": [10, 10, 10, 20, 50], "occ_S1_pct": [10, 10, 10, 30, 40]},
+    {"id": "a6", "n": 300, "pi_pct": 40, "inc_S0_pct": [35, 65], "inc_S1_pct": [35, 65], "occ_S0_pct": [10, 10, 10, 24, 46], "occ_S1_pct": [10, 10, 10, 34, 36]}
+   ],
+   "witness": null,
+   "zero_recovery_comparator": {"inc_cell": [0, 0, 1, 1, 0, 1], "occ_cell": [0, 0, 1, 1, 2, 2], "note": "task-natural grouping; exact AUC 0.5 by construction (S independent of X)"}
+  },
+  "B_collide": {
+   "kind": "(b) genuine task-score collisions: four pairs of states with identical (qI, qO) and different pi; occupation and income independent of S given x (qO0 = qO1 = qO), so colliding states are identical in every task and guard statistic and differ only in pi",
+   "N": 2000,
+   "states": [
+    {"id": "b1", "n": 300, "pi_pct": 70, "inc_S0_pct": [80, 20], "inc_S1_pct": [80, 20], "occ_S0_pct": [46, 24, 10, 10, 10], "occ_S1_pct": [46, 24, 10, 10, 10]},
+    {"id": "b2", "n": 200, "pi_pct": 50, "inc_S0_pct": [80, 20], "inc_S1_pct": [80, 20], "occ_S0_pct": [46, 24, 10, 10, 10], "occ_S1_pct": [46, 24, 10, 10, 10]},
+    {"id": "b3", "n": 300, "pi_pct": 30, "inc_S0_pct": [80, 20], "inc_S1_pct": [80, 20], "occ_S0_pct": [24, 46, 10, 10, 10], "occ_S1_pct": [24, 46, 10, 10, 10]},
+    {"id": "b4", "n": 200, "pi_pct": 50, "inc_S0_pct": [80, 20], "inc_S1_pct": [80, 20], "occ_S0_pct": [24, 46, 10, 10, 10], "occ_S1_pct": [24, 46, 10, 10, 10]},
+    {"id": "b5", "n": 150, "pi_pct": 10, "inc_S0_pct": [80, 20], "inc_S1_pct": [80, 20], "occ_S0_pct": [36, 34, 10, 10, 10], "occ_S1_pct": [36, 34, 10, 10, 10]},
+    {"id": "b6", "n": 150, "pi_pct": 90, "inc_S0_pct": [80, 20], "inc_S1_pct": [80, 20], "occ_S0_pct": [36, 34, 10, 10, 10], "occ_S1_pct": [36, 34, 10, 10, 10]},
+    {"id": "b7", "n": 400, "pi_pct": 40, "inc_S0_pct": [30, 70], "inc_S1_pct": [30, 70], "occ_S0_pct": [10, 10, 50, 20, 10], "occ_S1_pct": [10, 10, 50, 20, 10]},
+    {"id": "b8", "n": 300, "pi_pct": 60, "inc_S0_pct": [30, 70], "inc_S1_pct": [30, 70], "occ_S0_pct": [10, 10, 50, 20, 10], "occ_S1_pct": [10, 10, 50, 20, 10]}
+   ],
+   "collision_groups": [["b1", "b2"], ["b3", "b4"], ["b5", "b6"], ["b7", "b8"]],
+   "witness": {"inc_cell": [0, 0, 0, 0, 0, 0, 1, 1], "occ_cell": [0, 0, 1, 1, 0, 1, 2, 2], "note": "split the boundary collision pair: b5 (pi 0.10) joins the A cell, b6 (pi 0.90) joins the B cell; NOT expressible by any h(q) (b5 and b6 have identical task posteriors)"}
+  },
+  "C_distinct": {
+   "kind": "(c) no collisions: all eight (qI, qO) distinct; pi correlated with the task scores (A-like occupation high, B-like low); c7 and c8 have S-dependent occupation (guard active) with the stated mixture",
+   "N": 2000,
+   "states": [
+    {"id": "c1", "n": 300, "pi_pct": 70, "inc_S0_pct": [80, 20], "inc_S1_pct": [80, 20], "occ_S0_pct": [46, 24, 10, 10, 10], "occ_S1_pct": [46, 24, 10, 10, 10]},
+    {"id": "c2", "n": 200, "pi_pct": 60, "inc_S0_pct": [78, 22], "inc_S1_pct": [78, 22], "occ_S0_pct": [44, 26, 10, 10, 10], "occ_S1_pct": [44, 26, 10, 10, 10]},
+    {"id": "c3", "n": 300, "pi_pct": 30, "inc_S0_pct": [80, 20], "inc_S1_pct": [80, 20], "occ_S0_pct": [24, 46, 10, 10, 10], "occ_S1_pct": [24, 46, 10, 10, 10]},
+    {"id": "c4", "n": 200, "pi_pct": 40, "inc_S0_pct": [78, 22], "inc_S1_pct": [78, 22], "occ_S0_pct": [26, 44, 10, 10, 10], "occ_S1_pct": [26, 44, 10, 10, 10]},
+    {"id": "c5", "n": 150, "pi_pct": 55, "inc_S0_pct": [76, 24], "inc_S1_pct": [76, 24], "occ_S0_pct": [37, 33, 10, 10, 10], "occ_S1_pct": [37, 33, 10, 10, 10]},
+    {"id": "c6", "n": 150, "pi_pct": 45, "inc_S0_pct": [74, 26], "inc_S1_pct": [74, 26], "occ_S0_pct": [33, 37, 10, 10, 10], "occ_S1_pct": [33, 37, 10, 10, 10]},
+    {"id": "c7", "n": 400, "pi_pct": 35, "inc_S0_pct": [30, 70], "inc_S1_pct": [30, 70], "occ_S0_pct": [10, 10, 57, 13, 10], "occ_S1_pct": [10, 10, 37, 33, 10]},
+    {"id": "c8", "n": 300, "pi_pct": 65, "inc_S0_pct": [28, 72], "inc_S1_pct": [28, 72], "occ_S0_pct": [10, 10, 59, 11, 10], "occ_S1_pct": [10, 10, 39, 31, 10]}
+   ],
+   "derived_qO_check": {"c7": [10, 10, 50, 20, 10], "c8": [10, 10, 46, 24, 10]},
+   "witness": null,
+   "comparator": "no hand-built witness; the STEP 4 AUC-under-utility optimum (a relaxation unless shown realizable) is the comparator"
+  },
+  "D_witness": {
+   "kind": "(d) independently checked feasible many-to-one witness: two cheap occupation merges compete; the task-optimal merge (A1 with A2) keeps recovery, the witness merge (C1 with C2, pi 0.20 vs 0.70) lowers it; all posteriors distinct, so every partition is h(q)-expressible",
+   "N": 2000,
+   "states": [
+    {"id": "d1", "n": 500, "pi_pct": 60, "inc_S0_pct": [80, 20], "inc_S1_pct": [80, 20], "occ_S0_pct": [46, 24, 10, 10, 10], "occ_S1_pct": [46, 24, 10, 10, 10]},
+    {"id": "d2", "n": 500, "pi_pct": 62, "inc_S0_pct": [78, 22], "inc_S1_pct": [78, 22], "occ_S0_pct": [44, 26, 10, 10, 10], "occ_S1_pct": [44, 26, 10, 10, 10]},
+    {"id": "d3", "n": 500, "pi_pct": 20, "inc_S0_pct": [30, 70], "inc_S1_pct": [30, 70], "occ_S0_pct": [10, 10, 50, 20, 10], "occ_S1_pct": [10, 10, 50, 20, 10]},
+    {"id": "d4", "n": 500, "pi_pct": 70, "inc_S0_pct": [28, 72], "inc_S1_pct": [28, 72], "occ_S0_pct": [10, 10, 47, 23, 10], "occ_S1_pct": [10, 10, 47, 23, 10]}
+   ],
+   "witness": {"inc_cell": [0, 0, 1, 1], "occ_cell": [0, 1, 2, 2], "note": "merge C1 and C2 (d3, d4), keep A1 and A2 apart"},
+   "task_optimal_reference_by_hand": {"inc_cell": [0, 0, 1, 1], "occ_cell": [0, 0, 1, 2]}
+  },
+  "E_distinct_N200": {
+   "kind": "(e) shrinkage regime: the population law of C_distinct on N = 200 replicated rows (every n divided by 10), so the 20 pseudo-counts of the routing tables weigh 10 times more against the cell masses; the population objective is unchanged",
+   "N": 200,
+   "same_population_law_as": "C_distinct",
+   "row_divisor": 10,
+   "witness": null
+  }
+ }
+}
