@@ -8,9 +8,9 @@
 - reader-grid results (GRID.json / BOOT.npz) are present and parse; the reader cache entries pass their own checksums;
 - every deployment package (under the campaign's private deploy/ folder) redeploys the restored DEV_REPORT raw inputs and reproduces
   its stored wire bitwise, with every refusal (ddr.deploy check). Derived from nrm.restore_check (relative imports resolve to ddr).
-Added for this campaign (engineering review finding 12): the read-only source artefacts re-hash against SOURCE_ADMISSION.json; the
-private fa_cache (SEXSIDE.pkl against its sidecar and the selection records, the nested per-person files against the NEST records);
-every FA MODEL.pkl against its MODEL.json; and the check fails if a reader grid exists but no custody reader was restored."""
+Adapted for this campaign: the cached task and SEX-side teachers this campaign reads (TASK.pkl, SEXSIDE.pkl) re-hash against
+SOURCE_ADMISSION.json; every DA / DB (and FS) MODEL.pkl against its MODEL.json; the data-rich reader files against their sidecars;
+and the check fails if a reader grid exists but no custody reader was restored."""
 from __future__ import annotations
 import json
 import pickle
@@ -100,45 +100,29 @@ def main(out):
         dep = DP.check(mine, Path(out).with_name(f'restore_deploy_detail_py{here}.json'))
     else:
         dep = {'all_bitwise': None, 'all_refused': None}
-    # source artefacts, private caches and every model file (engineering review finding 12)
+    # source artefacts this campaign reads (the cached teachers), every DA / DB model file and the data-rich reader files
     src_bad, src_n = [], 0
-    adm2 = json.loads((C.RESULTS / 'SOURCE_ADMISSION.json').read_text())['source_private_artefacts']
-    for key, pin in adm2.items():
-        if key.startswith('fa_cache/'):
-            f = C.NRM_FA_CACHE / key[len('fa_cache/'):]
-            pairs = [(f, pin['sha256'])]
-        elif key.startswith('runs/FA/'):
-            d = C.NRM_RUNS / key[len('runs/'):]
-            pairs = [(d / 'MODEL.pkl', pin['MODEL.pkl']), (d / 'RELEASE.npz', pin['RELEASE.npz'])]
-        elif key.startswith('results/designer_a/'):
-            pairs = [(C.NRM_RESULTS / 'roles' / 'designer_a' / key.split('/')[-1], pin['sha256'])]
-        else:
-            continue
-        for f, want in pairs:
+    adm2 = json.loads((C.RESULTS / 'SOURCE_ADMISSION.json').read_text())
+    for v in C.VERSIONS:
+        for f, want in ((C.NRM_FA_CACHE / f'V{v}' / 'TASK.pkl', adm2['source_private_artefacts'][f'fa_cache/V{v}/TASK.pkl']['sha256']),
+                        (C.FRC_FA_CACHE / f'V{v}' / 'SEXSIDE.pkl', adm2['frc_private_artefacts'][f'frc/fa_cache/V{v}/SEXSIDE.pkl']['sha256'])):
             src_n += 1
             if not f.is_file() or C.sha(f) != want:
-                src_bad.append(key)
+                src_bad.append(str(f.name) + f' V{v}')
     cache_bad2 = []
-    for v in C.VERSIONS:
-        sx = C.PRIV / 'fa_cache' / f'V{v}' / 'SEXSIDE.pkl'
-        if sx.is_file():
-            if C.sha(sx) != (sx.with_suffix('.sha256')).read_text().strip():
-                cache_bad2.append(f'SEXSIDE V{v} sidecar')
-            selp = C.RESULTS / 'fa' / f'SELECTION_V{v}.json'
-            if selp.is_file() and json.loads(selp.read_text())['sexside_cache_sha256'] != C.sha(sx):
-                cache_bad2.append(f'SEXSIDE V{v} selection record')
-    for nj in sorted((C.RESULTS / 'fa').glob('NEST_*.json')) if (C.RESULTS / 'fa').is_dir() else []:
-        npz = C.PRIV / 'fa_cache' / 'nested' / (nj.stem + '.npz')
-        if not npz.is_file() or C.sha(npz) != json.loads(nj.read_text())['per_person_private_file_sha256']:
-            cache_bad2.append(nj.name)
+    for fam in ('DA', 'DB'):
+        for v in C.VERSIONS:
+            pk = C.RUNS / fam / f'RICH_READERS_V{v}.pkl'
+            if pk.is_file() and C.sha(pk) != (pk.with_suffix('.sha256')).read_text().strip():
+                cache_bad2.append(f'{fam} rich readers V{v}')
     model_bad, model_n = [], 0
-    for mj in sorted(C.RUNS.glob('FA/*/V*/MODEL.json')):
+    for mj in sorted(C.RUNS.glob('D[AB]/*/V*/MODEL.json')) + sorted(C.RUNS.glob('FS*/*/V*/MODEL.json')):
         model_n += 1
         if C.sha(mj.parent / 'MODEL.pkl') != json.loads(mj.read_text())['model_sha256']:
             model_bad.append(str(mj.parent.relative_to(C.RUNS)))
     rec = {'admitted_copies_rehash_ok': not bad_adm, 'admitted_copies_checked': len(adm), 'mismatched': bad_adm[:10],
            'source_artefacts_checked': src_n, 'source_artefacts_mismatched': src_bad,
-           'private_cache_problems': cache_bad2, 'fa_models_rehashed': model_n, 'fa_models_mismatched': model_bad,
+           'private_cache_problems': cache_bad2, 'family_models_rehashed': model_n, 'family_models_mismatched': model_bad,
            'python': here, 'models_not_rerun_in_this_pass': skipped,
            'releases_rehashed_ok': rel_ok, 'releases_mismatched': rel_bad[:20], 'models_rerun_bitwise': reran,
            'representative_readers_bitwise': readers, 'readers_judged_in_other_pass': readers_other, 'reader_grids': grid,

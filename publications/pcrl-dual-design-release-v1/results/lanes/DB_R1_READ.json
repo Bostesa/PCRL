@@ -1,0 +1,10 @@
+[
+ {"unit": "DDR_EVAL_DB_R1_V1", "stage": "evaluate", "rss_gib": 2.0,
+  "argv": ["PY", "-m", "ddr.evaluate", "many", "--release", "DB/DB_PTC_R1", "--release", "DB/DB_SBC_R1_LO", "--release", "DB/DB_SBC_R1_HI", "--compare", "DA/DA_TWIN", "--compare", "DB/DB_PTC_R1", "--compare", "DB/DB_SBC_R1_LO", "--compare", "DB/DB_SBC_R1_HI", "--compare", "DB/DB_SPD_LO", "--compare", "DB/DB_SPD_HI", "--compare", "DB/DB_PTC"]},
+ {"unit": "DDR_GRID_R1_V0", "stage": "readers", "rss_gib": 3.0, "max_wall_s": 7200,
+  "argv": ["TORCH", "-m", "ddr.devreaders", "run", "--spec", "results/pcrl_dual_design_release_v1/grid_specs/DDR1_R1.json", "--seed", "0"]},
+ {"unit": "DDR_GRID_R1_V1", "stage": "readers", "rss_gib": 3.0, "max_wall_s": 7200,
+  "argv": ["TORCH", "-m", "ddr.devreaders", "run", "--spec", "results/pcrl_dual_design_release_v1/grid_specs/DDR1_R1.json", "--seed", "1"]},
+ {"unit": "DDR_CLAIMS_DB_R1_V1", "stage": "claims", "rss_gib": 1.5,
+  "argv": ["PY", "-m", "ddr.claims", "run", "--plan", "results/pcrl_dual_design_release_v1/claims/PLAN_DB_R1.json", "--bank", "DDR1_R1", "--out", "results/pcrl_dual_design_release_v1/claims/DB_R1"]}
+]

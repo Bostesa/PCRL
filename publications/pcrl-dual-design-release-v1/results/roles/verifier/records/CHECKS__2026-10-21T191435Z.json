@@ -1,0 +1,701 @@
+{
+ "schema": "DDR1-verifier-checks-v1",
+ "utc": "2026-10-21T19:14:35+00:00",
+ "checks": [
+  {
+   "check": "V1.1",
+   "what": "RELEASE.npz SHA-256 = RELEASE.json release_sha256 = CONFIG_LEDGER release_sha256",
+   "expected": "38/38",
+   "observed": "38/38",
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V1.2",
+   "what": "per role x task array hashes in RELEASE.json = own array hash",
+   "expected": "38/38",
+   "observed": "38/38",
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V1.3",
+   "what": "MODEL.pkl SHA-256 = MODEL.json = RELEASE.json model_sha256",
+   "expected": "38/38",
+   "observed": "38/38",
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V1.4",
+   "what": "card blob at recorded commit hashes to the recorded card SHA-256; commit before save",
+   "expected": "38/38",
+   "observed": "38/38",
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V1.5",
+   "what": "deployment function (ddr.da.predict / ddr.db.predict) on admitted MODEL_SELECT features reproduces the saved arrays",
+   "expected": "38/38 bitwise (six roles for DA_TWIN, DA_STD, DB_PTC)",
+   "observed": "38/38 bitwise",
+   "tolerance": "bitwise (byte equality)",
+   "status": "PASS"
+  },
+  {
+   "check": "V1.6",
+   "what": "configuration budget",
+   "expected": "<= 48",
+   "observed": "38 (DA 16, DB 22)",
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V1.7",
+   "what": "MODEL_FIT strength rule re-derived from recorded spends",
+   "expected": "DA 1.0/1.0, DB 0.35/0.35",
+   "observed": {
+    "DA_V0": 1.0,
+    "DA_V1": 1.0,
+    "DB_V0": 0.35,
+    "DB_V1": 0.35
+   },
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V1.8",
+   "what": "control bracket points re-derived from recorded MODEL_FIT bracket grids",
+   "expected": "recorded lo / hi",
+   "observed": {
+    "DA_V0": {
+     "SPEND": [
+      0.35,
+      0.7,
+      null
+     ],
+     "SBC": [
+      0.5,
+      1.0,
+      null
+     ]
+    },
+    "DA_V1": {
+     "SPEND": [
+      0.35,
+      0.7,
+      null
+     ],
+     "SBC": [
+      0.75,
+      1.0,
+      null
+     ]
+    },
+    "DB_V0": {
+     "SPEND": [
+      0.25,
+      0.6,
+      null
+     ],
+     "SBC": [
+      0.13419220031823356,
+      0.3354805007955839,
+      null
+     ]
+    },
+    "DB_V1": {
+     "SPEND": [
+      0.25,
+      0.6,
+      null
+     ],
+     "SBC": [
+      0.13047190089212019,
+      0.32617975223030043,
+      null
+     ]
+    }
+   },
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V2.1",
+   "what": "clause and guard point values (24 + 4 per configuration) vs EVAL_MS.json",
+   "expected": "|diff| <= 1e-9",
+   "observed": 3.5214886562329184e-16,
+   "tolerance": 1e-09,
+   "status": "PASS"
+  },
+  {
+   "check": "V2.2",
+   "what": "clause and guard SEs vs EVAL_MS.json",
+   "expected": "|diff| <= 1e-9",
+   "observed": 0.0,
+   "tolerance": 1e-09,
+   "status": "PASS"
+  },
+  {
+   "check": "V2.3",
+   "what": "paired costs (11 metrics, value and SE) vs EVAL_MS.json",
+   "expected": "|diff| <= 1e-9",
+   "observed": {
+    "value": 0.0,
+    "se": 0.0,
+    "entries": 170
+   },
+   "tolerance": 1e-09,
+   "status": "PASS"
+  },
+  {
+   "check": "V2.4",
+   "what": "G1 (24 + 4 at the point)",
+   "expected": "DA_TWIN, DA_STD, DB_PTC and control points pass",
+   "observed": {
+    "DA_COMP": true,
+    "DA_SBC_HI": true,
+    "DA_SBC_LO": true,
+    "DA_SPD_HI": true,
+    "DA_SPD_LO": true,
+    "DA_STD": true,
+    "DA_STD_OCC": true,
+    "DA_TWIN": true,
+    "DB_PTC": true,
+    "DB_PTC_OCC": true,
+    "DB_SBC_HI": true,
+    "DB_SBC_LO": true,
+    "DB_SHUF": true,
+    "DB_SPD_HI": true,
+    "DB_SPD_LO": true,
+    "DB_ZTILT": true
+   },
+   "tolerance": "inclusive caps",
+   "status": "PASS"
+  },
+  {
+   "check": "V2.5",
+   "what": "every saved configuration has a utility record at verification time (PROTOCOL 4 equal evaluation effort)",
+   "expected": "EVAL_MS.json for all 16 registered DA/DB configurations before the grid",
+   "observed": "missing at 18:33Z: ['DB_ZTILT']",
+   "tolerance": "exact",
+   "status": "FAIL"
+  },
+  {
+   "check": "V2.6",
+   "what": "late DB_ZTILT utility record (unit DDR_EVAL_DB_ZTILT_V1) vs own recomputation",
+   "expected": "|diff| <= 1e-9, flags agree",
+   "observed": {
+    "status": "RUN",
+    "eval_unit": "DDR_EVAL_DB_ZTILT_V1",
+    "eval_utc": "2026-10-21T19:13:08+00:00",
+    "max_abs_value_diff": 1.3530843112619095e-16,
+    "max_abs_se_diff": 0.0,
+    "pass_flags_and_release_agree": true
+   },
+   "tolerance": 1e-09,
+   "status": "PASS"
+  },
+  {
+   "check": "V3.1",
+   "what": "decisive members wire hashes = GRID.json members",
+   "expected": "all match",
+   "observed": true,
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V3.2",
+   "what": "cache entries found under the registered key (registered reader seeds)",
+   "expected": "360/360",
+   "observed": "360 replayed, 0 missing",
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V3.3",
+   "what": "recorded winner VALIDATION AUC = max over its candidate set",
+   "expected": "0 violations",
+   "observed": 0,
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V3.4",
+   "what": "exact replay of winners SCORE AUCs",
+   "expected": "|diff| <= 1e-12",
+   "observed": 0.0,
+   "tolerance": 1e-12,
+   "status": "PASS"
+  },
+  {
+   "check": "V3.5",
+   "what": "household bootstrap (registered seeds) reproduces BOOT.npz",
+   "expected": "|diff| <= 1e-12",
+   "observed": 0.0,
+   "tolerance": 1e-12,
+   "status": "PASS"
+  },
+  {
+   "check": "V3.6",
+   "what": "paired cell differences and cell SEs (decisive comparisons)",
+   "expected": "|diff| <= 1e-12",
+   "observed": {
+    "diff": 0.0,
+    "se": 0.0
+   },
+   "tolerance": 1e-12,
+   "status": "PASS"
+  },
+  {
+   "check": "V3.8",
+   "what": "independent readers (own LR / HGB, 4 cells per comparison; descriptive approximation): sign of the pair benefit vs TWIN and control points",
+   "expected": "same sign as the exact grid aggregate",
+   "observed": {
+    "DA_STD vs DA_TWIN": {
+     "grid_exact": 0.0175,
+     "LR": 0.0256,
+     "HGB": 0.0128,
+     "WIN": 0.0207
+    },
+    "DA_STD vs DA_SBC_LO": {
+     "grid_exact": 0.0272,
+     "LR": 0.0266,
+     "HGB": 0.0146,
+     "WIN": 0.0265
+    },
+    "DA_STD vs DA_SBC_HI": {
+     "grid_exact": 0.0273,
+     "LR": 0.0262,
+     "HGB": 0.0184,
+     "WIN": 0.0278
+    },
+    "DA_STD vs DA_SPD_LO": {
+     "grid_exact": 0.0201,
+     "LR": 0.0245,
+     "HGB": 0.0091,
+     "WIN": 0.0245
+    },
+    "DA_STD vs DA_SPD_HI": {
+     "grid_exact": 0.0137,
+     "LR": 0.0197,
+     "HGB": 0.0046,
+     "WIN": 0.0148
+    },
+    "DA_STD vs NEURAL_RAW": {
+     "grid_exact": 0.0046,
+     "LR": 0.0066,
+     "HGB": -0.0065,
+     "WIN": 0.0041
+    },
+    "DA_STD vs H_LJ": {
+     "grid_exact": -0.0122,
+     "LR": 0.0059,
+     "HGB": -0.0242,
+     "WIN": 0.0059
+    },
+    "DB_PTC vs DA_TWIN": {
+     "grid_exact": 0.0164,
+     "LR": 0.0268,
+     "HGB": 0.0149,
+     "WIN": 0.0193
+    },
+    "DB_PTC vs DB_SBC_LO": {
+     "grid_exact": 0.0182,
+     "LR": 0.0254,
+     "HGB": 0.0159,
+     "WIN": 0.022
+    },
+    "DB_PTC vs DB_SBC_HI": {
+     "grid_exact": 0.0173,
+     "LR": 0.022,
+     "HGB": 0.0123,
+     "WIN": 0.0182
+    },
+    "DB_PTC vs DB_SPD_LO": {
+     "grid_exact": 0.0183,
+     "LR": 0.0268,
+     "HGB": 0.0153,
+     "WIN": 0.0198
+    },
+    "DB_PTC vs DB_SPD_HI": {
+     "grid_exact": 0.017,
+     "LR": 0.0231,
+     "HGB": 0.004,
+     "WIN": 0.0168
+    },
+    "DB_PTC vs DB_ZTILT": {
+     "grid_exact": 0.017,
+     "LR": 0.004,
+     "HGB": 0.0074,
+     "WIN": 0.0063
+    },
+    "DB_PTC vs DB_SHUF": {
+     "grid_exact": 0.0156,
+     "LR": 0.0193,
+     "HGB": 0.0085,
+     "WIN": 0.016
+    },
+    "DB_PTC vs NEURAL_RAW": {
+     "grid_exact": 0.0035,
+     "LR": 0.0078,
+     "HGB": -0.0044,
+     "WIN": 0.0027
+    },
+    "DB_PTC vs H_LJ": {
+     "grid_exact": -0.0133,
+     "LR": 0.0071,
+     "HGB": -0.022,
+     "WIN": 0.0045
+    }
+   },
+   "tolerance": "sign",
+   "status": "PASS"
+  },
+  {
+   "check": "V3.7",
+   "what": "non-table winner (targeting input) consistent with the replayed main winner",
+   "expected": "0 problems",
+   "observed": {
+    "nolookup_differs_from_main_winner": 0,
+    "nolookup_equals_main_winner": 216,
+    "problems": []
+   },
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V4.DA_REG.labels",
+   "what": "D1, D2 and every conjunct label / Q* / gate / dominated list / targeting pass",
+   "expected": "equal",
+   "observed": {
+    "D1": [
+     "TASK_FEASIBLE",
+     "TASK_FEASIBLE"
+    ],
+    "D2": [
+     "PARTIAL_SBC_FRONTIER_ONLY",
+     "PARTIAL_SBC_FRONTIER_ONLY"
+    ],
+    "D3_G4_vs_D3": [
+     "NOT_SUPERIOR",
+     "NOT_SUPERIOR"
+    ],
+    "D4_level": [
+     "NOT_MET",
+     "NOT_MET"
+    ],
+    "SBC_FRONTIER_Q": [
+     "DA_SBC_HI",
+     "DA_SBC_HI"
+    ],
+    "SBC_FRONTIER_dominated": [
+     [],
+     []
+    ],
+    "SBC_FRONTIER_gate": [
+     true,
+     true
+    ],
+    "SBC_FRONTIER_label": [
+     "DOMINATES_CONTROL_FRONTIER",
+     "DOMINATES_CONTROL_FRONTIER"
+    ],
+    "SBC_FRONTIER_pass": [
+     true,
+     true
+    ],
+    "SBC_FRONTIER_secondary_more": [
+     [],
+     []
+    ],
+    "SPEND_FRONTIER_Q": [
+     "DA_SPD_HI",
+     "DA_SPD_HI"
+    ],
+    "SPEND_FRONTIER_dominated": [
+     [],
+     []
+    ],
+    "SPEND_FRONTIER_gate": [
+     true,
+     true
+    ],
+    "SPEND_FRONTIER_label": [
+     "NOT_SEPARATED_FROM_TASK_SPENDING",
+     "NOT_SEPARATED_FROM_TASK_SPENDING"
+    ],
+    "SPEND_FRONTIER_pass": [
+     false,
+     false
+    ],
+    "SPEND_FRONTIER_secondary_more": [
+     [],
+     []
+    ],
+    "TWIN_gate": [
+     true,
+     true
+    ],
+    "TWIN_label": [
+     "AGG_POSITIVE_POINT_ONLY",
+     "AGG_POSITIVE_POINT_ONLY"
+    ],
+    "TWIN_pass": [
+     false,
+     false
+    ],
+    "outcome_class": [
+     null,
+     "TASK_ONLY_FEASIBLE_NO_PROTECTION"
+    ],
+    "targeting_DA_SBC_HI_pass": [
+     true,
+     true
+    ],
+    "targeting_DA_SPD_HI_pass": [
+     true,
+     true
+    ],
+    "targeting_TWIN_pass": [
+     true,
+     true
+    ]
+   },
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V4.DA_REG.numbers",
+   "what": "benefit means / se_agg, pooled primary costs, targeting version means",
+   "expected": "|diff| <= 1e-12",
+   "observed": 0.0,
+   "tolerance": 1e-12,
+   "status": "PASS"
+  },
+  {
+   "check": "V4.DA_REG.D3D4",
+   "what": "D3 (G4) and D4 level (descriptive re-derivation)",
+   "expected": "equal",
+   "observed": {
+    "D3": [
+     "NOT_SUPERIOR",
+     "NOT_SUPERIOR"
+    ],
+    "D4": [
+     "NOT_MET",
+     "NOT_MET"
+    ]
+   },
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V4.DA_REG.grid_validity",
+   "what": "seed-dependent recipe equalities on the minimum set (RULES 9.3) and seed records",
+   "expected": "no unexplained equality; registered seeds",
+   "observed": {
+    "checked": 432,
+    "equalities": 0,
+    "unexplained": 0,
+    "recorded": {
+     "effective": true,
+     "label": "READER_SEEDS_EFFECTIVE"
+    },
+    "seeds_match": true
+   },
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V4.DB_REG.labels",
+   "what": "D1, D2 and every conjunct label / Q* / gate / dominated list / targeting pass",
+   "expected": "equal",
+   "observed": {
+    "D1": [
+     "TASK_FEASIBLE",
+     "TASK_FEASIBLE"
+    ],
+    "D2": [
+     "NOT_SEPARATED",
+     "NOT_SEPARATED"
+    ],
+    "D3_G4_vs_D3": [
+     "NOT_SUPERIOR",
+     "NOT_SUPERIOR"
+    ],
+    "D4_level": [
+     "NOT_MET",
+     "NOT_MET"
+    ],
+    "SBC_FRONTIER_Q": [
+     "DB_SBC_HI",
+     "DB_SBC_HI"
+    ],
+    "SBC_FRONTIER_dominated": [
+     [],
+     []
+    ],
+    "SBC_FRONTIER_gate": [
+     true,
+     true
+    ],
+    "SBC_FRONTIER_label": [
+     "NOT_SEPARATED_FROM_TASK_SPENDING",
+     "NOT_SEPARATED_FROM_TASK_SPENDING"
+    ],
+    "SBC_FRONTIER_pass": [
+     false,
+     false
+    ],
+    "SBC_FRONTIER_secondary_more": [
+     [],
+     []
+    ],
+    "SPEND_FRONTIER_Q": [
+     "DB_SPD_HI",
+     "DB_SPD_HI"
+    ],
+    "SPEND_FRONTIER_dominated": [
+     [],
+     []
+    ],
+    "SPEND_FRONTIER_gate": [
+     true,
+     true
+    ],
+    "SPEND_FRONTIER_label": [
+     "NOT_SEPARATED_FROM_TASK_SPENDING",
+     "NOT_SEPARATED_FROM_TASK_SPENDING"
+    ],
+    "SPEND_FRONTIER_pass": [
+     false,
+     false
+    ],
+    "SPEND_FRONTIER_secondary_more": [
+     [],
+     []
+    ],
+    "TWIN_gate": [
+     true,
+     true
+    ],
+    "TWIN_label": [
+     "AGG_POSITIVE_POINT_ONLY",
+     "AGG_POSITIVE_POINT_ONLY"
+    ],
+    "TWIN_pass": [
+     false,
+     false
+    ],
+    "outcome_class": [
+     null,
+     "TASK_ONLY_FEASIBLE_NO_PROTECTION"
+    ],
+    "targeting_DB_SBC_HI_pass": [
+     true,
+     true
+    ],
+    "targeting_DB_SPD_HI_pass": [
+     true,
+     true
+    ],
+    "targeting_TWIN_pass": [
+     true,
+     true
+    ]
+   },
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V4.DB_REG.numbers",
+   "what": "benefit means / se_agg, pooled primary costs, targeting version means",
+   "expected": "|diff| <= 1e-12",
+   "observed": 0.0,
+   "tolerance": 1e-12,
+   "status": "PASS"
+  },
+  {
+   "check": "V4.DB_REG.D3D4",
+   "what": "D3 (G4) and D4 level (descriptive re-derivation)",
+   "expected": "equal",
+   "observed": {
+    "D3": [
+     "NOT_SUPERIOR",
+     "NOT_SUPERIOR"
+    ],
+    "D4": [
+     "NOT_MET",
+     "NOT_MET"
+    ]
+   },
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V4.DB_REG.grid_validity",
+   "what": "seed-dependent recipe equalities on the minimum set (RULES 9.3) and seed records",
+   "expected": "no unexplained equality; registered seeds",
+   "observed": {
+    "checked": 432,
+    "equalities": 0,
+    "unexplained": 0,
+    "recorded": {
+     "effective": true,
+     "label": "READER_SEEDS_EFFECTIVE"
+    },
+    "seeds_match": true
+   },
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V5.1",
+   "what": "every label read after the verified receipt (17:42:42Z)",
+   "expected": "all",
+   "observed": "34 reads, first 2026-10-21T18:06:27+00:00",
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V5.2",
+   "what": "every read inside a running queue unit; policy (role x field x operation) and authorized entry point",
+   "expected": "all",
+   "observed": "0 problems; by operation {'benchmark': 20, 'fit': 7, 'readers': 6, 'verify': 1}",
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V5.3",
+   "what": "fitting reads carry a committed, unchanged card of their family (blob SHA at commit = logged SHA; commit before read)",
+   "expected": "all",
+   "observed": "7 fit reads",
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V5.4",
+   "what": "no MODEL_SELECT read from a fitting entry point or module chain",
+   "expected": "none",
+   "observed": "27 MODEL_SELECT reads",
+   "tolerance": "exact",
+   "status": "PASS"
+  },
+  {
+   "check": "V5.5",
+   "what": "first MODEL_SELECT read after the commit of both cards (5f2fd02a9)",
+   "expected": ">= 18:06:14Z",
+   "observed": "2026-10-21T18:09:16+00:00 (cards in commit: 2)",
+   "tolerance": "exact",
+   "status": "PASS"
+  }
+ ],
+ "sources": [
+  "results/pcrl_dual_design_release_v1/roles/verifier/records/V4_DECISIONS__DDR_VER_DECISIONS_V1.json",
+  "results/pcrl_dual_design_release_v1/roles/verifier/records/V5_ACCESS__DDR_VER_ACCESS_V2.json",
+  "V1_INTEGRITY__DDR_VER_INTEGRITY_V1.json",
+  "V1_INTEGRITY__DDR_VER_INTEGRITY_V2.json",
+  "V2_LABEL__DDR_VER_LABEL_V1.json"
+ ]
+}

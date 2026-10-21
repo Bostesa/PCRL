@@ -1,0 +1,45 @@
+{
+ "schema": "DDR1-backup-verification-v1",
+ "campaign": "pcrl_dual_design_release_v1",
+ "written_utc": "2026-10-21T19:47:36Z",
+ "what_is_backed_up": "the branch since its base f0edb8ad1 (git bundle), the campaign code and public records at tip 0678392a3 (code.tar, git archive), and the private tree (private.tar): the 48 saved release configurations (RELEASE.npz / RELEASE.json, MODEL.pkl / MODEL.json), the data-rich reader files, the reader-grid outputs and cache (1,816 entries), the six custody readers, the ten deployment packages, the utility and access logs, the queue state, plus the read-only admitted source copies and cached teachers the code reads",
+ "B1_same_device": {
+  "status": "VERIFIED_FROM_BACKUP_ALONE",
+  "unit": "DDR_CUSTODY_V1 (python3 -m ddr.custody backup; queue start 19:44:59Z, end 19:45:51Z; 51.5 s wall, 37.1 CPU-s)",
+  "path": "<worktrees>/pcrl-dual-design-release-v1-backup/pcrl_dual_design_release_v1_20261021T194459Z",
+  "tip_commit": "0678392a3fd184a6c5e8fa08d7b54d6cebc8d7fe",
+  "size": "about 2.3 GB (private.tar 2.28 GB, code.tar 151 MB, bundle 0.7 MB)",
+  "manifest_sha256": {
+   "TIP_COMMIT": "a9824fc4657a2295df9f053dfa4eb7fc5c973009695d066ee83174aaa43e5bfd",
+   "branch_since_base.bundle": "90d8f00cd9ea9212ff2e28f5b951bbfd75a22ce8e3ccabbc574d56c6fbfc2366",
+   "code.tar": "b561721d5ac29083d1e7b50298f8ace37727f168cefb44f5d50489426246c112",
+   "private.tar": "3b0ffbd821a920b1a5f5348b90389764f8aab5017ced450bf1037993fb5e1b44"
+  },
+  "checked_utc": "2026-10-21T19:45:49+00:00",
+  "read_back": "same device (local disk)",
+  "restore_check": {
+   "manifest_rehash_ok": true,
+   "bundle_verify": true,
+   "admitted_copies_rehashed": 201,
+   "source_artefacts_rehashed": 4,
+   "family_models_rehashed": 48,
+   "releases_rehashed": 48,
+   "models_rerun_bitwise": "10 of 10 packaged configurations (DA_TWIN, DA_STD, DA_SPD_HI, DB_PTC_R1, DB_SBC_R1_HI; both versions), in the python 3.14.3 pass; the torch-venv pass (python 3.13.7) re-hashed them and left the reruns to the other pass",
+   "representative_readers_bitwise": "6 of 6 (DDR1_MAIN S0R1k0: DA_STD pair HGB15 and LOOKUP, DA_TWIN pair HGB31, DB_PTC pair HGB31; DDR1_R1 S0R2k0: DB_PTC_R1 and DB_SBC_R1_HI pair MLP64), in both passes",
+   "reader_grids_parse": true,
+   "reader_cache_entries_ok": 1816,
+   "deployment_packages": 10,
+   "deployment_from_backup_bitwise": true,
+   "deployment_from_backup_all_refused": true,
+   "labels_read": false,
+   "all_ok": true
+  },
+  "source": "RESTORE_CHECK.json in the backup folder"
+ },
+ "off_device": {
+  "status": "PENDING",
+  "reason": "the owner's drive (YOTUO) was not attached at 19:47:36Z (/Volumes lists only the system volume and two application volumes); nothing was mounted, unmounted or forced",
+  "command_when_attached": "python3 -m ddr.custody offdevice <worktrees>/pcrl-dual-design-release-v1-backup/pcrl_dual_design_release_v1_20261021T194459Z <external drive>,
+  "note": "a check right after copying is warm (possibly served from cache); a cold re-check needs an ordinary eject and re-attach first"
+ }
+}

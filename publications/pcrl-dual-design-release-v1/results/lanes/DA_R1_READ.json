@@ -1,0 +1,16 @@
+[
+ {"unit": "DDR_EVAL_DA_R1_V1", "stage": "evaluate", "rss_gib": 2.0,
+  "argv": ["PY", "-m", "ddr.evaluate", "many", "--release", "DA/DA_IPW", "--release", "DA/DA_IPW_SBC_LO", "--release", "DA/DA_IPW_SBC_HI", "--compare", "DA/DA_TWIN", "--compare", "DA/DA_IPW", "--compare", "DA/DA_IPW_SBC_LO", "--compare", "DA/DA_IPW_SBC_HI", "--compare", "DA/DA_SPD_LO", "--compare", "DA/DA_SPD_HI", "--compare", "DA/DA_STD"]},
+ {"unit": "DDR_GRID_DA_R1_V0", "stage": "readers", "rss_gib": 3.0, "max_wall_s": 7200,
+  "argv": ["TORCH", "-m", "ddr.devreaders", "run", "--spec", "results/pcrl_dual_design_release_v1/grid_specs/DDR1_DA_R1.json", "--seed", "0"]},
+ {"unit": "DDR_GRID_DA_R1_V1", "stage": "readers", "rss_gib": 3.0, "max_wall_s": 7200,
+  "argv": ["TORCH", "-m", "ddr.devreaders", "run", "--spec", "results/pcrl_dual_design_release_v1/grid_specs/DDR1_DA_R1.json", "--seed", "1"]},
+ {"unit": "DDR_CLAIMS_DA_R1_V1", "stage": "claims", "rss_gib": 1.5,
+  "argv": ["PY", "-m", "ddr.claims", "run", "--plan", "results/pcrl_dual_design_release_v1/claims/PLAN_DA_R1.json", "--bank", "DDR1_DA_R1", "--out", "results/pcrl_dual_design_release_v1/claims/DA_R1"]},
+ {"unit": "DDR_GRID_DA_R1_BESIDE_V0", "stage": "readers", "rss_gib": 3.0, "max_wall_s": 3600,
+  "argv": ["TORCH", "-m", "ddr.devreaders", "run", "--spec", "results/pcrl_dual_design_release_v1/grid_specs/DDR1_DA_R1_BESIDE.json", "--seed", "0"]},
+ {"unit": "DDR_GRID_DA_R1_BESIDE_V1", "stage": "readers", "rss_gib": 3.0, "max_wall_s": 3600,
+  "argv": ["TORCH", "-m", "ddr.devreaders", "run", "--spec", "results/pcrl_dual_design_release_v1/grid_specs/DDR1_DA_R1_BESIDE.json", "--seed", "1"]},
+ {"unit": "DDR_RICH_DA_R1_V1", "stage": "readers", "rss_gib": 2.0,
+  "argv": ["PY", "-m", "ddr.richreaders", "score", "--spec", "results/pcrl_dual_design_release_v1/rich/RICH_SPEC_DDR1_DA_R1.json"]}
+]

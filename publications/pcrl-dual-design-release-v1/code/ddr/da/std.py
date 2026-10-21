@@ -18,14 +18,16 @@ Operation (card DA_STD_v1; Designer A's PROPOSAL.md; Z = ohn.fam_a.compact_po(X)
              out-of-fold spend over the twin within budget S3 (estimate + 2 household-clustered SE on six clauses)
 Matched controls (PROTOCOL 4; card section 5):
   SBC path   the same operation with A = a fixed-seed permutation of the MODEL_FIT SEX column (A-aware teachers at the SEX-aware
-             teachers' iteration counts; w and lam grid by the same rules); if its lam = 1 out-of-fold total-NLL spend cannot reach
-             STD's plus 2 SE of the paired difference, the declared fallback A = PSEUDO_gamma: a label-derived binary,
-             A_i = 1[u_i < rho_gamma(y_i)], u_i a keyed hash of the row, rho = the MODEL_FIT SEX share of each (income, occupation)
-             label cell PERMUTED across the ten cells (fixed seed), sharpened rho_gamma = sigmoid(gamma logit rho + c), c matching the
-             SEX share; gamma = the smallest of (1, 2, 4) whose lam = 1 spend reaches that target (else 4, flagged)
-  SPEND path SEX-blind KL k-means coarsening of the twin's posteriors with out-of-fold teacher-mean (B1) tables (the finite-routing
-             construction), capacities (24, 128), (16, 64), (8, 32)
-  Each path saves two bracket points chosen on MODEL_FIT out-of-fold total-NLL spend (PROTOCOL 4).
+             teachers' iteration counts; w and lam grid by the same rules); if its path cannot bracket STD's out-of-fold total-NLL
+             spend (bracket_points flags CONTROL_PATH_MAY_NOT_BRACKET), the declared fallback A = PSEUDO2 (ddr.ctlkit; adopted in
+             PROTOCOL_AMENDMENT_1): A_i = 1[u_i < sigmoid(gamma (beta z(x_i) + g(y_i)) + c)], g = the permuted cell logit of the
+             MODEL_FIT SEX share of each (income, occupation) label cell, z = a keyed linear score of the compact fields residualized
+             on the logit SEX propensity, u_i a keyed uniform of the row; the seeded candidate with the smallest |corr(A, SEX)|
+             (<= 0.03); gamma = the smallest of (1, 2, 4) whose path brackets STD's spend
+  SPEND path DQ (ddr.ctlkit; PROTOCOL_AMENDMENT_1): SEX-blind subtractive-dithered quantization of the twin's standardized
+             principal-component log-ratio coordinates with a keyed six-field dither, steps DQ_GRID = (0.35, 0.7, 1.4)
+  Each path saves two bracket points chosen on MODEL_FIT out-of-fold total-NLL spend (PROTOCOL 4). (This docstring's earlier
+  text described the pre-amendment PSEUDO_gamma fallback and the KL k-means SPEND coarsening; neither was ever fitted.)
 Ablations: COMP (the same SEX-aware parts mixed with the person's fitted propensity pi(x), cached SEX-side 'sex' teacher, at lam*);
 STD_OCC (occupation STD at lam*, income = twin). Descriptive MODEL_FIT-only: UND (the twin's boosting stopped early at matched
 spend) and household cross-fitted MODEL_FIT readers; never a decision input and never a stop.
@@ -62,21 +64,21 @@ BUDGETS = {
     'S3': {'occ_nll': 0.012, 'inc_nll': 0.006, 'occ_brier_men': 0.0045, 'occ_brier_women': 0.0045, 'occ_acc': 0.008, 'inc_acc': 0.006},
 }
 GAMMAS = (1.0, 2.0, 4.0)
-CRS_GRID = ((24, 128), (16, 64), (8, 32))
+DQ_GRID = (0.35, 0.7, 1.4)                                   # SPEND path: dithered-quantization steps (standardized units)
 UND_MULT = (0.5, 1.0, 2.0)
 CONFIGS = {
     'DA_TWIN': {'kind': 'twin', 'what': 'equally trained task-only twin: the cached HGB task teachers (lam = 0); never reads SEX'},
     'DA_STD': {'kind': 'candidate', 'what': 'SEX-standardized task posteriors at the MODEL_FIT-selected strength lam* (both recipients)'},
     'DA_SBC_LO': {'kind': 'control', 'what': 'SBC path, lower bracket point: the same standardization over a SEX-independent attribute'},
     'DA_SBC_HI': {'kind': 'control', 'what': 'SBC path, upper bracket point: the same standardization over a SEX-independent attribute'},
-    'DA_SPD_LO': {'kind': 'control', 'what': 'SPEND path, lower bracket point: SEX-blind KL k-means coarsening of the twin (B1 tables)'},
-    'DA_SPD_HI': {'kind': 'control', 'what': 'SPEND path, upper bracket point: SEX-blind KL k-means coarsening of the twin (B1 tables)'},
+    'DA_SPD_LO': {'kind': 'control', 'what': 'SPEND path, lower bracket point: SEX-blind dithered quantization of the twin (ddr.ctlkit DQ)'},
+    'DA_SPD_HI': {'kind': 'control', 'what': 'SPEND path, upper bracket point: SEX-blind dithered quantization of the twin (ddr.ctlkit DQ)'},
     'DA_COMP': {'kind': 'ablation', 'what': "the same SEX-aware parts mixed with the person's fitted propensity pi(x) at lam* (weights not fixed)"},
     'DA_STD_OCC': {'kind': 'ablation', 'what': 'occupation STD at lam*; income = the twin (per-recipient attribution)'},
 }
 PURPOSE = ('DA STD: SEX-aware income teacher, guard-balanced weight, strength selection, matched control paths and ablations on '
            'MODEL_FIT (SEX as a training input and label)')
-CODE_MODULES = ('ddr.da.std', 'ddr.famkit', 'nrm.fa.prc', 'frc.fa.route', 'ohn.fam_a')
+CODE_MODULES = ('ddr.da.std', 'ddr.famkit', 'ddr.ctlkit', 'nrm.fa.prc', 'ohn.fam_a')
 
 
 # ---------------------------------------------------------------- teachers (nrm.fa.prc construction)
@@ -151,20 +153,18 @@ def guard_balanced_w(tO, qO0, qO1, y_occ, sex, grid=W_GRID):
     return float(best[1]), table
 
 
-def crs_release(book, tabs, tI, tO):
-    """Coarsened release from twin posteriors: nearest codeword in cross-entropy (lam = 0 rule), then the B1 table of the cell."""
-    k, l = _prc().route({'qI': tI, 'qO': tO}, book)
-    return tabs['I'][k].copy(), tabs['O'][l].copy()
-
-
 def _predict_payload(P, Z):
     prc = _prc()
     tI, tO = prc._proba(P['twin_inc'], Z), prc._proba(P['twin_occ'], Z)
     op = P['op']
     if op == 'twin':
         return tI, tO
-    if op == 'crs':
-        return crs_release(P['book'], P['tabs'], tI, tO)
+    if op == 'ipw':                                          # revision R1 configurations (ddr.da.ipw), one family interface
+        from .ipw import _predict_payload as r1
+        return r1(P, Z)
+    if op == 'dq':
+        from .. import ctlkit as CK
+        return CK.dq_release(P['dq_basis'], tI, tO, Z, float(P['delta']), P['dq_tag'])
     qI0, qI1 = prc._proba(P['a_inc'], prc.sex_aug(Z, 0)), prc._proba(P['a_inc'], prc.sex_aug(Z, 1))
     qO0, qO1 = prc._proba(P['a_occ'], prc.sex_aug(Z, 0)), prc._proba(P['a_occ'], prc.sex_aug(Z, 1))
     lam, w = float(P['lambda']), float(P['w'])
@@ -217,31 +217,6 @@ def permuted_sex(sex, version):
     return np.asarray(sex)[rng.permutation(len(sex))]
 
 
-def _u(row_id, tag):
-    """Keyed uniform in [0, 1) per row (SHA-256 of tag | row id)."""
-    return np.array([int(hashlib.sha256(f'{tag}|{int(r)}'.encode()).hexdigest()[:13], 16) / float(16 ** 13) for r in row_id])
-
-
-def pseudo_attribute(y_inc, y_occ, sex, row_id, version, gamma):
-    """Declared fallback SBC target: A_i = 1[u_i < rho_gamma(y_i)], rho = the MODEL_FIT SEX share of each (income, occupation)
-    label cell PERMUTED across the ten cells (fixed seed), sharpened rho_gamma = sigmoid(gamma logit rho + c) with c matching the
-    SEX share. A is a label-derived binary of comparable task entanglement whose association direction is unrelated to SEX's."""
-    cell = np.asarray(y_inc) * K_OCC + np.asarray(y_occ)
-    share = np.array([float(sex[cell == c].mean()) if np.any(cell == c) else float(sex.mean()) for c in range(2 * K_OCC)])
-    rng = np.random.default_rng(np.random.SeedSequence([int(version), 20261021, 2]))
-    rho = np.clip(share[rng.permutation(2 * K_OCC)], 0.02, 0.98)
-    lg = gamma * np.log(rho / (1 - rho))
-    target = float(np.mean(sex))
-    lo, hi = -20.0, 20.0
-    for _ in range(80):                                  # bisection on c: mean over people of sigmoid(lg[cell] + c) = SEX share
-        c = 0.5 * (lo + hi)
-        m = float(np.mean(1.0 / (1.0 + np.exp(-(lg[cell] + c)))))
-        lo, hi = (c, hi) if m < target else (lo, c)
-    rg = 1.0 / (1.0 + np.exp(-(lg + 0.5 * (lo + hi))))
-    a = (_u(row_id, f'DDR_DA_pseudo_S{int(version)}') < rg[cell]).astype(np.int64)
-    return a, {'gamma': gamma, 'rho_permuted': rho.tolist(), 'rho_gamma': rg.tolist(), 'share_A': float(a.mean())}
-
-
 # ---------------------------------------------------------------- bracket points (PROTOCOL 4)
 def bracket_points(path_L, cand_L, twin_L, unit, order):
     """Two saved points of a control path chosen on MODEL_FIT out-of-fold total-NLL spend over the twin: LO = the largest grid point
@@ -269,10 +244,9 @@ def bracket_points(path_L, cand_L, twin_L, unit, order):
 
 
 # ---------------------------------------------------------------- the fit stage (one unit per version)
-def stage_fit(version, data, card, save, roles=None, log=print, budget_override=None, record_dir=None):
+def stage_fit(version, data, card, save, roles=None, log=print, budget_override=None, record_dir=None, save_rich=True):
     t0 = time.process_time()
     prc = _prc()
-    from frc.fa import route as FR
     Z, lab, unit, names, row_sha = prc._prep(data, sex=True)
     yI, yO, sex = lab['income'], lab['occupation'], lab['sex']
     row_id = np.asarray(data['row_id'])
@@ -345,12 +319,17 @@ def stage_fit(version, data, card, save, roles=None, log=print, budget_override=
                       'attribute_share': float(np.mean(attr)), 'attribute_sex_agreement': float(np.mean(np.asarray(attr) == sex))})
         log(json.dumps({'sbc_try': label, 'reaches': reach, 'cpu_s': round(time.process_time() - t0, 1)}))
         return {'ai': ai, 'ao': ao, 'w': wa, 'L': L, 'br': br, 'label': label}
+    from .. import ctlkit as CK
     chosen = sbc_path(permuted_sex(sex, version), 'PERMUTED_SEX')
-    pseudo_info = None
+    pseudo_info, profiles = None, {}
+    profiles['SEX'] = {'propensity_auc': FK.auc(pi_oof, sex), 'r2_logit_on_twin_pair': CK.r2_on_pair(pi_oof, tI, tO),
+                       'note': 'the cached SEX-side propensity (out-of-fold)'}
     if chosen['br']['flag'] is not None:
+        make, pseudo_info = CK.pseudo2_select(Z, yI, yO, sex, pi_oof, row_id, version)
         for g in GAMMAS:
-            attr, pseudo_info = pseudo_attribute(yI, yO, sex, row_id, version, g)
-            chosen = sbc_path(attr, f'PSEUDO_gamma{g:g}')
+            attr = make(g)
+            chosen = sbc_path(attr, f'PSEUDO2_gamma{g:g}')
+            profiles[chosen['label']], _ = CK.attribute_profile(Z, attr, unit, tI, tO, version, prc.CAT_Z)
             if chosen['br']['flag'] is None:
                 break
     br = chosen['br']
@@ -365,21 +344,17 @@ def stage_fit(version, data, card, save, roles=None, log=print, budget_override=
             {'op': 'sbc', 'attribute': chosen['label'], 'lambda': lam, 'w': chosen['w'], 'bracket_flag': br['flag']},
             n_sbc_fits if first else (0, 0))
         first = False
-    # --- SPEND path: SEX-blind coarsening of the twin (B1 tables)
-    E_oof = {'qI': tI, 'qO': tO}
-    books, crs_L = {}, {}
-    for cap in CRS_GRID:
-        book, k0, l0 = prc.twin_book(E_oof, cap[0], cap[1], version, prc.route_params('PRC_TWIN'))
-        tabs, tinfo = FR.tables('B1', book, k0, l0, E=E_oof)
-        books[cap] = (book, tabs, tinfo, k0, l0)
-        crs_L[cap] = FK.person_losses(tabs['I'][k0], tabs['O'][l0], yI, yO)
-    brs = bracket_points(crs_L, cand_L, twin_L, unit, CRS_GRID)
-    for cfg, cap in (('DA_SPD_LO', brs['lo']), ('DA_SPD_HI', brs['hi'])):
-        if cap is None:
+    # --- SPEND path: SEX-blind dithered quantization of the twin (ddr.ctlkit DQ; continuous, information removing)
+    dq_basis = CK.dq_fit(tI, tO)
+    dq_tag = f'DDR_DQ_S{int(version)}'
+    dq_rel = {d: CK.dq_release(dq_basis, tI, tO, Z, d, dq_tag) for d in DQ_GRID}
+    dq_L = {d: FK.person_losses(*dq_rel[d], yI, yO) for d in DQ_GRID}
+    brs = bracket_points(dq_L, cand_L, twin_L, unit, DQ_GRID)
+    for cfg, d in (('DA_SPD_LO', brs['lo']), ('DA_SPD_HI', brs['hi'])):
+        if d is None:
             continue
-        book, tabs, tinfo, k0, l0 = books[cap]
-        put(cfg, {'op': 'crs', 'book': book, 'tabs': tabs, 'capacity': list(cap)}, (tabs['I'][k0], tabs['O'][l0]),
-            {'op': 'crs', 'capacity': list(cap), 'bracket_flag': brs['flag'], 'table_info': tinfo}, (0, 0))
+        put(cfg, {'op': 'dq', 'dq_basis': dq_basis, 'delta': d, 'dq_tag': dq_tag}, dq_rel[d],
+            {'op': 'dq', 'delta': d, 'bracket_flag': brs['flag']}, (0, 0))
     # --- ablations
     put('DA_STD_OCC', {'op': 'std_occ', **std_parts}, (tI, mix(tO, qO0, qO1, w, lam_star)), {'op': 'std_occ', 'lambda': lam_star},
         (0, 0))
@@ -401,7 +376,15 @@ def stage_fit(version, data, card, save, roles=None, log=print, budget_override=
             FK.person_losses(stI[ti - 1], stO[to - 1], yI, yO), twin_L, unit, sex))}
         oof_views[f'UND_{mult:g}'] = (stI[ti - 1], stO[to - 1])
     check = FK.mf_reader_check(oof_views, sex, unit, f'DDR_mfcheck_DA_S{int(version)}')
+    rich_info = None
+    if save_rich:
+        from .. import richreaders as RR
+        rich, rich_cpu = RR.train({k: v for k, v in oof_views.items() if k in saved}, sex, version)
+        rich_info = {'sha256': RR.save(FAMILY, version, rich, {'configs': sorted(k for k in oof_views if k in saved),
+                                                                 'trained_on': 'MODEL_FIT out-of-fold releases, MODEL_FIT SEX'}),
+                     'cpu_s': rich_cpu}
     out.update({'saved': saved, 'sbc_tries': tries, 'sbc_attribute': chosen['label'], 'pseudo_info': pseudo_info,
+                'attribute_profiles': profiles, 'rich_readers': rich_info,
                 'spend_path_bracket': brs, 'und_descriptive': und,
                 'mf_reader_check': {'note': 'descriptive MODEL_FIT out-of-fold readers (household 5-fold cross-fitted); never a '
                                             'decision input and never a stop; the decisions use the MODEL_SELECT grid',
@@ -409,6 +392,40 @@ def stage_fit(version, data, card, save, roles=None, log=print, budget_override=
                 'cpu_s': time.process_time() - t0})
     if record_dir is not False:
         C.write_json((record_dir or C.RESULTS / 'da') / f'FIT_V{int(version)}.json', out)
+    return out
+
+
+def trigger_r1(version, data):
+    """Card DA_STD_v1 section 6, R1 trigger (b), second condition (MODEL_FIT out-of-fold; the first condition, the registered comparison
+    not separated, is read from the registered decision record): for either recipient, the linear R^2 of logit pi (cached out-of-fold
+    propensity) on the lam = 1 release's out-of-fold log-probabilities exceeds half the twin's. Also trigger (a): the occupation
+    out-of-fold NLL spend at lam* against twice Designer A's plug-in value (0.0083 x lam^2). The SEX-aware income teacher's out-of-fold
+    predictions are recomputed with the fit's construction (same tags, seeds and T*)."""
+    prc = _prc()
+    Z, lab, unit, names, row_sha = prc._prep(data, sex=True)
+    yI, yO, sex = lab['income'], lab['occupation'], lab['sex']
+    T, S, _ = load_caches(version, row_sha)
+    fit = json.loads((C.RESULTS / 'da' / f'FIT_V{int(version)}.json').read_text())
+    w, lam = fit['selection']['w'], fit['selection']['lambda_star']
+    ts = teacher_a(Z, yI, K_INC, sex, unit, version, T=int(fit['T_inc_s']))
+    tI, tO = T['oof']['inc'], T['oof']['occ']
+    qO0, qO1 = S['oof']['occ_s'][0], S['oof']['occ_s'][1]
+    pi = np.clip(S['oof']['sex'][:, 1], 0.01, 0.99)
+    rI1, rO1 = mix(tI, ts['oof'][0], ts['oof'][1], w, 1.0), mix(tO, qO0, qO1, w, 1.0)
+    lq = np.log(pi / (1 - pi))
+
+    def r2(P):
+        F = np.column_stack([np.ones(len(lq)), np.log(np.maximum(P[:, 1:], 1e-6) / np.maximum(P[:, :1], 1e-6))])
+        coef, *_ = np.linalg.lstsq(F, lq, rcond=None)
+        return float(1 - np.var(lq - F @ coef) / np.var(lq))
+    out = {'income': {'twin': r2(tI), 'std_lam1': r2(rI1)}, 'occupation': {'twin': r2(tO), 'std_lam1': r2(rO1)}}
+    for k in ('income', 'occupation'):
+        out[k]['ratio'] = out[k]['std_lam1'] / out[k]['twin']
+    occ_spend = float(np.mean(FK.person_losses(tI, mix(tO, qO0, qO1, w, lam), yI, yO)['occ_nll']
+                              - FK.person_losses(tI, tO, yI, yO)['occ_nll']))
+    out['condition_b2_met'] = any(out[k]['ratio'] > 0.5 for k in ('income', 'occupation'))
+    out['trigger_a'] = {'occ_oof_nll_spend_at_lam_star': occ_spend, 'limit': 2 * 0.0083 * lam ** 2,
+                        'met': occ_spend > 2 * 0.0083 * lam ** 2}
     return out
 
 
@@ -428,11 +445,6 @@ def selftest():
     ok['w_on_grid'] = w in W_GRID and len(tab) == len(W_GRID)
     ps = permuted_sex(sex, 0)
     ok['permutation_keeps_margin'] = int(ps.sum()) == int(sex.sum()) and not np.array_equal(ps, sex)
-    yi = rng.integers(0, 2, n)
-    a, info = pseudo_attribute(yi, y, sex, np.arange(n), 0, 2.0)
-    ok['pseudo_share_matches'] = abs(info['share_A'] - float(sex.mean())) < 0.04
-    a2, _ = pseudo_attribute(yi, y, sex, np.arange(n), 0, 2.0)
-    ok['pseudo_deterministic'] = np.array_equal(a, a2)
     unit = np.arange(n) // 2
     yt = (t.cumsum(1) < rng.random(n)[:, None]).sum(1)          # labels drawn from t: mixing toward uniform spends NLL
     L0 = FK.person_losses(np.full((n, 2), 0.5), t, np.zeros(n, dtype=np.int64), yt)
@@ -483,7 +495,7 @@ def selftest_stage(n=2500, seed=5):
         prc.HGB = hp
         roles = {'MODEL_FIT': {'X': data['X'], 'feature_names': data['feature_names']}}
         out = stage_fit(0, data, 'invented-card', fake_save, roles=roles, log=lambda s: None,
-                        budget_override={k: 100.0 for k in BUDGETS['S3']}, record_dir=False)
+                        budget_override={k: 100.0 for k in BUDGETS['S3']}, record_dir=False, save_rich=False)
     finally:
         C.RUNS, prc.HGB = old[0], old[2]
         globals()['load_caches'] = old[1]
@@ -495,7 +507,7 @@ def selftest_stage(n=2500, seed=5):
     ok['configs_written'] = {'DA_TWIN', 'DA_STD', 'DA_STD_OCC', 'DA_COMP'} <= set(saved) and any(c.startswith('DA_SBC') for c in saved) \
         and any(c.startswith('DA_SPD') for c in saved)
     ok['records_valid'] = all(r['kind'] == CONFIGS[c]['kind'] for c, (_, r) in saved.items())
-    ok['crs_finite'] = all(np.unique(saved[c][0]['MODEL_FIT']['occupation'], axis=0).shape[0] <= 128 for c in saved if c.startswith('DA_SPD'))
+    ok['dq_continuous'] = all(np.unique(saved[c][0]['MODEL_FIT']['occupation'].round(12), axis=0).shape[0] > 0.5 * n for c in saved if c.startswith('DA_SPD'))
     ok['all_ok'] = all(ok.values())
     ok['lambda_star'] = lam
     ok['sbc_attribute'] = out.get('sbc_attribute')
@@ -508,6 +520,8 @@ def main(argv=None):
     sub = ap.add_subparsers(dest='cmd', required=True)
     sub.add_parser('selftest')
     sub.add_parser('selftest_stage')
+    tr = sub.add_parser('trigger_r1')
+    tr.add_argument('--card', required=True)
     f = sub.add_parser('fit')
     f.add_argument('--version', type=int, required=True)
     f.add_argument('--card', required=True)
@@ -517,6 +531,14 @@ def main(argv=None):
     if a.cmd == 'selftest_stage':
         r = selftest_stage(); print(json.dumps(r)); return 0 if r['all_ok'] else 1
     from .. import release as RL
+    if a.cmd == 'trigger_r1':
+        data = C.load('MODEL_FIT', ('features', 'income', 'occupation', 'sex'), 'fit',
+                      'DA R1 trigger (b): MODEL_FIT out-of-fold linear propensity dependence of the lam = 1 release (card DA_STD_v1 section 6)',
+                      card=a.card)
+        res = {f'V{v}': trigger_r1(v, data) for v in C.VERSIONS}
+        C.write_json(C.RESULTS / 'da' / 'R1_TRIGGER_B2.json', res)
+        print(json.dumps(res, indent=1))
+        return 0
     data = C.load('MODEL_FIT', ('features', 'income', 'occupation', 'sex'), 'fit', PURPOSE, card=a.card)
     out = stage_fit(a.version, data, a.card, RL.save)
     print(json.dumps({'lambda_star': out['selection']['lambda_star'], 'w': out['selection']['w'], 'saved': sorted(out['saved']),

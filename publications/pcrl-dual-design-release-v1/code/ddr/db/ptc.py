@@ -59,21 +59,24 @@ MIN_STRATUM = 200
 STRENGTHS = (0.2, 0.35, 0.5, 0.65, 0.8, 1.0)
 BUDGET = {'occ_nll': 0.012, 'inc_nll': 0.006, 'occ_brier_men': 0.0045, 'occ_brier_women': 0.0045, 'occ_acc': 0.008,
           'inc_acc': 0.006, 'occ_brier': 0.0045, 'inc_brier': 0.0045}          # S3 plus each task's summed Brier
-CRS_GRID = ((64, 256), (32, 128), (24, 96), (16, 64), (12, 48), (8, 32))
+DQ_GRID = (0.15, 0.25, 0.4, 0.6, 0.9, 1.4)                                    # SPEND: dithered-quantization steps
+COV_MIN = 1e-4                                                                 # degenerate below (global and per stratum)
+SBC_SCALE_LADDER = (1.0, 2.0, 4.0, 8.0, 16.0)                                  # x the RMS-normalizing factor of a target
 SHUF_MULT = (0.5, 0.75, 1.0, 1.5, 2.0, 3.0)                                    # x alpha*: the SHUF scale grid (same size)
 N_OUTER = 5
 CONFIGS = {
     'DB_PTC': {'kind': 'candidate', 'what': 'propensity-tilt cancellation at the MODEL_FIT-selected strength alpha* (both recipients)'},
     'DB_SBC_LO': {'kind': 'control', 'what': 'SBC path, lower bracket point: the same tilt law driven by a SEX-independent target'},
     'DB_SBC_HI': {'kind': 'control', 'what': 'SBC path, upper bracket point: the same tilt law driven by a SEX-independent target'},
-    'DB_SPD_LO': {'kind': 'control', 'what': 'SPEND path, lower bracket point: SEX-blind KL k-means coarsening of the twin (B1 tables)'},
-    'DB_SPD_HI': {'kind': 'control', 'what': 'SPEND path, upper bracket point: SEX-blind KL k-means coarsening of the twin (B1 tables)'},
+    'DB_SPD_LO': {'kind': 'control', 'what': 'SPEND path, lower bracket point: SEX-blind dithered quantization of the twin (ddr.ctlkit DQ)'},
+    'DB_SPD_HI': {'kind': 'control', 'what': 'SPEND path, upper bracket point: SEX-blind dithered quantization of the twin (ddr.ctlkit DQ)'},
+    'DB_ZTILT': {'kind': 'control', 'what': 'release-only control: the same tilt law with the amplitude P(SEX | the twin\'s released log-probabilities), spend-matched'},
     'DB_SHUF': {'kind': 'control', 'what': "the candidate's weights and strata with a keyed six-field-hash donor's propensity (spend-matched)"},
     'DB_PTC_OCC': {'kind': 'ablation', 'what': 'occupation tilt at alpha*; income = the twin (per-recipient attribution)'},
 }
 PURPOSE = ('DB PTC: closed-form tilt weights, nested strength selection, matched control paths and the ablation on MODEL_FIT (SEX as '
            'a training label)')
-CODE_MODULES = ('ddr.db.ptc', 'ddr.da.std', 'ddr.famkit', 'nrm.fa.prc', 'frc.fa.route', 'ohn.fam_a')
+CODE_MODULES = ('ddr.db.ptc', 'ddr.da.std', 'ddr.famkit', 'ddr.ctlkit', 'nrm.fa.prc', 'ohn.fam_a')
 
 
 def _prc():
@@ -95,7 +98,7 @@ def softmax(l):
 def _w(c, q, s):
     sc = s - s.mean()
     cqs = float(np.mean((q - q.mean()) * sc))
-    return (c * sc[:, None]).mean(0) / cqs if cqs > 0 else np.zeros(c.shape[1]), float(q.mean()), cqs
+    return (c * sc[:, None]).mean(0) / cqs if cqs > COV_MIN else np.zeros(c.shape[1]), float(q.mean()), cqs
 
 
 def fit_weights(pI, pO, q, s, stratify=True):
@@ -110,7 +113,7 @@ def fit_weights(pI, pO, q, s, stratify=True):
             m = dec == k
             if m.sum() >= MIN_STRATUM:
                 wk, qk, ck = _w(clog(pO[m]), q[m], s[m])
-                if ck > 0:
+                if ck > COV_MIN:
                     W[k], qb[k] = wk, qk
                     continue
             fb.append(k)
@@ -134,13 +137,40 @@ def rms_tilt(pO, q, st):
     return float(np.sqrt(np.mean(np.sum(dI ** 2, 1) + np.sum(dO ** 2, 1))))
 
 
+def zfeat(pI, pO):
+    """The twin's released log-probability features (income log-odds, centred occupation log-probabilities): ZTILT's input."""
+    return np.column_stack([np.log(np.maximum(pI[:, 1:], FLOOR) / np.maximum(pI[:, :1], FLOOR)), clog(pO)])
+
+
+def ztilt_teacher(pI, pO, sex, unit, version):
+    """q_z = P(SEX | the twin's released log-probabilities): HGB (SEX-side settings, 300 iterations), cross-fitted on the household
+    folds NRM_FA_xf_S<v> for the out-of-fold values, full fit for deployment. A function of the twin's release only."""
+    import warnings
+    from sklearn.ensemble import HistGradientBoostingClassifier
+    P = _prc()
+    F = zfeat(pI, pO)
+    mk = lambda: HistGradientBoostingClassifier(loss='log_loss', learning_rate=float(P.HGB['lr']), max_iter=300,
+                                                max_leaf_nodes=int(P.HGB['leaves']), min_samples_leaf=int(P.HGB['msl']),
+                                                l2_regularization=float(P.HGB['l2']), early_stopping=False, random_state=int(version))
+    xf = P.household_folds(unit, P.N_XF, f'NRM_FA_xf_S{version}')
+    oof = np.zeros(len(sex))
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        for f in range(P.N_XF):
+            tr, te = xf != f, xf == f
+            oof[te] = mk().fit(F[tr], sex[tr]).predict_proba(F[te])[:, 1]
+        model = mk().fit(F, sex)
+    return model, np.clip(oof, 0.01, 0.99)
+
+
 def donor_index(Z, key, n_bank):
     Z = np.ascontiguousarray(np.asarray(Z, np.float64))
     return np.array([int.from_bytes(hashlib.sha256(key.encode() + r.tobytes()).digest()[:8], 'big') % n_bank for r in Z])
 
 
 def fallback_target(Z, version):
-    """Named fallback SBC target (Designer B): a keyed Bernoulli(0.5) label per (SCHL, COW) cell of the compact coding."""
+    """Designer B's original fallback SBC target (a keyed Bernoulli(0.5) label per (SCHL, COW) cell); SUPERSEDED before any fit by
+    PSEUDO2 (challenger finding 15: not the same type as SEX). Kept for the record; not used by stage_fit."""
     Z = np.asarray(Z, np.float64)
     return np.array([hashlib.sha256(f'DDR_B_SBC_FALLBACK|{20261021 + int(version)}|{r[3]:.6g}|{r[2]:.6g}'.encode()).digest()[0] & 1
                      for r in Z], dtype=np.int64)
@@ -172,11 +202,16 @@ def _predict_payload(P, Z):
     prc = _prc()
     pI, pO = prc._proba(P['twin_inc'], Z), prc._proba(P['twin_occ'], Z)
     op = P['op']
-    if op == 'crs':
-        from ..da.std import crs_release
-        return crs_release(P['book'], P['tabs'], pI, pO)
+    if op in ('ptc_r1', 'sbc_r1', 'ptc_r1_occ', 'ztilt_r1'):  # revision R1 configurations (ddr.db.ptc_r1), one family interface
+        from .ptc_r1 import _predict_payload as r1
+        return r1(P, Z)
+    if op == 'dq':
+        from .. import ctlkit as CK
+        return CK.dq_release(P['dq_basis'], pI, pO, Z, float(P['delta']), P['dq_tag'])
     if op == 'shuf':
         q = P['bank_q'][donor_index(Z, P['donor_key'], len(P['bank_q']))]
+    elif op == 'ztilt':
+        q = np.clip(P['q_model'].predict_proba(zfeat(pI, pO))[:, 1], 0.01, 0.99)
     else:
         q = np.clip(prc._proba(P['q_model'], Z)[:, 1], 0.01, 0.99)
     return tilt(pI, pO, q, P['weights'], float(P['alpha']), inc=op != 'ptc_occ', occ=True)
@@ -214,10 +249,9 @@ def target_teacher(Z, a, unit, version, T):
 
 
 # ---------------------------------------------------------------- the fit stage (one unit per version)
-def stage_fit(version, data, card, save, roles=None, log=print, budget_override=None, record_dir=None):
+def stage_fit(version, data, card, save, roles=None, log=print, budget_override=None, record_dir=None, save_rich=True):
     t0 = time.process_time()
     prc = _prc()
-    from frc.fa import route as FR
     from ..da import std as DA
     Z, lab, unit, names, row_sha = prc._prep(data, sex=True)
     yI, yO, sex = lab['income'], lab['occupation'], lab['sex']
@@ -268,55 +302,71 @@ def stage_fit(version, data, card, save, roles=None, log=print, budget_override=
     cand_rms = rms_tilt(pO, q, st_full)
     put('DB_PTC', {'op': 'ptc', 'q_model': S['models']['sex'], 'weights': st_full, 'alpha': a_star}, rel[a_star],
         {'op': 'ptc', 'alpha': a_star}, (0, 0))
-    # --- SBC path: permuted SEX, then the named fallback
-    tries = []
+    # --- SBC path: permuted SEX, then the PSEUDO2 fallback (ddr.ctlkit; challenger findings 6, 15, 16)
+    from .. import ctlkit as CK
+    tries, profiles = [], {'SEX': {'propensity_auc': FK.auc(q, sex), 'r2_logit_on_twin_pair': CK.r2_on_pair(q, pI, pO),
+                                   'note': 'the cached SEX-side propensity (out-of-fold)'}}
+    cand_sp_v = float((cand_L['tot_nll'] - twin_L['tot_nll']).mean())
 
     def sbc(target, label):
         qm, qa = target_teacher(Z, target, unit, version, int(S['T']['sex']))
         stt = fit_weights(pI, pO, qa, target)
-        if not stt['cov_q_s'] > 1e-4:
+        if not stt['cov_q_s'] > COV_MIN:
             tries.append({'target': label, 'degenerate': True, 'cov_q_s': stt['cov_q_s']})
             return None
-        m = cand_rms / max(rms_tilt(pO, qa, stt), 1e-12)
-        grid = tuple(float(a * m) for a in STRENGTHS)
-        relc = nested_releases(pI, pO, qa, np.asarray(target), unit, version, grid)
-        Lc = {g: FK.person_losses(*relc[g], yI, yO) for g in grid}
-        br = DA.bracket_points(Lc, cand_L, twin_L, unit, grid)
-        tries.append({'target': label, 'degenerate': False, 'cov_q_s': stt['cov_q_s'], 'scale_m': m, 'bracket': br,
-                      'target_sex_agreement': float(np.mean(np.asarray(target) == sex))})
-        if br['flag'] is not None:
-            return None
-        return {'q_model': qm, 'weights': stt, 'rel': relc, 'br': br, 'label': label, 'grid': grid}
+        m0 = cand_rms / max(rms_tilt(pO, qa, stt), 1e-12)
+        res = None
+        for mult in SBC_SCALE_LADDER:
+            m = m0 * mult
+            grid = tuple(float(a * m) for a in STRENGTHS)
+            relc = nested_releases(pI, pO, qa, np.asarray(target), unit, version, grid)
+            Lc = {g: FK.person_losses(*relc[g], yI, yO) for g in grid}
+            br = DA.bracket_points(Lc, cand_L, twin_L, unit, grid)
+            res = {'q_model': qm, 'weights': stt, 'rel': relc, 'br': br, 'label': label, 'grid': grid, 'scale_m': m}
+            if br['flag'] is None:
+                break
+        tries.append({'target': label, 'degenerate': False, 'cov_q_s': stt['cov_q_s'], 'scale_m': res['scale_m'],
+                      'scale_m0': m0, 'bracket': res['br'], 'target_sex_corr': float(np.corrcoef(target, sex)[0, 1])})
+        return res
     ch = sbc(permuted(sex, version), 'PERMUTED_SEX')
-    if ch is None:
-        ch = sbc(fallback_target(Z, version), 'FALLBACK_SCHL_COW')
-    if ch is None and tries and not tries[-1].get('degenerate'):
-        # the fallback ran but cannot reach: keep its largest grid point, flagged (PROTOCOL 4)
-        last = tries[-1]
-        ch = {'label': last['target'], 'flagged': True}
+    pseudo_info = None
+    if ch is None or ch['br']['flag'] is not None:
+        make, pseudo_info = CK.pseudo2_select(Z, yI, yO, sex, q, np.asarray(data['row_id']), version, gammas=(1.0,))
+        attr = make(1.0)
+        profiles['PSEUDO2_gamma1'], _ = CK.attribute_profile(Z, attr, unit, pI, pO, version, prc.CAT_Z)
+        ch = sbc(attr, 'PSEUDO2_gamma1')
     sbc_saved = []
-    if ch is not None and 'br' in ch:
+    if ch is not None:
         for cfg, g in (('DB_SBC_LO', ch['br']['lo']), ('DB_SBC_HI', ch['br']['hi'])):
             if g is None:
                 continue
             put(cfg, {'op': 'sbc', 'q_model': ch['q_model'], 'weights': ch['weights'], 'alpha': g}, ch['rel'][g],
-                {'op': 'sbc', 'target': ch['label'], 'alpha': g, 'bracket_flag': ch['br']['flag']}, (6, 0) if not sbc_saved else (0, 0))
+                {'op': 'sbc', 'target': ch['label'], 'alpha': g, 'scale_m': ch['scale_m'], 'bracket_flag': ch['br']['flag']},
+                (6 * len(tries), 0) if not sbc_saved else (0, 0))
             sbc_saved.append(cfg)
-    # --- SPEND path: SEX-blind coarsening of the twin (B1 tables)
-    E_oof = {'qI': pI, 'qO': pO}
-    books, crs_L = {}, {}
-    for cap in CRS_GRID:
-        book, k0, l0 = prc.twin_book(E_oof, cap[0], cap[1], version, prc.route_params('PRC_TWIN'))
-        tabs, tinfo = FR.tables('B1', book, k0, l0, E=E_oof)
-        books[cap] = (book, tabs, tinfo, k0, l0)
-        crs_L[cap] = FK.person_losses(tabs['I'][k0], tabs['O'][l0], yI, yO)
-    brs = DA.bracket_points(crs_L, cand_L, twin_L, unit, CRS_GRID)
-    for cfg, cap in (('DB_SPD_LO', brs['lo']), ('DB_SPD_HI', brs['hi'])):
-        if cap is None:
+    # --- SPEND path: SEX-blind dithered quantization of the twin (ddr.ctlkit DQ; continuous, information removing)
+    dq_basis = CK.dq_fit(pI, pO)
+    dq_tag = f'DDR_DQ_S{int(version)}'
+    dq_rel = {d: CK.dq_release(dq_basis, pI, pO, Z, d, dq_tag) for d in DQ_GRID}
+    dq_L = {d: FK.person_losses(*dq_rel[d], yI, yO) for d in DQ_GRID}
+    brs = DA.bracket_points(dq_L, cand_L, twin_L, unit, DQ_GRID)
+    for cfg, d in (('DB_SPD_LO', brs['lo']), ('DB_SPD_HI', brs['hi'])):
+        if d is None:
             continue
-        book, tabs, tinfo, k0, l0 = books[cap]
-        put(cfg, {'op': 'crs', 'book': book, 'tabs': tabs, 'capacity': list(cap)}, (tabs['I'][k0], tabs['O'][l0]),
-            {'op': 'crs', 'capacity': list(cap), 'bracket_flag': brs['flag'], 'table_info': tinfo}, (0, 0))
+        put(cfg, {'op': 'dq', 'dq_basis': dq_basis, 'delta': d, 'dq_tag': dq_tag}, dq_rel[d],
+            {'op': 'dq', 'delta': d, 'bracket_flag': brs['flag']}, (0, 0))
+    # --- ZTILT (required; challenger finding 2): amplitude = P(SEX | the twin's release); first scale reaching CAND's nested spend
+    zm, qz = ztilt_teacher(pI, pO, sex, unit, version)
+    st_z = fit_weights(pI, pO, qz, sex)
+    mz0 = cand_rms / max(rms_tilt(pO, qz, st_z), 1e-12)
+    grid_z = tuple(float(a_star * mz0 * m) for m in SHUF_MULT)
+    rel_z = nested_releases(pI, pO, qz, sex, unit, version, grid_z)
+    Lz = {g: FK.person_losses(*rel_z[g], yI, yO) for g in grid_z}
+    g_z = next((g for g in grid_z if float((Lz[g]['tot_nll'] - twin_L['tot_nll']).mean()) >= cand_sp_v), grid_z[-1])
+    put('DB_ZTILT', {'op': 'ztilt', 'q_model': zm, 'weights': st_z, 'alpha': g_z}, rel_z[g_z],
+        {'op': 'ztilt', 'alpha': g_z, 'grid': list(grid_z), 'reached_cand_spend': bool(float((Lz[g_z]['tot_nll'] - twin_L['tot_nll']).mean()) >= cand_sp_v),
+         'spends': {str(g): float((Lz[g]['tot_nll'] - twin_L['tot_nll']).mean()) for g in grid_z},
+         'qz_auc_oof': FK.auc(qz, sex)}, (1, 5))
     # --- SHUF: the candidate's weights, a keyed donor's propensity; one point at the first scale whose nested spend reaches CAND's
     key = f'DDR_DB_SHUF|V{int(version)}'
     q_don = q[donor_index(Z, key, len(q))]
@@ -334,8 +384,16 @@ def stage_fit(version, data, card, save, roles=None, log=print, budget_override=
         {'op': 'ptc_occ', 'alpha': a_star}, (0, 0))
     t1 = time.process_time()
     check = FK.mf_reader_check(oof_views, sex, unit, f'DDR_mfcheck_DB_S{int(version)}')
+    rich_info = None
+    if save_rich:
+        from .. import richreaders as RR
+        views = {k: v for k, v in oof_views.items() if k in saved or k == 'TWIN'}
+        rich, rich_cpu = RR.train(views, sex, version)
+        rich_info = {'sha256': RR.save(FAMILY, version, rich, {'configs': sorted(views), 'trained_on':
+                                                                 'MODEL_FIT nested releases (TWIN: out-of-fold), MODEL_FIT SEX'}),
+                     'cpu_s': rich_cpu}
     out.update({'saved': saved, 'sbc_tries': tries, 'sbc_target': (ch or {}).get('label'), 'spend_path_bracket': brs,
-                'cand_rms_tilt': cand_rms,
+                'cand_rms_tilt': cand_rms, 'pseudo_info': pseudo_info, 'attribute_profiles': profiles, 'rich_readers': rich_info,
                 'mf_reader_check': {'note': 'descriptive MODEL_FIT nested-release readers (household 5-fold cross-fitted); never a '
                                             'decision input and never a stop', 'auc': check, 'cpu_s': time.process_time() - t1},
                 'cpu_s': time.process_time() - t0})
@@ -369,7 +427,7 @@ def selftest():
     return ok
 
 
-def selftest_stage(n=2500, seed=9):
+def selftest_stage(n=2500, seed=9, max_iter=30):
     """stage_fit end to end on INVENTED labels attached to admitted MODEL_FIT features (label-free); teachers fitted on the invented
     labels stand in for the caches; model files go to a temporary directory; nothing is saved to the campaign's runs."""
     import tempfile
@@ -379,12 +437,14 @@ def selftest_stage(n=2500, seed=9):
     F = C.features('MODEL_FIT')
     rng = np.random.default_rng(seed)
     idx = np.sort(rng.choice(len(F['row_id']), n, replace=False))
-    sex = rng.integers(0, 2, n)
+    Zc = FK.compact(F['X'][idx], F['feature_names'])
+    hours = Zc[:, 1]
+    sex = (rng.random(n) < 1.0 / (1.0 + np.exp((hours - np.median(hours)) / 6.0))).astype(np.int64)   # invented: x-predictable
     data = {'X': F['X'][idx], 'feature_names': F['feature_names'], 'row_id': F['row_id'][idx], 'unit': F['unit'][idx],
             'income': (rng.random(n) < 0.3 + 0.3 * sex).astype(np.int64), 'occupation': np.minimum(rng.integers(0, 5, n) + sex, 4),
             'sex': sex}
     Z, lab, unit, names, row_sha = prc._prep(data, sex=True)
-    hp = {**prc.HGB, 'max_iter': 30}
+    hp = {**prc.HGB, 'max_iter': int(max_iter)}
     old_hgb = prc.HGB
     prc.HGB = hp
     try:
@@ -406,11 +466,12 @@ def selftest_stage(n=2500, seed=9):
         prc.HGB = hp
         roles = {'MODEL_FIT': {'X': data['X'], 'feature_names': data['feature_names']}}
         out = stage_fit(0, data, 'invented-card', fake_save, roles=roles, log=lambda s: None,
-                        budget_override={k: 100.0 for k in BUDGET}, record_dir=False)
+                        budget_override={k: 100.0 for k in BUDGET}, record_dir=False, save_rich=False)
     finally:
         C.RUNS, DA.load_caches, prc.HGB = old
     ok = {'cand_saved': 'DB_PTC' in saved, 'alpha_selected': out['selection']['alpha_star'] in STRENGTHS}
-    ok['controls_saved'] = any(c.startswith('DB_SPD') for c in saved) and 'DB_SHUF' in saved and 'DB_PTC_OCC' in saved
+    ok['controls_saved'] = any(c.startswith('DB_SPD') for c in saved) and 'DB_SHUF' in saved and 'DB_PTC_OCC' in saved \
+        and 'DB_ZTILT' in saved
     ok['records_valid'] = all(r['kind'] == CONFIGS[c]['kind'] for c, (_, r) in saved.items())
     ok['all_ok'] = all(ok.values())
     ok['saved'] = sorted(saved)
@@ -423,7 +484,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog='ddr.db.ptc')
     sub = ap.add_subparsers(dest='cmd', required=True)
     sub.add_parser('selftest')
-    sub.add_parser('selftest_stage')
+    st2 = sub.add_parser('selftest_stage'); st2.add_argument('--n', type=int, default=2500); st2.add_argument('--max-iter', type=int, default=30)
     f = sub.add_parser('fit')
     f.add_argument('--version', type=int, required=True)
     f.add_argument('--card', required=True)
@@ -431,7 +492,7 @@ def main(argv=None):
     if a.cmd == 'selftest':
         r = selftest(); print(json.dumps(r)); return 0 if r['all_ok'] else 1
     if a.cmd == 'selftest_stage':
-        r = selftest_stage(); print(json.dumps(r, default=str)); return 0 if r['all_ok'] else 1
+        r = selftest_stage(n=a.n, max_iter=a.max_iter); print(json.dumps(r, default=str)); return 0 if r['all_ok'] else 1
     from .. import release as RL
     data = C.load('MODEL_FIT', ('features', 'income', 'occupation', 'sex'), 'fit', PURPOSE, card=a.card)
     out = stage_fit(a.version, data, a.card, RL.save)
