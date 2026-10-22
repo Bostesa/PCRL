@@ -1,0 +1,96 @@
+{
+ "schema": "DDR1-rules-v1",
+ "campaign": "pcrl_dual_design_release_v1",
+ "author_role": "statistical reviewer",
+ "written_before_outcomes": "writing started 2026-10-21T16:52:55Z (date -u), before any outcome of this campaign; no label read, no real-data computation, no label-reading loader called",
+ "human_readable": "RULES.md (same directory); protocol review: REPORT_PREREGISTRATION.md (same directory)",
+ "implementation": "ddr/rules.py (pure functions; imports nrm.rules unchanged as NR; load_rules() checks this file against the module constants, the NRM1 RULES.json hash and the nrm/rules.py hash); invented-data tests: python3 -m ddr.test_rules (prints JSON; exit 0 iff all pass)",
+ "status_of_every_rule": "development rule on previously and adaptively used records (MODEL_FIT and MODEL_SELECT were used by earlier campaigns); nothing is confirmation; no original limit changes; the reserve is reported, never gating; point feasibility is never confidence preservation; every uncertainty statement is asymptotic and model-based",
+ "inherited": {
+  "module": "nrm.rules imported unchanged: point_eligibility (G1), reserve_status, mc_cell / se_mc handling, aggregate, benefit_screen, target_screen, recipient_screen, comparison, frontier_comparison, robustness, claims (G4, G5, G6), alias_groups",
+  "nrm1_rules_json_sha256": "84f187768817e79ef9f2bb36151bea81f00b8f62d9179c8cd523069550674652",
+  "nrm_rules_py_sha256": "d5df868678d483a3452e251d8f24575932d23f0e5d22e3ef1ca3627a35030df1",
+  "ohn_rules_py_sha256": "8686a78f59a609f3391c877129a954c0b7c0c708e94f60dfbeaf547b894122ba",
+  "logic_copied_from": "frc/rules.py (sha256 11d3df7ffac404831167645ae565604af4d140f1b189c8b96f665613e62c01a4; FRC1 RULES.json a0dc0fc7...; ER1 addendum RULES_ER1.json 0409ea90...): reference_credit / _d3 / _d4, _path, _version_means, strongest_nonzero, refit_effectiveness, the seed part of grid_validity and the ER1 explanation; frc is not imported"
+ },
+ "z": 2.0,
+ "tie_tolerance": 1e-12,
+ "sign_convention": "NR's: pair benefit = comparator AUC - candidate AUC (positive favours the candidate); recipient difference = candidate AUC - comparator AUC; paired costs loss(candidate) - loss(comparator) (negative favours the candidate; accuracy enters as a loss)",
+ "reader_grid": {
+  "model_seed_base": 2026101205,
+  "seed_offset": 800,
+  "seed_rule": "reader seed S<v>k<k> = MODEL_SEED_BASE + 800 + 10 v + k exactly (k0, k1 registered; k2, k3 robustness); recorded distinct integers; none equal to MODEL_SEED_BASE + {300, 400, 500, 600, 700} + 10 v + k (k = 0..9; 100 seeds)",
+  "forbidden_offsets": [300, 400, 500, 600, 700],
+  "offset_800_disclosure": "the +800 base and the bootstrap base were registered by FSA1 (READER_SPLITS.json of pcrl_finite_solver_adequacy_v1) and never used: FSA1 built no grid and read no MODEL_SELECT record (its RESEARCH_DECISION, question 7); no realized reader fit used them",
+  "bootstrap_seed_base": 2026102200,
+  "bootstrap_rule": "household bootstrap of SCORE, B = 400, seed 2026102200 + 100 v + repetition index; bootstrap seeds are recorded per (version, repetition) as S<v><R> and must equal the registered values",
+  "repetition_index": {"R1": 0, "R2": 1, "R3": 2, "R4": 3},
+  "split_tag": "DDR1_devgrid_R{r}",
+  "registered_cells": ["S0R1k0", "S0R1k1", "S0R2k0", "S0R2k1", "S1R1k0", "S1R1k1", "S1R2k0", "S1R2k1"],
+  "robustness_cells": "R3, R4 with k0-k3 and R1, R2 with k2, k3 (24 cells); never a decision input",
+  "validity": "READER_SEEDS_EFFECTIVE iff the seed rule and the bootstrap rule hold (bootstrap seeds are required inputs) and, per seed pair (k0 / k1; for the refit also k2 / k3), every seed-dependent recipe is checked, NRM1 A-SC1 (iii) explains every seed-dependent equality off the minimum set, and on the minimum set an equality is explained only by er_explanation; minimum set = a D2 reading's CAND, TWIN and saved control-path points (for the refit: the strongest release, its TWIN and its bracketing controls); claims need grid_valid recorded and exactly true (else NOT_COMPUTED_GRID_VALIDITY_UNKNOWN / NOT_COMPUTED_GRID_INVALID)"
+ },
+ "er_explanation": {
+  "status": "PROSPECTIVE (registered before any grid output); FRC1 ER1 (post hoc in FRC1) restricted to its documented mechanism",
+  "min_leaf": {"ET5": 5, "ET25": 25},
+  "pool_people": 8001,
+  "rule": "a seed-dependent k-pair equality on the minimum set is explained iff the recipe is ET5 or ET25, NRM1 (iii) (a) another seed-dependent recipe differs in the same wire, view, version and repetition, (b) the same recipe differs on another view of the same wire, (c) the view's distinct-input count is recorded label-free, AND that count is at most 8001 // min_leaf (ET5 1600, ET25 320); an equality of any other seed-dependent recipe (MLP64, MLP6432, OUT_MLP, LOG_MLP) on the minimum set invalidates the grid; explained equalities are reported with the n_eff they imply (duplicate cells count once in NR.aggregate); seed pairs are judged separately",
+  "mechanism": "an extra-trees forest on a view with few distinct transmitted vectors isolates each value in its own leaf in every tree and reduces to a seed-invariant frequency table; this needs at least min_leaf reader-FIT people per value, which is impossible with more than 8001 // min_leaf distinct values in MODEL_SELECT"
+ },
+ "decisions": {
+  "configuration": "CAND = the family's operation at the strength chosen by its card's MODEL_FIT-only rule (per version, before any MODEL_SELECT read); D1-D4 are read at CAND, never at another strength, the strongest release or the ablation",
+  "D1": {
+   "labels": ["TASK_FEASIBLE", "CAND_FEASIBLE_TWIN_INFEASIBLE", "CAND_INFEASIBLE", "NO_FEASIBLE_STRENGTH", "INCOMPLETE"],
+   "rule": "G1 (nrm.rules.point_eligibility: 24 clauses + 4 guards at the point, both versions) for TWIN and CAND; TASK_FEASIBLE both; CAND_FEASIBLE_TWIN_INFEASIBLE; CAND_INFEASIBLE (whatever TWIN); NO_FEASIBLE_STRENGTH (no nonzero grid strength met the MODEL_FIT budget: no CAND, no fallback); INCOMPLETE otherwise; the reserve of both reported beside; each saved nonzero strength's point label recorded"
+  },
+  "D2": {
+   "comparisons": ["TWIN", "SBC_FRONTIER", "SPEND_FRONTIER"],
+   "met_label": "IMPROVEMENT_BEYOND_MATCHED_CONTROLS",
+   "control_paths": "each control path = TWIN (strength 0 of every SEX-blind path) + the distinct saved points of the SBC (or SPEND) path (aliases once; an alias of TWIN collapses into TWIN); a path given as an empty list is compared at [TWIN] (flag <key>_AT_IDENTITY); a path not given is INCOMPLETE unless recorded as not run for budget (NOT_ASSESSED_CONTROLS_NOT_RUN)",
+   "rule": "met iff (a) G1 at CAND; (b) vs TWIN: nrm.rules.comparison passes (AGG_POSITIVE pair benefit and the recipient gate, both views, both versions); (c) for the SBC and the SPEND paths: nrm.rules.frontier_comparison = DOMINATES_CONTROL_FRONTIER (bracket Q* = cheapest path point whose pooled MODEL_SELECT paired total-NLL cost is >= CAND's; AGG_POSITIVE vs Q*; no secondary metric resolved higher vs Q*) AND the recipient gate vs Q* passes AND no cheaper path point has a resolved negative pair benefit (resolved less recoverable than CAND: aggregate upper bound < 0 and both version means < 0); (d) reader targeting: the non-table winner's point pair benefit > 0 in both version means vs TWIN and every bracketing point Q*",
+   "labels": "in order: NOT_ASSESSED_NO_FEASIBLE_STRENGTH; NOT_ASSESSED_EXACT_ALIAS (every allowed nonzero strength transmits the twin's vectors: the family stops); INCOMPLETE (CAND status or utility missing); NOT_ASSESSED_TASK_INFEASIBLE (CAND fails G1: not run, never negative, never protection); NOT_COMPUTED_GRID_VALIDITY_UNKNOWN / NOT_COMPUTED_GRID_INVALID; NOT_ASSESSED_CONTROLS_NOT_RUN; INCOMPLETE (a needed input missing: grid entry, recipient views vs Q*, paired cost or secondary metric, grid vs a cheaper path point, non-table targeting input); READER_TARGETED (b and c pass, d fails); IMPROVEMENT_BEYOND_MATCHED_CONTROLS; NOT_SEPARATED (none of b, SBC_FRONTIER, SPEND_FRONTIER passes); PARTIAL_<passed, joined by +, in the order TWIN, SBC_FRONTIER, SPEND_FRONTIER>_ONLY",
+   "flags": ["CAND_ALIAS_OF_TWIN", "SBC_AT_IDENTITY", "SPEND_AT_IDENTITY", "NO_BRACKET_<key>", "RECIPIENT_GATE_FAILED_VS_<Q*>", "DOMINATED_BY_CHEAPER_<point>", "READER_TARGETED_<comparison>", "READER_SENSITIVE_ENHANCED_<point> (reported only)"],
+   "partial": "no partial outcome is a claim; NOT_SEPARATED is the default reading, never 'equal'",
+   "power": "per comparison, 2 se_agg (about 0.010 at se_agg 0.005) is the resolution threshold and about 0.015 is resolved with roughly 80% power; the conjunction of three comparisons and targeting has lower power"
+  },
+  "D2R": {
+   "labels": ["ROBUSTNESS_CONFIRMED", "ROBUSTNESS_NOT_CONFIRMED", "NOT_RUN", "NOT_COMPUTED_GRID_VALIDITY_UNKNOWN", "NOT_COMPUTED_GRID_INVALID"],
+   "release": "the strongest feasible nonzero release of the family (strongest_nonzero: among saved nonzero-strength configurations of the family's operation, G1, not an exact alias of an earlier configuration or of its TWIN, the largest registered-cell aggregate pair benefit vs TWIN; ties within 1e-12 to the smaller strength, then the lower revision, then config_id); chosen on registered MODEL_SELECT cells (winner's curse): descriptive",
+   "rule": "per comparator (TWIN, the release's own bracketing controls, reported: NEURAL_RAW, H_LJ): ROBUSTNESS_CONFIRMED iff nrm.rules.robustness = ROBUSTNESS_CONFIRMED on the merged entry (registered + robustness cells present) and refit_effectiveness = REFIT_GENUINELY_EFFECTIVE; family label CONFIRMED iff confirmed vs TWIN and every bracketing control; never changes D2",
+   "refit_effectiveness": "REFIT_GENUINELY_EFFECTIVE iff (a) R3 and R4 assignment hashes recorded and distinct from each other and from R1 / R2, every SCORE household overlap involving R3 or R4 recorded, finite and in [0, 1); and (b) grid validity (this file's rule, er_explanation included) holds on the eight seeds k0-k3, both seed pairs, and the bootstrap seeds of R1-R4; minimum set = the strongest release, its TWIN and its bracketing controls; otherwise REFIT_NOT_GENUINELY_EFFECTIVE and the failed part's cells are counted once"
+  },
+  "D3": {
+   "references": ["NEURAL_RAW", "H_LJ", "B2TWIN", "RETIRED_B3CTL", "SUCC", "TWJ", "W", "TR100", "TT100"],
+   "rule": "NRM1 G4 at CAND (all nine point-eligible references, intersection-union, AGG_POSITIVE and recipient gate each) with the reader-budget credit rule"
+  },
+  "D4": {
+   "target_references": ["NEURAL_RAW", "H_LJ"],
+   "rule": "NRM1 G5 at CAND (0.020 pair-AUC benefit over NEURAL_RAW and H_LJ; levels kept) with the reader-budget credit rule for the two targets; met iff MATERIAL_0020_RESOLVED; POSITIVE_BELOW_MATERIAL_TARGET is reported as a smaller gain, never as the criterion"
+  },
+  "reader_budget_rule_references": "a reference comparison flagged READER_BUDGET_ASYMMETRIC (ddr.readerbudget.contrast, pair view) is credited iff the non-table winner's point benefit against it is > 0 in both version means; missing inputs make it INCOMPLETE (never 'not beaten'); three-valued: NOT_CREDITED turns a met D3 into NOT_SUPERIOR and any D4 level into NOT_MET; INCOMPLETE turns a met D3, or a D4 level above NOT_MET, into INCOMPLETE; a label failing on its own results stays failing",
+  "D5": "NOT_ASSESSED_MISSING_CONTROLS unless the separately designed recipients and both sequential orders exist (then NRM1 G6)",
+  "D6": "NOT_CLAIMED unless a separate prior-art review supplies NOVELTY_REVIEW_PENDING / NOVEL_PER_SEPARATE_REVIEW / PRIOR_ART_FOUND; never inferred from performance"
+ },
+ "outcome_class": {
+  "labels": ["CANDIDATE", "COMPONENT", "TASK_ONLY_FEASIBLE_NO_PROTECTION", "TASK_INFEASIBLE", "SELECTED_STRENGTH_INFEASIBLE", "PROTECTION_NOT_ASSESSED", "INCOMPLETE"],
+  "rule": "first applicable: TASK_INFEASIBLE (D1 NO_FEASIBLE_STRENGTH, or CAND and every other saved nonzero strength fail G1); SELECTED_STRENGTH_INFEASIBLE (CAND fails G1, another saved nonzero strength passes: reported, never promoted to CAND); INCOMPLETE (CAND fails G1 with the saved strengths unrecorded or incomplete; D1 INCOMPLETE; D2 INCOMPLETE or NOT_COMPUTED_*; D2 met and D3 INCOMPLETE or NOT_COMPUTED_*); PROTECTION_NOT_ASSESSED (D2 NOT_ASSESSED_CONTROLS_NOT_RUN); CANDIDATE (D2 met and D3 met); COMPONENT (D2 met, D3 not); TASK_ONLY_FEASIBLE_NO_PROTECTION (CAND G1, D2 not met, including NOT_ASSESSED_EXACT_ALIAS, READER_TARGETED, PARTIAL_*, NOT_SEPARATED)",
+  "flags": ["D3_WITHOUT_D2", "TWIN_INFEASIBLE", "POINT_FEASIBLE_NOT_RESERVE_QUALIFIED", "FAMILY_STOPS_EXACT_ALIAS", "NO_STRENGTH_MEETS_MODEL_FIT_BUDGET", "the D2 flags", "MC flags (e.g. MC_SE_NOT_ESTIMABLE)"]
+ },
+ "registration_status": {
+  "kinds": ["ADAPTIVE", "REVISED"],
+  "registered": "a reading is registered iff it is revision 0 of DA or DB and its card was committed before any MODEL_SELECT outcome of this campaign (record card_committed_before_any_model_select_outcome)",
+  "tag": "otherwise <KIND>_<parts>: KIND = REVISED if the card was committed before any MODEL_SELECT outcome, else ADAPTIVE; parts = FS (replacement family), R<n> (revision n >= 1), R0_LATE_CARD (a revision-0 card committed after an outcome or not recorded); every D label and the outcome class of such a reading is prefixed '<tag>__' (label_unprefixed keeps the raw label)",
+  "headline": "the family headline is its registered reading; non-registered readings are reported beside it, with the number of D2 looks (campaign_summary); they are never presented as registered results",
+  "multiplicity": "one AGG_POSITIVE comparison passes a true null in about 0.07-2% of replicates under six moderate NRM1 known laws and about 8% when one version or split dominates; with K D2 looks the chance that at least one passes by chance is at most K times the per-look rate; every campaign-level sentence states K and the counts per registration status"
+ },
+ "scope": [
+  "Lower recovery for the declared development readers is not protection against every reader.",
+  "MODEL_SELECT is adaptively used: development evidence, never confirmation.",
+  "Versions share training rows; repetitions share households; reader recipes and overlapping splits are not independent datasets.",
+  "A reserve-frontier result is not superiority over every historical method.",
+  "Novelty is never inferred from performance.",
+  "Point feasibility and the reserve are not confidence preservation.",
+  "A revision or replacement-family reading is never the registered result."
+ ],
+ "change_record": []
+}

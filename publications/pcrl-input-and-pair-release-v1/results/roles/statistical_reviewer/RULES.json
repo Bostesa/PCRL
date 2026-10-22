@@ -1,0 +1,243 @@
+{
+ "schema": "IPR1-rules-v1",
+ "campaign": "pcrl_input_and_pair_release_v1",
+ "author_role": "statistical reviewer",
+ "written_before_outcomes": "writing started 2026-10-22T01:40:07Z (date -u), before any outcome of this campaign; no label read, no real-data computation, no label-reading loader called; no designer proposal read",
+ "human_readable": "RULES.md (same directory); protocol review: REPORT_PREREGISTRATION.md (same directory)",
+ "implementation": "ipr/rules.py (pure functions; imports nrm.rules unchanged as NR; load_rules() checks this file against the module constants, the NRM1 RULES.json hash and the nrm/rules.py hash); invented-data tests: python3 -m ipr.test_rules (prints JSON; exit 0 iff all pass)",
+ "status_of_every_rule": "development rule on previously and adaptively used records (MODEL_FIT and MODEL_SELECT were used by earlier campaigns); nothing is confirmation; no original limit changes; the reserve is reported, never gating; point feasibility is never confidence preservation; every uncertainty statement is asymptotic and model-based",
+ "inherited": {
+  "module": "nrm.rules imported unchanged: point_eligibility (G1), reserve_status, mc_cell / se_mc handling, aggregate, benefit_screen, target_screen, recipient_screen, comparison, frontier_comparison, robustness, claims (G4, G5, G6), alias_groups",
+  "nrm1_rules_json_sha256": "84f187768817e79ef9f2bb36151bea81f00b8f62d9179c8cd523069550674652",
+  "nrm_rules_py_sha256": "d5df868678d483a3452e251d8f24575932d23f0e5d22e3ef1ca3627a35030df1",
+  "derived_from": "ddr/rules.py and the DDR1 RULES.json (pcrl_dual_design_release_v1, publication e30cf1c6b): every DDR1 rule is kept unless listed in change_record; frc logic copied via ddr (neither ddr nor frc is imported)"
+ },
+ "z": 2.0,
+ "tie_tolerance": 1e-12,
+ "sign_convention": "NR's: pair benefit = comparator AUC - candidate AUC (positive favours the candidate); recipient difference = candidate AUC - comparator AUC; paired costs loss(candidate) - loss(comparator) (negative favours the candidate; accuracy enters as a loss)",
+ "reader_grid": {
+  "model_seed_base": 2026101205,
+  "seed_offset": 900,
+  "seed_rule": "reader seed S<v>k<k> = MODEL_SEED_BASE + 900 + 10 v + k exactly (k0, k1 registered; k2, k3 robustness; READER_SPLITS.json keys V<v>k<k> map to S<v>k<k>); recorded distinct integers; none equal to MODEL_SEED_BASE + {300, 400, 500, 600, 700, 800} + 10 v + k (k = 0..9; 120 seeds)",
+  "forbidden_offsets": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "offset_900_disclosure": "the +900 reader-seed base and the bootstrap base 2026102300 appear in no earlier READER_SPLITS.json of the repository (checked by text search at 01:44Z); +800 was realized by DDR1 and is forbidden",
+  "bootstrap_seed_base": 2026102300,
+  "bootstrap_rule": "household bootstrap of SCORE, B = 400, seed 2026102300 + 100 v + repetition index; bootstrap seeds are recorded per (version, repetition) as S<v><R> and must equal the registered values",
+  "repetition_index": {
+   "R1": 0,
+   "R2": 1,
+   "R3": 2,
+   "R4": 3
+  },
+  "split_tag": "IPR1_devgrid_R{r}",
+  "registered_cells": [
+   "S0R1k0",
+   "S0R1k1",
+   "S0R2k0",
+   "S0R2k1",
+   "S1R1k0",
+   "S1R1k1",
+   "S1R2k0",
+   "S1R2k1"
+  ],
+  "robustness_cells": "R3, R4 with k0-k3 and R1, R2 with k2, k3 (24 cells); never a decision input",
+  "validity": "READER_SEEDS_EFFECTIVE iff the seed rule and the bootstrap rule hold and, per seed pair (k0 / k1; for the refit also k2 / k3), every seed-dependent recipe is checked, NRM1 A-SC1 (iii) explains every seed-dependent equality off the minimum set, and on the minimum set an equality is explained only by er_explanation; minimum set = a D2 reading's CAND, TWIN and the saved points of its three control paths (SBC, SPEND, RO) (for the refit: the strongest release, its TWIN and its bracketing controls of the three paths); references, ablations and D5 comparators are off it; claims need grid_valid recorded and exactly true"
+ },
+ "er_explanation": {
+  "status": "PROSPECTIVE (registered before any grid output); FRC1 ER1 restricted to its documented mechanism (as DDR1)",
+  "min_leaf": {
+   "ET5": 5,
+   "ET25": 25
+  },
+  "pool_people": 8001,
+  "rule": "a seed-dependent k-pair equality on the minimum set is explained iff the recipe is ET5 or ET25, NRM1 (iii) (a) + (b) + (c) hold and the recorded distinct-input count of the view is at most 8001 // min_leaf (ET5 1600, ET25 320); any other seed-dependent recipe equal on the minimum set invalidates the grid; seed pairs are judged separately; explained equalities are reported with their n_eff"
+ },
+ "decisions": {
+  "configuration": "CAND = the family's operation at the strength chosen by its card's MODEL_FIT-only rule (per version, before any MODEL_SELECT read); D1-D5 are read at CAND, never at another strength, the strongest release or the ablation",
+  "strength_format": "a strength is a number, a component vector (for example recipient-split strengths) or a per-version dict of either; nonzero in a version iff every component is finite and >= 0 and at least one is > 0; the tie-break scalar is the sum of every component over both versions; CAND_STRENGTH_DIFFERS_BY_VERSION is flagged from cand.strength",
+  "D1": {
+   "labels": [
+    "TASK_FEASIBLE",
+    "CAND_FEASIBLE_TWIN_INFEASIBLE",
+    "CAND_INFEASIBLE",
+    "NO_FEASIBLE_STRENGTH",
+    "INCOMPLETE"
+   ],
+   "rule": "as DDR1: G1 (24 clauses + 4 guards at the point, both versions) for TWIN and CAND; the reserve beside"
+  },
+  "D2": {
+   "comparisons": [
+    "TWIN",
+    "SBC_FRONTIER",
+    "SPEND_FRONTIER",
+    "RO_FRONTIER"
+   ],
+   "paths": [
+    [
+     "SBC_FRONTIER",
+     "SBC"
+    ],
+    [
+     "SPEND_FRONTIER",
+     "SPEND"
+    ],
+    [
+     "RO_FRONTIER",
+     "RO"
+    ]
+   ],
+   "met_labels": [
+    "IMPROVEMENT_BEYOND_MATCHED_CONTROLS",
+    "RELEASE_ONLY_MAP_BEYOND_MATCHED_CONTROLS",
+    "SEX_BLIND_IMPROVEMENT_BEYOND_TWIN_AND_SPEND"
+   ],
+   "ro_kinds": [
+    "SUBSTITUTED",
+    "GENERIC_ZTILT"
+   ],
+   "ro_scope": {
+    "SUBSTITUTED": "the RO controls are the same operation driven by a release-only SEX surrogate (a function of the twin's released vectors fitted on MODEL_FIT, cross-fitted): passing RO_FRONTIER means the gain needs SEX information beyond what the twin's release carries, for the declared readers",
+    "GENERIC_ZTILT": "the RO controls are the generic release-only tilt ZTILT of the twin, not the operation itself: passing RO_FRONTIER means the gain is not reproduced by that tilt at matched spend; the same operation driven only by the twin's release was not built",
+    "RELEASE_ONLY_OPERATION": "the operation is itself a SEX-targeted function of the twin's released vectors: it uses no SEX information beyond the twin's release by construction; passing RO_FRONTIER means it is a better release-only map than the generic tilt ZTILT at matched spend, never information beyond the release",
+    "SEX_BLIND_OPERATION": "the operation reads no SEX (SEX enters only through the MODEL_FIT strength-selection guards): its SBC and release-only (RO) comparisons are degenerate by construction (each would be the operation itself), so D2 was assessed against the twin and the SEX-blind spending path only; no SEX-targeting claim and no claim about SEX information beyond the twin's release is possible; a generic ZTILT path, if built, is reported beside and never gates"
+   },
+   "control_paths": "each control path = TWIN (strength 0) + the distinct saved points of the SBC, SPEND or RO path (aliases once; an alias of TWIN collapses into TWIN); an empty list is compared at [TWIN] (flag <key>_AT_IDENTITY); a path not given is INCOMPLETE unless recorded as not run for budget (NOT_ASSESSED_CONTROLS_NOT_RUN) or, for SBC only, the operation is declared SEX-blind",
+   "ro_declaration": "record ro = {kind: SUBSTITUTED | GENERIC_ZTILT, operation_release_only: bool} from the card, required whenever the RO path is given (else INCOMPLETE); operation_release_only true requires kind GENERIC_ZTILT (else INCOMPLETE); flags RO_<kind>, RELEASE_ONLY_OPERATION",
+   "gating_sex_blind": [
+    "TWIN",
+    "SPEND_FRONTIER"
+   ],
+   "sex_blind_operation": "record operation_sex_blind (bool, card; default false): the operation has no SEX-dependent fitted input (SEX only in the MODEL_FIT strength-selection guards). Its SBC path and its substituted RO path would be the operation itself (degenerate by construction): an SBC path or a SUBSTITUTED RO path given is INCOMPLETE; D2 gates on TWIN and SPEND_FRONTIER only (plus targeting vs TWIN and the SPEND Q*); met label SEX_BLIND_IMPROVEMENT_BEYOND_TWIN_AND_SPEND (scope RO_SCOPE.SEX_BLIND_OPERATION: no SEX-targeting claim); a GENERIC_ZTILT RO path, if given, is computed and reported beside, never gating; flags SEX_BLIND_OPERATION, SBC_DEGENERATE_BY_CONSTRUCTION, RO_DEGENERATE_BY_CONSTRUCTION, RO_GENERIC_ZTILT_REPORTED_BESIDE",
+   "rule": "met iff (a) G1 at CAND; (b) vs TWIN: nrm.rules.comparison passes; (c) for each of the SBC, SPEND and RO paths: nrm.rules.frontier_comparison = DOMINATES_CONTROL_FRONTIER AND the recipient gate vs Q* AND no cheaper path point resolved less recoverable than CAND; (d) the non-table winner's point pair benefit > 0 in both version means vs TWIN and every gating Q*; met label SEX_BLIND_IMPROVEMENT_BEYOND_TWIN_AND_SPEND for a declared SEX-blind operation (gating: TWIN and SPEND only), RELEASE_ONLY_MAP_BEYOND_MATCHED_CONTROLS when ro.operation_release_only, else IMPROVEMENT_BEYOND_MATCHED_CONTROLS; every sentence quoting a D2 label carries its scope (D2 record field scope = ro.scope)",
+   "labels": "in order: NOT_ASSESSED_NO_FEASIBLE_STRENGTH; NOT_ASSESSED_EXACT_ALIAS; INCOMPLETE (CAND status or utility); NOT_ASSESSED_TASK_INFEASIBLE; NOT_COMPUTED_GRID_VALIDITY_UNKNOWN / NOT_COMPUTED_GRID_INVALID; INCOMPLETE (operation_sex_blind not boolean, or an SBC path given for a SEX-blind operation); NOT_ASSESSED_CONTROLS_NOT_RUN (a gating path not run for budget); INCOMPLETE (RO declaration, a SUBSTITUTED RO path for a SEX-blind operation, any needed input); READER_TARGETED; the met label; NOT_SEPARATED (no gating comparison passes); PARTIAL_<passed, joined by +, in the order TWIN, SBC_FRONTIER, SPEND_FRONTIER, RO_FRONTIER>_ONLY",
+   "flags": [
+    "CAND_ALIAS_OF_TWIN",
+    "SBC_AT_IDENTITY",
+    "SPEND_AT_IDENTITY",
+    "RO_AT_IDENTITY",
+    "NO_BRACKET_<key>",
+    "RECIPIENT_GATE_FAILED_VS_<Q*>",
+    "DOMINATED_BY_CHEAPER_<point>",
+    "READER_TARGETED_<comparison>",
+    "READER_SENSITIVE_ENHANCED_<point> (reported only)",
+    "RO_SUBSTITUTED",
+    "RO_GENERIC_ZTILT",
+    "RELEASE_ONLY_OPERATION",
+    "SEX_BLIND_OPERATION",
+    "SBC_CONSTRUCTION_DIFFERS_BY_VERSION (reported)",
+    "CONTROL_GRID_COARSE_<key> / CONTROL_PATH_MAY_NOT_BRACKET_<key> / CONTROL_POINT_RULE_NOT_FOLLOWED_<key> / CONTROL_GRID_FINENESS_INCOMPLETE_<key> (from grid_fineness; reported)"
+   ],
+   "grid_fineness": {
+    "fraction": 0.25,
+    "rule": "per path and version on MODEL_FIT, before any MODEL_SELECT read: with s = CAND's out-of-fold paired total-NLL spend over TWIN (> 0) and SE the household-clustered SE of the paired difference upper - CAND, FINE iff the saved lower point spends >= 0.75 s (and <= s) and the saved upper point spends >= s + 2 SE and <= s + 2 SE + 0.25 s; CONTROL_PATH_MAY_NOT_BRACKET if the path's largest grid spend < s + 2 SE; NOT_APPLICABLE_CAND_NOT_ABOVE_TWIN if s <= 0; reported, never gating"
+   },
+   "partial": "no partial outcome is a claim; NOT_SEPARATED is the default reading, never \"equal\"",
+   "power": "per comparison, 2 se_agg is the resolution threshold (0.018-0.036 at the se_agg 0.009-0.018 realized on this grid design) and about 2.84 se_agg (0.026-0.051) is the benefit resolved with roughly 80% power; D2 needs four resolved comparisons plus targeting, so its power is lower, and lowest when the release-only control reproduces part of the gain; \"not separated\" is the default reading, never \"equal\""
+  },
+  "D2R": {
+   "labels": [
+    "ROBUSTNESS_CONFIRMED",
+    "ROBUSTNESS_NOT_CONFIRMED",
+    "NOT_RUN",
+    "NOT_COMPUTED_GRID_VALIDITY_UNKNOWN",
+    "NOT_COMPUTED_GRID_INVALID",
+    "INCOMPLETE"
+   ],
+   "rule": "as DDR1 with the decisive set {TWIN, the strongest release's own bracketing controls of the SBC, SPEND and RO paths}; a path bracket not recorded (absent key, or a brackets() record with status INCOMPLETE) gives INCOMPLETE; ROBUSTNESS_CONFIRMED needs nrm.rules.robustness confirmed on the merged registered + robustness cells and REFIT_GENUINELY_EFFECTIVE; descriptive; never changes D2"
+  },
+  "D3": {
+   "references": [
+    "NEURAL_RAW",
+    "H_LJ",
+    "B2TWIN",
+    "RETIRED_B3CTL",
+    "SUCC",
+    "TWJ",
+    "W",
+    "TR100",
+    "TT100"
+   ],
+   "rule": "NRM1 G4 at CAND with the reader-budget credit rule (as DDR1); the dual-design releases are reported beside, never members"
+  },
+  "D4": {
+   "target_references": [
+    "NEURAL_RAW",
+    "H_LJ"
+   ],
+   "rule": "NRM1 G5 at CAND with the reader-budget credit rule for the two targets; met iff MATERIAL_0020_RESOLVED"
+  },
+  "D5": {
+   "collapse_values": [
+    "SEPARATE",
+    "JOINT"
+   ],
+   "rule": "NRM1 G6 unchanged on rec.joint (NOT_APPLICABLE_NOT_JOINT when the card declares no joint design; NOT_APPLICABLE_ONE_OUTPUT_CHANGED; NOT_ASSESSED_MISSING_CONTROLS when a comparator is not named; JOINT_CONTRIBUTION_SUPPORTED / NOT_SUPPORTED), except INCOMPLETE when a declared joint design names all three comparators but a grid entry (pair or a recipient view) or paired cost of one is missing; gated like D3 / D4 (carries D2's NOT_ASSESSED_* / NOT_COMPUTED_* gate label; INCOMPLETE when CAND is not fitted or not G1-eligible); never changes the outcome class",
+   "collapsed_orders": "joint.collapsed = {income_first | occupation_first: SEPARATE | JOINT}, declared in the card before its first fit with the construction argument: an order equal to the joint design gives NOT_APPLICABLE_JOINT_EQUALS_SEQUENTIAL (no joint-design claim possible); an order equal to the separate design is replaced by the separate comparator (reduced test; NR G6 label; flag D5_REDUCED_<ORDER>_EQUALS_SEPARATE); another comparator named for a collapsed order, or a malformed declaration, is INCOMPLETE; without a declaration an order that is not built is not named and NR gives NOT_ASSESSED_MISSING_CONTROLS"
+  },
+  "D6": "NOT_CLAIMED unless a separate prior-art review supplies NOVELTY_REVIEW_PENDING / NOVEL_PER_SEPARATE_REVIEW / PRIOR_ART_FOUND; never inferred from performance"
+ },
+ "outcome_class": {
+  "labels": [
+   "CANDIDATE",
+   "COMPONENT",
+   "TASK_ONLY_FEASIBLE_NO_PROTECTION",
+   "TASK_INFEASIBLE",
+   "SELECTED_STRENGTH_INFEASIBLE",
+   "PROTECTION_NOT_ASSESSED",
+   "INCOMPLETE"
+  ],
+  "rule": "as DDR1 (first applicable: TASK_INFEASIBLE; SELECTED_STRENGTH_INFEASIBLE; INCOMPLETE; PROTECTION_NOT_ASSESSED; CANDIDATE; COMPONENT; TASK_ONLY_FEASIBLE_NO_PROTECTION); D2 met means either met label; D4 and D5 never change the class; ro_scope is carried with the class",
+  "flags": [
+   "D3_WITHOUT_D2",
+   "TWIN_INFEASIBLE",
+   "POINT_FEASIBLE_NOT_RESERVE_QUALIFIED",
+   "FAMILY_STOPS_EXACT_ALIAS",
+   "NO_STRENGTH_MEETS_MODEL_FIT_BUDGET",
+   "CAND_STRENGTH_DIFFERS_BY_VERSION",
+   "the D2 flags",
+   "MC flags"
+  ]
+ },
+ "registration_status": {
+  "kinds": [
+   "ADAPTIVE",
+   "REVISED"
+  ],
+  "family_pattern": "(IA|IB|FS_[A-Za-z0-9]+)",
+  "registered_families": [
+   "IA",
+   "IB"
+  ],
+  "registered": "a reading is registered iff it is revision 0 of IA or IB and its card was committed before any MODEL_SELECT outcome of this campaign; a family name other than IA, IB or FS_<letters/digits> is refused",
+  "tag": "otherwise <KIND>_<parts> as DDR1 (REVISED / ADAPTIVE; FS, R<n>, R0_LATE_CARD); every label prefixed <tag>__",
+  "multiplicity": "one AGG_POSITIVE comparison passes a true null in about 0.07-2% of replicates under six moderate NRM1 known laws and about 8% when one version or split dominates (NRM1 RULES.md 5.5); a D2 look is an intersection-union conjunction of four such comparisons (TWIN, SBC, SPEND, RO), so its false-pass rate is at most that of its weakest member; with K D2 looks the chance that at least one passes by chance is at most K times the per-look rate"
+ },
+ "scope": [
+  "Lower recovery for the declared development readers is not protection against every reader.",
+  "MODEL_SELECT is adaptively used: development evidence, never confirmation.",
+  "Versions share training rows; repetitions share households; reader recipes and overlapping splits are not independent datasets.",
+  "A reserve-frontier result is not superiority over every historical method.",
+  "Novelty is never inferred from performance.",
+  "Point feasibility and the reserve are not confidence preservation.",
+  "A revision or replacement-family reading is never the registered result.",
+  "A release-only map that passes RO_FRONTIER uses no SEX information beyond the twin's release; only a SUBSTITUTED RO path tests information beyond the release."
+ ],
+ "change_record": [
+  "D2: third gating control path RO (RO_FRONTIER) with its declared kind; separate met label for a release-only operation",
+  "D2: a declared SEX-blind operation (no SEX-dependent fitted input) has degenerate SBC and RO comparisons; D2 gates on TWIN and SPEND only, met label SEX_BLIND_IMPROVEMENT_BEYOND_TWIN_AND_SPEND (added at the coordinator's request, about 02:00Z, before registration; no proposal read)",
+  "D5: sequential orders collapsing by construction (card): to the separate design -> reduced NR G6; to the joint design -> NOT_APPLICABLE_JOINT_EQUALS_SEQUENTIAL (coordinator's request, about 02:00Z)",
+  "D2: grid_fineness (reported) and the flags SBC_CONSTRUCTION_DIFFERS_BY_VERSION, CAND_STRENGTH_DIFFERS_BY_VERSION",
+  "D5: NR G6 labels passed through (NOT_APPLICABLE_NOT_JOINT for no joint design), INCOMPLETE for missing D5 records, gated like D3 / D4",
+  "strengths: component vectors read (DDR1 deviation 8 / closing statement 1.2.1)",
+  "D2R: three paths; unrecorded bracket -> INCOMPLETE; release id from selected or config_id (DDR1 deviation 12 (c))",
+  "families IA, IB, FS_<name>; registered only IA / IB revision 0",
+  "reader grid: +900 offset, 300-800 forbidden, bootstrap 2026102300, split tag IPR1_devgrid_R{r}"
+ ]
+}

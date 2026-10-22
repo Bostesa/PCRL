@@ -1,0 +1,136 @@
+{
+ "admitted_fields": {
+  "ATTACK_FIT": [
+   "features",
+   "sex"
+  ],
+  "ATTACK_VALIDATION": [
+   "features",
+   "sex"
+  ],
+  "CALIBRATION": [
+   "features",
+   "income",
+   "occupation"
+  ],
+  "DEV_REPORT": [
+   "features",
+   "raw_inputs"
+  ],
+  "MODEL_FIT": [
+   "features",
+   "income",
+   "occupation",
+   "sex",
+   "raw_inputs"
+  ],
+  "MODEL_SELECT": [
+   "features",
+   "income",
+   "occupation",
+   "sex"
+  ]
+ },
+ "closed_label_roles": [
+  "ATTACK_FIT",
+  "ATTACK_VALIDATION",
+  "DEV_REPORT"
+ ],
+ "configuration_limit": 48,
+ "gates": [
+  "no label read before the committed registration and its verified public receipt (ipr.common.registered)",
+  "'fit' and 'calibrate' reads need a committed, unchanged mechanism card under results/<campaign>/cards/ (path, SHA-256 and commit logged with the read)",
+  "MODEL_SELECT labels are never read by a fitting entry point (ipr.ia, ipr.ib, ipr.ctl, ipr.fs)",
+  "label reads run only inside a queue unit (IPR_UNIT_ID)",
+  "entry points can be added only by a dated, committed ACCESS_AMENDMENTS.json entry before first use"
+ ],
+ "log": ".private/<campaign>/access/LABEL_ACCESS.jsonl (append-only; utc, unit id, entry point, role, fields, operation, purpose, people, households, row-set hash, card)",
+ "operations": {
+  "benchmark": {
+   "entry_points": [
+    "ipr.evaluate"
+   ],
+   "fields": [
+    "income",
+    "occupation",
+    "sex"
+   ],
+   "roles": [
+    "MODEL_SELECT"
+   ],
+   "what": "original-benchmark utility (24 clauses + 4 guards), the development reserve and paired utility costs of saved releases (logged adaptive evaluation; never a fitting input)"
+  },
+  "calibrate": {
+   "card": true,
+   "entry_points": [
+    "ipr.ia",
+    "ipr.ib",
+    "ipr.ctl",
+    "ipr.fs"
+   ],
+   "fields": [
+    "occupation",
+    "income"
+   ],
+   "roles": [
+    "CALIBRATION"
+   ],
+   "what": "calibration parameters only (CALIBRATION has no SEX label); not planned by the registered card"
+  },
+  "fit": {
+   "card": true,
+   "entry_points": [
+    "ipr.ia",
+    "ipr.ib",
+    "ipr.ctl",
+    "ipr.fs"
+   ],
+   "fields": [
+    "occupation",
+    "income",
+    "sex"
+   ],
+   "roles": [
+    "MODEL_FIT"
+   ],
+   "what": "fitting release parameters of the family, its task-only twin or a control on the full MODEL_FIT pool (household-grouped internal folds for any cross-fitting); SEX only as a training label of a protection objective (propensity and SEX-conditional occupation statistics) or as the evaluation label of the MODEL_FIT cross-fitted check"
+  },
+  "readers": {
+   "entry_points": [
+    "ipr.devreaders",
+    "ipr.readercustody",
+    "ipr.richreaders"
+   ],
+   "fields": [
+    "sex"
+   ],
+   "roles": [
+    "MODEL_SELECT"
+   ],
+   "what": "fresh development reader grid (FIT / VALIDATION / SCORE reader roles inside MODEL_SELECT)"
+  },
+  "verify": {
+   "entry_points": [
+    "results/pcrl_input_and_pair_release_v1/roles/verifier/code/"
+   ],
+   "fields": [
+    "income",
+    "occupation",
+    "sex"
+   ],
+   "roles": [
+    "MODEL_FIT",
+    "CALIBRATION",
+    "MODEL_SELECT"
+   ],
+   "what": "independent verifier replay with separate metric, selection and reader code"
+  }
+ },
+ "refused_everywhere": [
+  "SEALED_ASSESSMENT",
+  "capped-out records"
+ ],
+ "schema": "IPR1-access-policy-v1",
+ "source_artefacts": "the dual-design release, finite-routing comparison and new-release-mechanisms private artefacts are read-only inputs (SOURCE_ADMISSION.json); nothing is written under the source campaigns' paths",
+ "utc": "2026-10-22T01:45:35+00:00"
+}
