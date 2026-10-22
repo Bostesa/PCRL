@@ -4,6 +4,10 @@ DEVELOPMENT on previously used public-use U.S. Census Bureau ACS 2019 1-Year PUM
 The service maps six raw fields (AGEP, WKHP, COW, SCHL, MAR, POBP; admitted 145-column encoding X) to an income vector (n, 2) and an
 occupation vector (n, 5); each recipient receives only its own float64 vector and its argmax decision. SEX is never a runtime input.
 
+Shared path points (card CTL_PATHS_v1; saved by the family fit units through `ipr.paths.save_shared`): CTL_DQ_<step> and
+CTL_RO_<strength>, the SEX-blind spend path (DQ) and the generic release-only path (RO) of the shared twin, deployed here from the
+twin's models plus the path payload, so that a point bracketing both families' candidates is saved and counted once.
+
 CTL_TWIN (card CTL_TWIN_v1): the cached task teachers of the new-release-mechanisms campaign (`TASK.pkl`, sklearn HGB with the
 A1_PO_16 settings, inner household-CV T*, full refit on the 20,000 MODEL_FIT people with income / occupation labels; pinned by hash in
 SOURCE_ADMISSION.json), released unchanged: P_inc = HGB_inc(Z), P_occ = HGB_occ(Z), Z = ohn.fam_a.compact_po(X). It is bitwise the
@@ -82,7 +86,11 @@ def predict(config_id, version, X, feature_names, draw=0, keys=None):
         raise PermissionError('deterministic release: only draw 0 exists')
     P = FK.load_model(FAMILY, config_id, version)
     X, names = FK.check_X(X, feature_names, P)
-    pi, po = twin_vectors(P, FK.compact(X, names))
+    Z = FK.compact(X, names)
+    pi, po = twin_vectors(P, Z)
+    if P.get('op', 'twin') in ('dq', 'ro'):                  # a shared SPEND / RO path point (card CTL_PATHS_v1, ipr.paths)
+        from .. import paths as PA
+        pi, po = PA.predict_path(P, pi, po, Z)
     return {'income': pi, 'occupation': po}
 
 

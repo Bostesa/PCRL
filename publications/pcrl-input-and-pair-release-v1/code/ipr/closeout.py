@@ -23,7 +23,7 @@ from . import common as C
 from . import jobqueue as Q
 from . import release as RL
 
-LINEAGE_SNAPSHOT = 'c7829e99e6af303cdf070f698b6088e024f3c2b806974a6b1f711785bb50c567'     # 23:22:30Z (this campaign; unchanged since CTS1)
+LINEAGE_SNAPSHOT = 'c7829e99e6af303cdf070f698b6088e024f3c2b806974a6b1f711785bb50c567'     # read 02:56:10Z by this campaign (unchanged since CTS1)
 
 
 def _json(p):

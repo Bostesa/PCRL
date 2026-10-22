@@ -72,6 +72,14 @@ def comparator_release(spec, v):
         fam, cfg = spec[4:].split('/')
         arr, rec = FRL.load(fam, cfg, v, roles=('MODEL_SELECT',))
         return arr['MODEL_SELECT'], f'source frc {fam}/{cfg}/V{v} ({rec["kind"]})'
+    if spec.startswith('ROLE:'):
+        from . import roles as RO
+        real = RO.resolve(spec, v)
+        if real is None:
+            raise KeyError(f'{spec} has no version {v} configuration')
+        fam, cfg = real.split('/')
+        arr, rec = RL.load(fam, cfg, v, roles=('MODEL_SELECT',))
+        return arr['MODEL_SELECT'], f'{spec} = {fam}/{cfg}/V{v} ({rec["kind"]})'
     if spec.startswith('DDR:'):
         from ddr import release as DRL
         fam, cfg = spec[4:].split('/')
@@ -211,7 +219,15 @@ def reserve_of(u, v):
 
 def release_cmd(family, config, compare=(), tag=None, source=False):
     t0 = time.process_time()
-    if source == 'frc':
+    if source == 'role':                                   # a role member (ipr.roles): per version the configuration it names
+        from . import roles as RO
+        d = C.RUNS / 'ROLES' / config
+
+        def loader(f, c, v):
+            fam_, cfg_ = RO.resolve('ROLE:' + c, v).split('/')
+            return RL.load(fam_, cfg_, v, roles=('MODEL_SELECT',))
+        exists = (lambda f, c, v: RO.resolve('ROLE:' + c, v) is not None)
+    elif source == 'frc':
         from frc import release as FRL
         d = C.RUNS / 'SOURCE_FRC' / family / config
         loader, exists = (lambda f, c, v: FRL.load(f, c, v, roles=('MODEL_SELECT',))), FRL.exists
@@ -246,6 +262,11 @@ def release_cmd(family, config, compare=(), tag=None, source=False):
         pp = per_person(S, rel)
         costs = {}
         for spec in compare:
+            if spec.startswith('ROLE:'):
+                from . import roles as RO
+                if RO.resolve(spec, v) is None:
+                    costs[spec] = {'missing': True, 'note': f'{spec} has no version {v} configuration'}
+                    continue
             if '/' in spec and ':' not in spec and not RL.exists(*spec.split('/'), v):
                 costs[spec] = {'missing': True, 'note': f'{spec} has no version {v} release (an alias or NOT_FEASIBLE there)'}
                 continue
@@ -388,6 +409,8 @@ def main(argv=None):
     s2.add_argument('--compare', action='append', default=[]); s2.add_argument('--tag', default=None)
     s3 = sub.add_parser('source_ddr'); s3.add_argument('--family', required=True); s3.add_argument('--config', required=True)
     s3.add_argument('--compare', action='append', default=[]); s3.add_argument('--tag', default=None)
+    s4 = sub.add_parser('roles'); s4.add_argument('--role', action='append', required=True)
+    s4.add_argument('--compare', action='append', default=[]); s4.add_argument('--tag', default=None)
     f = sub.add_parser('references'); f.add_argument('--name', action='append', required=True); f.add_argument('--tag', default=None)
     mny = sub.add_parser('many'); mny.add_argument('--release', action='append', required=True, help='FAMILY/CONFIG (this campaign)')
     mny.add_argument('--compare', action='append', default=[]); mny.add_argument('--tag', default=None)
@@ -401,6 +424,10 @@ def main(argv=None):
         release_cmd(a.family, a.config, a.compare, a.tag, source='frc'); return 0
     if a.cmd == 'source_ddr':
         release_cmd(a.family, a.config, a.compare, a.tag, source='ddr'); return 0
+    if a.cmd == 'roles':                                   # role members (ipr.roles), one record each under runs/ROLES/<name>
+        for name in a.role:
+            release_cmd('ROLE', name, [c for c in a.compare if c != f'ROLE:{name}'], a.tag, source='role')
+        return 0
     if a.cmd == 'references':
         reference_cmd(a.name, a.tag); return 0
     if a.cmd == 'many':                                   # several releases of this campaign in one unit (one record each)

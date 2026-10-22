@@ -14,7 +14,7 @@ read-only.
 Pins:
 - the new-release-mechanisms publication 682068d52 (publications/pcrl-new-release-mechanisms-v1), verified on the GitHub remote with
   `git ls-remote`: every published results file and every published code file (code/nrm/**/*.py) is compared byte for byte (git blob
-  ids, after the source's own sanitiser) with the local research copy at this branch's base (research tip fd933a824); files written
+  ids, after the source's own sanitiser) with the local research copy at the new-release-mechanisms research tip fd933a824; files written
   after that publication are listed, not hidden;
 - the source chain the new-release-mechanisms campaign admitted: its published SOURCE_ADMISSION.json must be byte-identical to the
   local copy (it pins the controlled training-size publication and, through it, the occupation-headroom and H3 sources and their

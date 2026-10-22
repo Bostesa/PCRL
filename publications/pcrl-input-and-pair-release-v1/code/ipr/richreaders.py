@@ -66,16 +66,18 @@ def train(views_by_config, sex, version):
     return out, time.process_time() - t0
 
 
-def save(family, version, models, extra):
+def save(family, version, models, extra, rev=None):
+    """The registered fit's readers (RICH_READERS_V<v>) or, with rev = 'R<n>', a revision fit's (RICH_READERS_R<n>_V<v>); write-once."""
     d = C.RUNS / family
     d.mkdir(parents=True, exist_ok=True, mode=0o700)
-    p = d / f'RICH_READERS_V{int(version)}.pkl'
+    stem = f'RICH_READERS_{rev}_V{int(version)}' if rev else f'RICH_READERS_V{int(version)}'
+    p = d / f'{stem}.pkl'
     buf = pickle.dumps({'models': models, **extra}, protocol=5)
     with open(p, 'xb') as f:
         f.write(buf)
     import hashlib
     sha = hashlib.sha256(buf).hexdigest()
-    (d / f'RICH_READERS_V{int(version)}.sha256').write_text(sha)
+    (d / f'{stem}.sha256').write_text(sha)
     return sha
 
 
@@ -120,10 +122,11 @@ def score(spec_path):
             fam_r = m['readers_of']
             if fam_r not in cache:
                 cache[fam_r] = _load(fam_r, v)
-            readers = cache[fam_r]['models'].get(m['reader_key'])
+            mv = (m.get('by_version') or {}).get(str(v), m)       # a shared CTL point is keyed per version
+            readers = cache[fam_r]['models'].get(mv['reader_key'])
             if readers is None:
                 continue
-            arr, rec = RL.load(m['family'], m['config'], v, roles=('MODEL_SELECT',))
+            arr, rec = RL.load(mv['family'], mv['config'], v, roles=('MODEL_SELECT',))
             pI, pO = arr['MODEL_SELECT']['income'], arr['MODEL_SELECT']['occupation']
             for view, rd in readers.items():
                 F = features(pI, pO, view)

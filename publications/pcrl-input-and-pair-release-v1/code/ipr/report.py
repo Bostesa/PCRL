@@ -34,6 +34,9 @@ def _eval(spec):
         fam, cfg = spec[4:].split('/')
         p = C.RUNS / 'SOURCE_DDR' / fam / cfg / 'EVAL_MS.json'
         return json.loads(p.read_text())['versions'] if p.is_file() else None
+    if spec.startswith('ROLE:'):
+        p = C.RUNS / 'ROLES' / spec[5:] / 'EVAL_MS.json'
+        return json.loads(p.read_text())['versions'] if p.is_file() else None
     fam, cfg = spec.split('/')
     p = C.RUNS / fam / cfg / 'EVAL_MS.json'
     return json.loads(p.read_text())['versions'] if p.is_file() else None
@@ -92,10 +95,13 @@ def _merge(grid, other):
 
 def _spend_vs_twin(member):
     """MODEL_SELECT paired total-NLL cost of a family release against the shared twin per version (income + occupation NLL)."""
-    fam, cfg = member.split('/')
     if member == TWIN_SPEC:
         return [0.0, 0.0]
-    p = C.RUNS / fam / cfg / 'EVAL_MS.json'
+    if member.startswith('ROLE:'):
+        p = C.RUNS / 'ROLES' / member[5:] / 'EVAL_MS.json'
+    else:
+        fam, cfg = member.split('/')
+        p = C.RUNS / fam / cfg / 'EVAL_MS.json'
     if not p.is_file():
         return None
     r = json.loads(p.read_text())['versions']
@@ -130,6 +136,8 @@ def tables(main='IPR1_MAIN', extra=(), rob=None):
             evs = f"{m['family']}/{m['config']}"
         elif m.get('type') == 'ddr':
             evs = f"DDR:{m['family']}/{m['config']}"
+        elif m.get('type') == 'arrays' and m.get('role'):
+            evs = f"ROLE:{m['role']}"
         elif name in ('W',):
             evs = 'REF:W'
         elif m.get('type') == 'reference':
@@ -198,14 +206,19 @@ def tables(main='IPR1_MAIN', extra=(), rob=None):
     for p in sorted((C.RESULTS / 'claims').glob('BESIDE_*.json')):
         r = json.loads(p.read_text())
         rec.setdefault('beside', {})[p.stem] = r
-        for comp, x in r['comparisons'].items():
+        for key, x in r['comparisons'].items():
+            if x.get('missing'):
+                lines.append(f'- {key}: missing')
+                continue
             vm = x.get('version_means') or {}
-            lines.append(f"- {r['cand']} vs {comp} ({r['bank']}): {x['mean']:+.4f} (se_agg {x['se_agg']:.4f}; V0 {vm.get('0', float('nan')):+.4f}, "
-                         f"V1 {vm.get('1', float('nan')):+.4f}) `{x['label']}`")
+            f4 = lambda y: f'{y:+.4f}' if isinstance(y, (int, float)) else '-'
+            lines.append(f"- {x.get('cand', r.get('cand'))} vs {x.get('comparator', key)} ({r['bank']}): {x['mean']:+.4f} (se_agg "
+                         f"{x['se_agg']:.4f}; V0 {f4(vm.get('0'))}, V1 {f4(vm.get('1'))}) `{x['label']}`; recipient gate "
+                         f"{x.get('recipient_gate_pass')}")
     lines += ['', '## 8. MODEL_SELECT spend: paired total-NLL cost against CTL_TWIN (income + occupation, nats; V0 / V1)', '']
     for name, m in spec['members'].items():
-        if m.get('type') == 'ipr':
-            sv = _spend_vs_twin(f"{m['family']}/{m['config']}")
+        if m.get('type') in ('ipr', 'arrays') and (m.get('type') == 'ipr' or m.get('role')):
+            sv = _spend_vs_twin(f"{m['family']}/{m['config']}" if m.get('type') == 'ipr' else f"ROLE:{m['role']}")
             if sv:
                 rec.setdefault('spend_vs_twin', {})[name] = sv
                 lines.append(f"- {name}: " + ' / '.join('-' if x is None else f'{x:+.5f}' for x in sv))

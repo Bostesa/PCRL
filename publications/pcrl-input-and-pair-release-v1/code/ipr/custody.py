@@ -4,10 +4,17 @@
     python3 -m ipr.custody offdevice SRC_DIR DEST  # copy one backup to an already attached drive and repeat the check there (nothing is
                                                   # mounted, unmounted or forced by this tool)
 
-Adapted unchanged from frc.custody / nrm.custody (constants only). A backup holds: TIP_COMMIT; the branch bundle (base = the new-release-
-mechanisms research tip fd933a824 this branch started from .. this branch); code.tar (git archive of the code and the public
-records the check needs); private.tar (this campaign's private tree, plus the admitted source copies the code reads);
-MANIFEST.sha256; RESTORE_CHECK.json. The check re-hashes the manifest, verifies the bundle, extracts both archives into a fresh
+Adapted from frc.custody / nrm.custody (constants, plus the disk-budget change below). A backup holds: TIP_COMMIT; the branch bundle (base = the dual-design
+release research tip c577424c0 this branch started from .. this branch); code.tar (git archive of the code and the public
+records the check needs); private.tar.gz (this campaign's private tree, plus the admitted source copies the code reads);
+MANIFEST.sha256; RESTORE_CHECK.json.
+
+Disk budget (this campaign, written 2026-10-22 05:45Z; PROTOCOL_DEVIATIONS item 11): the volume had about 4.4 GiB free, and a backup of the
+inherited scope (about 2.5 GB) plus its full extraction for the restore check would not fit. So the private archive is gzip-compressed
+(private.tar.gz; bsdtar detects the compression when extracting), and the occupation-headroom campaign's run tree is left out. The
+admitted mirror and the frozen reference bank this campaign reads stay in scope (they are under the income-headroom tree's
+`admitted/`), and the occupation-headroom runs keep their own same-device backup (pcrl-occupation-headroom-overnight-v1-backup). The
+restore check reads nothing from the excluded tree. The check re-hashes the manifest, verifies the bundle, extracts both archives into a fresh
 directory and runs ipr.restore_check there with the restored code. A read-back right after writing on a still-mounted drive is WARM
 (possibly served from cache), never a cold check.
 """
@@ -25,22 +32,25 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CAMPAIGN = 'pcrl_input_and_pair_release_v1'
 BRANCH = 'research/pcrl-input-and-pair-release-v1'
-BASE = 'f0edb8ad1'                                                   # the finite-solver-adequacy research tip = this branch's base
-CODE = ['ipr', 'fsa', 'frc', 'nrm', 'tsz', 'cts', 'ohn', 'ihs', 'ffv', 'amd', 'scm_bench', 'acs_replication', 'acs_hybrids',
+BASE = 'c577424c0'                                                   # the dual-design release research tip = this branch's base
+CODE = ['ipr', 'ddr', 'fsa', 'frc', 'nrm', 'tsz', 'cts', 'ohn', 'ihs', 'ffv', 'amd', 'scm_bench', 'acs_replication', 'acs_hybrids',
         'task_conditioned_representation', 'task_headroom', 'mechanism_design', f'results/{CAMPAIGN}',
+        'results/pcrl_dual_design_release_v1',
         'results/pcrl_finite_solver_adequacy_v1', 'results/pcrl_finite_routing_comparison_v1', 'results/pcrl_new_release_mechanisms_v1',
         'results/pcrl_controlled_training_size_v1',
         'results/pcrl_occupation_headroom_overnight_v1', 'results/pcrl_income_headroom_successor_v1',
         'results/pcrl_frozen_finalist_validation_v1', 'results/pcrl_autonomous_method_development_v1',
         'results/pcrl_acs_protected_tree_replication_v1', 'results/pcrl_acs_frozen_hybrids_v1', 'results/pcrl_scm_engineering_benchmark_v1',
         'results/pcrl_scm_utility_matched_v1', 'results/pcrl_correction_transfer_stability_v1']
-PRIVATE = [f'.private/{CAMPAIGN}', '.private/pcrl_finite_routing_comparison_v1/runs/FA', '.private/pcrl_finite_routing_comparison_v1/fa_cache',
+PRIVATE = [f'.private/{CAMPAIGN}', '.private/pcrl_dual_design_release_v1/runs/DA/DA_TWIN',
+           '.private/pcrl_dual_design_release_v1/runs/DB/DB_PTC_R1', '.private/pcrl_dual_design_release_v1/runs/DB/DB_ZTILT_R1',
+           '.private/pcrl_finite_routing_comparison_v1/runs/FA', '.private/pcrl_finite_routing_comparison_v1/fa_cache',
            '.private/pcrl_new_release_mechanisms_v1/runs/FA', '.private/pcrl_new_release_mechanisms_v1/fa_cache',
-           '.private/pcrl_occupation_headroom_overnight_v1', '.private/pcrl_income_headroom_successor_v1']
+           '.private/pcrl_occupation_headroom_overnight_v1/admitted_logs', '.private/pcrl_income_headroom_successor_v1']
 EXCLUDE = [f'.private/{CAMPAIGN}/compute/tickets']
 PY = os.environ.get('IPR_PYTHON', 'python3')
 TORCH_PY = '<repository>/.venv/bin/python'                 # the reader grid's interpreter (torch venv)
-FILES = ('TIP_COMMIT', 'branch_since_base.bundle', 'code.tar', 'private.tar')
+FILES = ('TIP_COMMIT', 'branch_since_base.bundle', 'code.tar', 'private.tar.gz')
 
 
 def _sha(p):
@@ -60,9 +70,9 @@ def restore_check(d: Path, read_back: str) -> dict:
     man = dict(l.split('  ', 1)[::-1] for l in (d / 'MANIFEST.sha256').read_text().splitlines() if l.strip())
     rehash = all(_sha(d / f) == man[f] for f in FILES)
     rc_b, out_b = _run(['git', '-C', str(ROOT), 'bundle', 'verify', str(d / 'branch_since_base.bundle')])
-    w = Path(tempfile.mkdtemp(prefix='ddr_restore_'))
+    w = Path(tempfile.mkdtemp(prefix='ipr_restore_'))
     try:
-        _run(['tar', '-xf', str(d / 'code.tar'), '-C', str(w)]); _run(['tar', '-xf', str(d / 'private.tar'), '-C', str(w)])
+        _run(['tar', '-xf', str(d / 'code.tar'), '-C', str(w)]); _run(['tar', '-xf', str(d / 'private.tar.gz'), '-C', str(w)])
         env = {**os.environ, 'PYTHONPATH': str(w), 'OMP_NUM_THREADS': '1', 'OPENBLAS_NUM_THREADS': '1', 'VECLIB_MAXIMUM_THREADS': '1'}
         passes = {}
         for label, exe in (('python3', PY), ('torch_venv', TORCH_PY)):   # each family re-runs under its own fit interpreter (ENG1-04)
@@ -98,7 +108,7 @@ def backup(parent: Path) -> dict:
     (d / 'TIP_COMMIT').write_text(tip + '\n')
     _run(['git', '-C', str(ROOT), 'bundle', 'create', str(d / 'branch_since_base.bundle'), f'{BASE}..{BRANCH}'])
     _run(['git', '-C', str(ROOT), 'archive', '--format=tar', '-o', str(d / 'code.tar'), 'HEAD', *CODE])
-    _run(['tar', '-cf', str(d / 'private.tar'), *[f'--exclude={e}' for e in EXCLUDE], '-C', str(ROOT), *PRIVATE])
+    _run(['tar', '-czf', str(d / 'private.tar.gz'), *[f'--exclude={e}' for e in EXCLUDE], '-C', str(ROOT), *PRIVATE])
     (d / 'MANIFEST.sha256').write_text(''.join(f'{_sha(d / f)}  {f}\n' for f in FILES))
     rec = restore_check(d, 'same device (local disk)')
     rec['path'] = str(d)

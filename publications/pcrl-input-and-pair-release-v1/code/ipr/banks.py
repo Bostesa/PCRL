@@ -56,7 +56,7 @@ def write(bank_id, purpose, members, candidates, comparators=(), reps=None, read
     for name, spec in members.items():
         if name in mem:
             raise ValueError(f'member name {name} collides with a reference')
-        mem[name] = family_member(spec)
+        mem[name] = family_member(spec) if isinstance(spec, str) else dict(spec)      # a dict: a ready member (ipr.roles)
     comps = list(dict.fromkeys(list(REFERENCE_MEMBERS) + list(DIAGNOSTIC_MEMBERS) + list(members) + list(comparators)))
     spec = {'bank_id': bank_id, 'purpose': purpose, 'members': mem, 'candidates': list(candidates), 'comparators': comps,
             'written_utc': C.now(), 'benchmark_references': list(REFERENCE_MEMBERS), 'diagnostics': list(DIAGNOSTIC_MEMBERS)}

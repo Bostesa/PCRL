@@ -133,8 +133,11 @@ def extra_benefit(grid, cand, comp, key='nolookup', cells=NR.REGISTERED):
 
 
 def evals_of(member_spec):
-    fam, cfg = member_spec.split('/')
-    p = C.RUNS / fam / cfg / 'EVAL_MS.json'
+    if member_spec.startswith('ROLE:'):                 # a role member (ipr.roles): its record under runs/ROLES/<name>
+        p = C.RUNS / 'ROLES' / member_spec[5:] / 'EVAL_MS.json'
+    else:
+        fam, cfg = member_spec.split('/')
+        p = C.RUNS / fam / cfg / 'EVAL_MS.json'
     if not p.is_file():
         return None
     r = json.loads(p.read_text())
@@ -202,7 +205,15 @@ def build(plan, grid, bank):
         return rec
     rec['cand'] = {'status': 'FITTED' if ev_c else 'MISSING', 'config_id': cand,
                    'evals': {v: e['utility'] for v, e in (ev_c or {}).items()},
+                   'strength': (plan.get('strengths') or [{}])[0].get('strength'),
                    'every_nonzero_strength_alias_of_twin': bool(plan.get('every_nonzero_strength_alias_of_twin', False))}
+    rec['operation_sex_blind'] = bool(plan.get('operation_sex_blind', False))
+    if plan.get('ro') is not None:
+        rec['ro'] = plan['ro']
+    if plan.get('sbc_construction'):
+        rec['sbc_construction'] = plan['sbc_construction']
+    if plan.get('fineness_inputs'):
+        rec['fineness'] = RU.grid_fineness(plan['fineness_inputs'])
     rec['strengths'] = [{'config_id': s['config_id'], 'strength': s['strength'],
                          'evals': {v: e['utility'] for v, e in (evals_of(mem[s['config_id']]) or {}).items()}}
                         for s in plan.get('strengths', [])]
@@ -219,7 +230,7 @@ def build(plan, grid, bank):
     for r in REFS:
         if r in pc:
             rec['grid'][r] = pc[r]
-    rec['paths'] = plan['paths']
+    rec['paths'] = {k: plan['paths'].get(k) for k in PATH_KEYS}
     rec['controls_not_run'] = plan.get('controls_not_run') or {k: False for k in PATH_KEYS}
     rec['alias_of'] = plan.get('alias_of') or {}
     rec['costs_vs'] = {'TWIN': costs_between(mem[cand], mem[twin]), **{m: costs_between(mem[cand], mem[m]) for m in path_ids}}

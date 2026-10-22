@@ -70,7 +70,7 @@ FRC_FA_CACHE = FRC_PRIV / 'fa_cache'
 FRC_RESULTS = ROOT / 'results' / FRC_CAMPAIGN
 FSA_CAMPAIGN = 'pcrl_finite_solver_adequacy_v1'
 FSA_PUBLICATION = 'ddc231a97137d17d65b21e656001d05449641329'                                       # publication/pcrl-finite-solver-adequacy-v1 (pinned by ipr.admit)
-FSA_TIP = 'f0edb8ad1'                                               # research tip of the last source = the base of this branch
+FSA_TIP = 'f0edb8ad1'                                               # finite-solver-adequacy research tip (a source; this branch's base is DDR_TIP)
 FSA_RESULTS = ROOT / 'results' / FSA_CAMPAIGN
 DDR_CAMPAIGN = 'pcrl_dual_design_release_v1'
 DDR_PUBLICATION = 'e30cf1c6b0dc38016d778e28a82e07875c1a0c92'      # publication/pcrl-dual-design-release-v1 (pinned by ipr.admit)

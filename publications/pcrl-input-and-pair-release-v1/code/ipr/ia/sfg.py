@@ -6,8 +6,10 @@ The service maps six raw fields (AGEP, WKHP, COW, SCHL, MAR, POBP; admitted 145-
 occupation vector (n, 5); each recipient receives only its own float64 vector and its argmax decision. SEX (0 = men, 1 = women) is a
 training label on MODEL_FIT only (it orders a fixed menu of field generalizations), never a runtime input or output.
 
-Operation (card IA_SFG_v1; Designer A's PROPOSAL.md and mech_sketch.py, integrated):
-  menu      12 fixed, label-free generalization steps, two coarser levels per field (MENU below; label-free maps of the compact
+Operation (card IA_SFG_v1; Designer A's PROPOSAL.md and mech_sketch.py, integrated, with the challenger's required changes:
+budget S3, rung k = 1 in the grid, the intermediate levels promoted into the menu, the permuted-SEX ladder as the only gating SBC,
+BLIND as the targeting-off ablation, the generic release-only tilt as the declared RO fallback, no PROJ / ATTR):
+  menu      17 fixed, label-free generalization steps, a chain of two or three coarser levels per field (MENU below; label-free maps of the compact
             coding Z = ohn.fam_a.compact_po(X): COW and MAR are block indices = admitted code - 1, SCHL the SCHL code, POBP the
             numeric place-of-birth code, AGEP / WKHP standardized with their admitted levels)
   ladder    single-step statistics on MODEL_FIT (5 household folds, tag IPR_IA_ladder_S<v>, HGB A1_PO_16 settings at the cached
@@ -18,15 +20,19 @@ Operation (card IA_SFG_v1; Designer A's PROPOSAL.md and mech_sketch.py, integrat
             OHN_A_cv_S<v>; full refit; out-of-fold on NRM_FA_xf_S<v>, the folds of the cached twin's out-of-fold predictions)
   release   P_inc = f_inc(h_k(x)), P_occ = f_occ(h_k(x)); argmax decisions; deterministic; no SEX and no propensity at runtime;
             k = 0 is the twin
-  strength  k* = the largest k on GRID such that it and every smaller grid value keep MODEL_FIT out-of-fold spend over the twin within
-            the card's budget (estimate + 2 household-clustered SE on every component)
-Matched controls (PROTOCOL 4; the card fixes them before the first fit):
+  strength  k* = the largest rung k = 1, 2, ... such that it and every smaller rung keep MODEL_FIT out-of-fold spend over the twin
+            within budget S3 (estimate + 2 household-clustered SE on every component); rungs are fitted in order and the scan stops
+            at the first failing rung (no larger rung can be selected)
+Matched controls (PROTOCOL 4; card IA_SFG_v1 fixes them before the first fit):
   SBC path  the same menu, ladder rule and models with the target SEX replaced by a fixed-seed permutation of the MODEL_FIT SEX column
-            (fallback PSEUDO2 if the permuted path cannot reach CAND's spend); rungs k = 1 .. L; two bracket points
-  SPEND     DQ of the shared twin (ipr.paths, 1.1-ratio step grid); two bracket points
-  RO        the generic release-only tilt of the shared twin (ipr.paths, 1.1-ratio strength grid); two bracket points
-  BLIND     (card-dependent) the same menu and models with the ladder ordered by task spend only
-Ablation: the card's named ablation. Descriptive MODEL_FIT-only: cross-fitted readers and the data-rich readers.
+            (fallback PSEUDO2 only by the protocol rule: if the permuted path cannot reach CAND's spend + 2 SE); rungs k = 1 .. L;
+            two bracket points
+  SPEND     DQ of the shared twin (ipr.paths, 1.1-ratio step grid); two bracket points, saved once under CTL (card CTL_PATHS_v1)
+  RO        GENERIC_ZTILT, the card's declared fallback (the twin's release identifies the record for about 93% of MODEL_FIT people,
+            so the SUBSTITUTED ladder is SFG's up to the surrogate learner; it is computed here on MODEL_FIT, descriptively, and
+            compared with SFG's ladder, but not released); two bracket points, saved once under CTL
+Ablation: BLIND, the same menu and models with the ladder ordered by task spend only (the targeting component removed), at the
+first rung whose MODEL_FIT spend reaches CAND's. Descriptive MODEL_FIT-only: cross-fitted readers and the data-rich readers.
 
 Commands (real data only through the campaign queue after the receipt and the committed card):
     python3 -m ipr.ia.sfg selftest | selftest_maps
@@ -51,10 +57,10 @@ from .. import famkit as FK
 FAMILY = 'IA'
 K_INC, K_OCC = 2, 5
 COL = {'AGEP': 0, 'WKHP': 1, 'COW': 2, 'SCHL': 3, 'MAR': 4, 'POBP': 5}
-MENU = {'AGEP': ('AGE5', 'AGE10'), 'WKHP': ('WK6', 'WK3'), 'COW': ('COW5', 'COW3'), 'SCHL': ('SCH5', 'SCH3'),
-        'MAR': ('MAR3', 'MAR1'), 'POBP': ('POB4', 'POB1')}
+MENU = {'AGEP': ('AGE5', 'AGE10'), 'WKHP': ('WK6', 'WK5', 'WK3'), 'COW': ('COW5', 'COW4', 'COW3'), 'SCHL': ('SCH5', 'SCH4', 'SCH3'),
+        'MAR': ('MAR3', 'MAR2', 'MAR1'), 'POBP': ('POB4', 'POB2', 'POB1')}
 FIELD = {s: f for f, lv in MENU.items() for s in lv}
-GRID = (2, 3, 4)
+GRID = tuple(range(1, 18))            # rungs k = 1 .. 17 (the scan stops at the first rung that fails the budget)
 N_LADDER_FOLDS = 5
 CODE_MODULES = ('ipr.ia.sfg', 'ipr.famkit', 'ipr.paths', 'ipr.ctlkit', 'ipr.ctl.twin', 'nrm.fa.prc', 'ohn.fam_a')
 
@@ -83,22 +89,32 @@ def apply_step(Zh, Z, st, m):
         Zh[:, 0] = idx // (5 if st == 'AGE5' else 10)
     elif st == 'WK6':
         Zh[:, 1] = np.digitize(_hours(Z, m), [20, 35, 40, 41, 50])
+    elif st == 'WK5':                          # <35 | 35-39 | 40 | 41-49 | 50+ (WK6 with 1-19 and 20-34 merged)
+        Zh[:, 1] = np.digitize(_hours(Z, m), [35, 40, 41, 50])
     elif st == 'WK3':
         Zh[:, 1] = np.digitize(_hours(Z, m), [35, 45])
     elif st == 'SCH5':
         Zh[:, 3] = np.digitize(c, [16, 18, 21, 22])
+    elif st == 'SCH4':                         # <=17 | 18-20 | 21 | >=22 (SCH5 with <=15 and 16-17 merged)
+        Zh[:, 3] = np.digitize(c, [18, 21, 22])
     elif st == 'SCH3':
         Zh[:, 3] = np.digitize(c, [18, 21])
     elif st == 'COW5':                         # for-profit | nonprofit | government (local, state, federal) | self-employed | unpaid
         Zh[:, 2] = np.array([0, 1, 2, 2, 2, 3, 3, 4, 0])[np.clip(c.astype(int), 0, 8)]
+    elif st == 'COW4':                         # private (for-profit and nonprofit) | government | self-employed | unpaid
+        Zh[:, 2] = np.array([0, 0, 1, 1, 1, 2, 2, 3, 0])[np.clip(c.astype(int), 0, 8)]
     elif st == 'COW3':                         # private (incl. unpaid) | government | self-employed
         Zh[:, 2] = np.array([0, 0, 1, 1, 1, 2, 2, 0, 0])[np.clip(c.astype(int), 0, 8)]
     elif st == 'MAR3':                         # married | widowed, divorced, separated | never married
         Zh[:, 4] = np.array([0, 1, 1, 1, 2, 0])[np.clip(c.astype(int), 0, 5)]
+    elif st == 'MAR2':                         # married | not married (previously and never married merged)
+        Zh[:, 4] = np.array([0, 1, 1, 1, 1, 0])[np.clip(c.astype(int), 0, 5)]
     elif st == 'MAR1':
         Zh[:, 4] = 0
     elif st == 'POB4':                         # Florida | other US state | US territories | foreign or other
         Zh[:, 5] = np.where(c == 12, 0, np.where(c < 60, 1, np.where(c < 100, 2, 3)))
+    elif st == 'POB2':                         # Florida | elsewhere
+        Zh[:, 5] = np.where(c == 12, 0, 1)
     elif st == 'POB1':
         Zh[:, 5] = 0
     else:
@@ -180,6 +196,34 @@ def target_stats(Z, target, unit, version, T_sex, m):
     return {st: float(_nll(_oof_fixed(generalize(Z, [st], m), t, 2, folds, T_sex, version), t).mean() - base) for st in FIELD}
 
 
+def _oof_soft(Zh, z, folds, T, version):
+    """Out-of-fold P(target = 1 | Zh) for a soft target z in [0, 1]: HGB on the rows stacked twice with labels 1 / 0 and weights
+    z / 1 - z (the A1_PO_16 settings at T iterations)."""
+    prc = _prc()
+    P = np.zeros(len(z))
+    for f in np.unique(folds):
+        tr, te = folds != f, folds == f
+        X2 = np.vstack([Zh[tr], Zh[tr]])
+        y2 = np.concatenate([np.ones(tr.sum(), np.int64), np.zeros(tr.sum(), np.int64)])
+        w2 = np.concatenate([z[tr], 1.0 - z[tr]])
+        m = prc.make_hgb(prc.HGB, T, version, prc.CAT_Z)
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            m.fit(X2, y2, sample_weight=w2)
+        P[te] = np.clip(m.predict_proba(Zh[te])[:, 1], 1e-6, 1 - 1e-6)
+    return P
+
+
+def target_stats_soft(Z, z, unit, version, T_sex, m):
+    """dI for every single step with a soft target z (the soft log-loss increase of the out-of-fold model on h_s(Z) over Z)."""
+    folds = FK.household_folds(unit, N_LADDER_FOLDS, f'IPR_IA_ladder_S{int(version)}')
+    z = np.clip(np.asarray(z, np.float64), 1e-6, 1 - 1e-6)
+    ll = lambda P: float(np.mean(-(z * np.log(P) + (1 - z) * np.log(1 - P))))
+    base = ll(_oof_soft(Z, z, folds, T_sex, version))
+    return {st: ll(_oof_soft(generalize(Z, [st], m), z, folds, T_sex, version)) - base for st in FIELD}
+
+
 def merge_stats(task, target=None):
     return {st: {**task[st], 'dI': (target or {}).get(st, 0.0)} for st in task}
 
@@ -240,21 +284,14 @@ def selftest():
 
 
 # ---------------------------------------------------------------- configurations, budget and control switches (fixed by the card)
-BUDGET = {'occ_nll': 0.012, 'inc_nll': 0.012, 'occ_brier_men': 0.0045, 'occ_brier_women': 0.0045, 'occ_acc': 0.008, 'inc_acc': 0.008}
-SBC_TARGET = 'perm'                 # the SBC path's ladder target: 'perm' (permuted MODEL_FIT SEX; fallback PSEUDO2 by the rule)
-WITH_BLIND = True                   # the task-cost-ordered ladder (BLIND), saved as two beside points
-ABLATION = 'k_minus_1'              # the SFG rung k* - 1 (one field generalization fewer): the strength-path ablation
+BUDGET = {'occ_nll': 0.012, 'inc_nll': 0.006, 'occ_brier_men': 0.0045, 'occ_brier_women': 0.0045, 'occ_acc': 0.008, 'inc_acc': 0.006}  # S3
+CTL_PATHS_CARD = 'results/pcrl_input_and_pair_release_v1/cards/CTL_PATHS_v1.md'
 CONFIGS = {
     'IA_SFG': {'kind': 'candidate', 'what': 'shared SEX-aware field generalization at the MODEL_FIT-selected rung k* (both recipients)'},
     'IA_SBC_LO': {'kind': 'control', 'what': 'SBC path, lower bracket point: the same menu, ladder rule and models with a SEX-independent target'},
     'IA_SBC_HI': {'kind': 'control', 'what': 'SBC path, upper bracket point: the same menu, ladder rule and models with a SEX-independent target'},
-    'IA_SPD_LO': {'kind': 'control', 'what': 'SPEND path, lower bracket point: SEX-blind dithered quantization of the shared twin (ipr.paths DQ)'},
-    'IA_SPD_HI': {'kind': 'control', 'what': 'SPEND path, upper bracket point: SEX-blind dithered quantization of the shared twin (ipr.paths DQ)'},
-    'IA_RO_LO': {'kind': 'control', 'what': 'RO path, lower bracket point: the generic release-only tilt of the shared twin (ipr.paths RO)'},
-    'IA_RO_HI': {'kind': 'control', 'what': 'RO path, upper bracket point: the generic release-only tilt of the shared twin (ipr.paths RO)'},
-    'IA_BLIND_LO': {'kind': 'control', 'what': 'BLIND (beside): the same menu and models with the ladder ordered by task spend only, lower point'},
-    'IA_BLIND_HI': {'kind': 'control', 'what': 'BLIND (beside): the same menu and models with the ladder ordered by task spend only, upper point'},
-    'IA_SFG_ABL': {'kind': 'ablation', 'what': 'the SFG ladder at rung k* - 1 (the last field generalization removed)'},
+    'IA_BLIND': {'kind': 'ablation', 'what': 'targeting off: the same menu and models with the ladder ordered by task spend only (BLIND), '
+                                         'first rung whose MODEL_FIT spend reaches CAND\'s'},
 }
 PURPOSE = ('IA SFG: SEX-ordered field-generalization ladder, task models on generalized inputs, strength selection, matched control paths '
            '(SBC, SPEND, RO, BLIND) and the ablation on MODEL_FIT (SEX as a training label)')
@@ -271,6 +308,9 @@ def _predict_payload(P, Z):
     op = P['op']
     if op == 'sfg':
         return release_steps(P, Z)
+    if op == 'osg':                                  # IA revision R1 (card IA_OSG_R1): occupation-side generalization
+        from .osg import release_osg
+        return release_osg(P, Z)
     tI, tO = TW.twin_vectors(P, Z)
     if op in ('dq', 'ro'):
         from .. import paths as PA
@@ -313,6 +353,15 @@ def scan_path(Z, ladder, m, lab, unit, version, twin_L, cand_L, start=1, log=Non
     return rungs, L
 
 
+def _fineness_inputs(br, cand_sp):
+    """grid_fineness inputs of one path and version from a bracket record (ipr.paths.bracket_points)."""
+    rows = br['grid']
+    lo = 0.0 if br['lo'] is None else rows[str(br['lo'])]['spend']
+    hi = rows[str(br['hi'])]
+    return {'cand': cand_sp, 'lower': lo, 'upper': hi['spend'], 'upper_se': hi['se_diff'],
+            'max': max(r['spend'] for r in rows.values())}
+
+
 def stage_fit(version, data, card, save, roles=None, log=print, record_dir=None, save_rich=True, budget=None, grid=GRID):
     from ..ctl import twin as TW
     from .. import paths as PA
@@ -329,22 +378,29 @@ def stage_fit(version, data, card, save, roles=None, log=print, record_dir=None,
     m = field_maps(Z)
     Tfix = {'inc': int(T['T']['inc']), 'occ': int(T['T']['occ'])}
     Tsex = int(S['T']['sex'])
-    # 1. the ladder (task part shared by every ordering)
+    # 1. the ladder (the task part is shared by every ordering)
     ts = task_stats(Z, yI, yO, unit, version, Tfix, m)
     tg = target_stats(Z, sex, unit, version, Tsex, m)
     ladder = build_ladder(merge_stats(ts, tg), 'target')
     log(json.dumps({'ladder': ladder, 'cpu_s': round(time.process_time() - t0, 1)}))
-    # 2. candidate rungs and the strength rule
-    rungs = {k: fit_rung(Z, compose(ladder, k), m, lab, unit, version) for k in grid}
-    Lk = {k: FK.person_losses(*rungs[k]['oof'], yI, yO) for k in grid}
-    path_sp = {k: FK.spend(Lk[k], twin_L, unit, sex) for k in grid}
-    k_star = FK.select_strength(path_sp, grid, budget)
-    sel = {'ladder': ladder, 'single_step_stats': merge_stats(ts, tg), 'grid': list(grid), 'budget': budget, 'k_star': k_star,
-           'path': {str(k): FK.jsonable_spend(sp) for k, sp in path_sp.items()},
-           'steps': {str(k): rungs[k]['steps'] for k in grid}, 'T': {str(k): rungs[k]['T'] for k in grid},
-           'rule': 'per version: the largest grid k such that it and every smaller grid k meet estimate + 2 household-clustered SE <= '
-                   'budget on the six components (MODEL_FIT out-of-fold over the twin, folds NRM_FA_xf_S<v>, the twin construction)'}
-    log(json.dumps({'k_star': k_star, 'cpu_s': round(time.process_time() - t0, 1)}))
+    # 2. candidate rungs, fitted in order; the scan stops at the first rung that fails the budget
+    rungs, Lk, path_sp, k_star = {}, {}, {}, None
+    for k in [g for g in grid if g <= len(ladder)]:
+        rungs[k] = fit_rung(Z, compose(ladder, k), m, lab, unit, version)
+        Lk[k] = FK.person_losses(*rungs[k]['oof'], yI, yO)
+        path_sp[k] = FK.spend(Lk[k], twin_L, unit, sex)
+        ok = FK.meets(path_sp[k], budget)
+        log(json.dumps({'rung': k, 'steps': rungs[k]['steps'], 'tot_nll': path_sp[k]['tot_nll'], 'meets_budget': ok,
+                        'cpu_s': round(time.process_time() - t0, 1)}))
+        if not ok:
+            break
+        k_star = k
+    sel = {'ladder': ladder, 'single_step_stats': merge_stats(ts, tg), 'grid_scanned': sorted(rungs), 'budget': budget,
+           'budget_name': 'S3', 'k_star': k_star, 'path': {str(k): FK.jsonable_spend(sp) for k, sp in path_sp.items()},
+           'steps': {str(k): rungs[k]['steps'] for k in rungs}, 'T': {str(k): rungs[k]['T'] for k in rungs},
+           'rule': 'per version: the largest rung k such that it and every smaller rung meet estimate + 2 household-clustered SE <= '
+                   'S3 on the six components (MODEL_FIT out-of-fold over the twin, folds NRM_FA_xf_S<v>, the twin construction); '
+                   'rungs are fitted in order and the scan stops at the first failing rung'}
     roles = roles or FK.role_features()
     base = {'feature_names': tuple(names), 'twin_inc': T['models']['inc'], 'twin_occ': T['models']['occ'], 'maps': m,
             'task_cache_sha256': tsha, 'sex_cache_sha256': ssha}
@@ -371,65 +427,79 @@ def stage_fit(version, data, card, save, roles=None, log=print, record_dir=None,
 
     out = {'version': int(version), 'selection': sel, 'task_cache_sha256': tsha, 'sex_cache_sha256': ssha}
     if k_star is None:
-        log(json.dumps({'stop': 'no grid rung meets the budget: no candidate is released'}))
+        log(json.dumps({'stop': 'no rung meets the budget: no candidate is released'}))
         out.update({'saved': saved, 'stop': 'NO_FEASIBLE_STRENGTH', 'cpu_s': time.process_time() - t0})
         if record_dir is not False:
             C.write_json((record_dir or C.RESULTS / 'ia') / f'FIT_V{int(version)}.json', out)
         return out
     cand_L = Lk[k_star]
-    put_rung('IA_SFG', rungs[k_star], {'k': k_star, 'ladder': ladder})
-    # 3. SBC path: the same ladder rule with a SEX-independent target (permuted SEX; fallback PSEUDO2 by the rule)
+    cand_sp = float((cand_L['tot_nll'] - twin_L['tot_nll']).mean())
+    put_rung('IA_SFG', rungs[k_star], {'k': k_star, 'ladder': ladder, 'strength': k_star})
+    # 3. SBC path: the same ladder rule with a permuted SEX column (fallback PSEUDO2 only by the protocol rule)
     tries = []
     perm = permuted_sex(sex, version)
-    tg_p = target_stats(Z, perm, unit, version, Tsex, m)
-    lad_p = build_ladder(merge_stats(ts, tg_p), 'target')
+    lad_p = build_ladder(merge_stats(ts, target_stats(Z, perm, unit, version, Tsex, m)), 'target')
     r_p, L_p = scan_path(Z, lad_p, m, lab, unit, version, twin_L, cand_L, log=lambda s: log(s))
     br = PA.bracket_points(L_p, cand_L, twin_L, unit, tuple(sorted(L_p)))
     tries.append({'target': 'PERMUTED_SEX', 'ladder': lad_p, 'bracket': br})
-    chosen = {'label': 'PERMUTED_SEX', 'rungs': r_p, 'ladder': lad_p, 'br': br}
+    chosen = {'label': 'PERMUTED', 'rungs': r_p, 'ladder': lad_p, 'br': br}
     pseudo_info = None
     if br['flag'] is not None and max(L_p) == len(lad_p):
         make, pseudo_info = CK.pseudo2_select(Z, yI, yO, sex, np.clip(S['oof']['sex'][:, 1], 0.01, 0.99),
                                               np.asarray(data['row_id']), version)
         for g in CK.GAMMAS:
-            a = make(g)
-            lad_a = build_ladder(merge_stats(ts, target_stats(Z, a, unit, version, Tsex, m)), 'target')
+            a_ = make(g)
+            lad_a = build_ladder(merge_stats(ts, target_stats(Z, a_, unit, version, Tsex, m)), 'target')
             r_a, L_a = scan_path(Z, lad_a, m, lab, unit, version, twin_L, cand_L, log=lambda s: log(s))
             br_a = PA.bracket_points(L_a, cand_L, twin_L, unit, tuple(sorted(L_a)))
             tries.append({'target': f'PSEUDO2_gamma{g:g}', 'ladder': lad_a, 'bracket': br_a})
-            chosen = {'label': f'PSEUDO2_gamma{g:g}', 'rungs': r_a, 'ladder': lad_a, 'br': br_a}
+            chosen = {'label': 'PSEUDO2', 'rungs': r_a, 'ladder': lad_a, 'br': br_a}
             if br_a['flag'] is None:
                 break
     br = chosen['br']
     for cfg, k in (('IA_SBC_LO', br['lo']), ('IA_SBC_HI', br['hi'])):
         if k is None:
             continue
-        put_rung(cfg, chosen['rungs'][k], {'k': k, 'ladder': chosen['ladder'], 'target': chosen['label'], 'bracket_flag': br['flag']})
+        put_rung(cfg, chosen['rungs'][k], {'k': k, 'ladder': chosen['ladder'], 'target': chosen['label'], 'bracket_flag': br['flag'],
+                                           'strength': k})
     log(json.dumps({'sbc': chosen['label'], 'lo': br['lo'], 'hi': br['hi'], 'flag': br['flag'], 'cpu_s': round(time.process_time() - t0, 1)}))
-    # 4. BLIND (beside): ladder by task spend only
-    blind = None
-    if WITH_BLIND:
-        lad_b = build_ladder(merge_stats(ts), 'blind')
-        r_b, L_b = scan_path(Z, lad_b, m, lab, unit, version, twin_L, cand_L, log=lambda s: log(s))
-        brb = PA.bracket_points(L_b, cand_L, twin_L, unit, tuple(sorted(L_b)))
-        for cfg, k in (('IA_BLIND_LO', brb['lo']), ('IA_BLIND_HI', brb['hi'])):
-            if k is None:
-                continue
-            put_rung(cfg, r_b[k], {'k': k, 'ladder': lad_b, 'target': 'NONE_TASK_SPEND_ORDER', 'bracket_flag': brb['flag']})
-        blind = {'ladder': lad_b, 'bracket': brb}
-    # 5. SPEND (DQ) and RO (generic release-only tilt) on the shared twin
+    # 4. ablation BLIND: ladder by task spend only, first rung whose spend reaches CAND's
+    lad_b = build_ladder(merge_stats(ts), 'blind')
+    r_b, L_b = {}, {}
+    k_b = None
+    for k in range(1, len(lad_b) + 1):
+        r_b[k] = fit_rung(Z, compose(lad_b, k), m, lab, unit, version)
+        L_b[k] = FK.person_losses(*r_b[k]['oof'], yI, yO)
+        if float((L_b[k]['tot_nll'] - twin_L['tot_nll']).mean()) >= cand_sp:
+            k_b = k
+            break
+    blind_flag = None
+    if k_b is None:
+        k_b, blind_flag = max(r_b), 'BLIND_MAY_NOT_REACH_CAND_SPEND'
+    put_rung('IA_BLIND', r_b[k_b], {'k': k_b, 'ladder': lad_b, 'target': 'NONE_TASK_SPEND_ORDER', 'flag': blind_flag, 'strength': k_b})
+    blind = {'ladder': lad_b, 'k': k_b, 'flag': blind_flag,
+             'scan': {str(k): float((L_b[k]['tot_nll'] - twin_L['tot_nll']).mean()) for k in L_b}}
+    # 5. SPEND (DQ) and RO (GENERIC_ZTILT, declared fallback) on the shared twin; points saved once under CTL
     sr = PA.spend_and_ro(tI, tO, Z, yI, yO, sex, unit, version, cand_L, twin_L, FAMILY, log=lambda s: log(s))
-    for key, prefix in (('SPEND', 'IA_SPD'), ('RO', 'IA_RO')):
+    shared_ids, shared_status = PA.save_shared(sr, version, roles, save, {'feature_names': tuple(names), 'twin_inc': T['models']['inc'],
+                                                                         'twin_occ': T['models']['occ'], 'task_cache_sha256': tsha},
+                                               people, hh, time.process_time() - t0, yI, yO, twin_L, unit, sex, FAMILY,
+                                               log=lambda s: log(s))
+    for key in ('SPEND', 'RO'):
         for side, (g, payload, oof_pair) in sr[key]['points'].items():
-            put(f'{prefix}_{side}', payload, oof_pair, {'op': payload['op'], 'strength': g, 'bracket_flag': sr[key]['bracket']['flag'],
-                                                         'fineness_ok': sr[key]['bracket']['fineness_ok']}, (0, 0))
-    # 6. ablation: the rung k* - 1 of the candidate's ladder
-    abl = None
-    if ABLATION == 'k_minus_1' and k_star >= 1:
-        r_ab = rungs.get(k_star - 1) or fit_rung(Z, compose(ladder, k_star - 1), m, lab, unit, version)
-        put_rung('IA_SFG_ABL', r_ab, {'k': k_star - 1, 'ladder': ladder, 'ablation': 'k_minus_1'})
-        abl = {'k': k_star - 1, 'steps': r_ab['steps']}
-    # 7. descriptive MODEL_FIT-only checks: cross-fitted readers and the data-rich readers
+            oof_views[shared_ids[key][side]] = oof_pair
+    # 6. descriptive: the SUBSTITUTED ladder (the release-only surrogate as a soft target), computed and compared, not released
+    _, qz = CK.ro_teacher(tI, tO, sex, unit, version)
+    lad_s = build_ladder(merge_stats(ts, target_stats_soft(Z, qz, unit, version, Tsex, m)), 'target')
+    k_cmp = min(len(lad_s), len(ladder))
+    substituted = {'ladder': lad_s, 'equals_sfg_ladder': lad_s == ladder,
+                   'first_rungs_equal': [compose(lad_s, k) == compose(ladder, k) for k in range(1, k_cmp + 1)],
+                   'rung_k_star_steps_equal': compose(lad_s, k_star) == compose(ladder, k_star),
+                   'note': 'descriptive (not released; not a configuration): the SFG ladder rule with the MODEL_FIT SEX column replaced '
+                           'by the cross-fitted release-only surrogate P(SEX | the twin\'s released log-probabilities) as a soft target'}
+    fineness = {'SBC': _fineness_inputs(br, cand_sp), 'SPEND': _fineness_inputs(sr['SPEND']['bracket'], cand_sp),
+                'RO': _fineness_inputs(sr['RO']['bracket'], cand_sp)}
+    # 7. descriptive MODEL_FIT-only checks: cross-fitted readers and the data-rich readers (never a stop)
     t1 = time.process_time()
     check = FK.mf_reader_check(oof_views, sex, unit, f'IPR_mfcheck_IA_S{int(version)}')
     rich_info = None
@@ -439,9 +509,10 @@ def stage_fit(version, data, card, save, roles=None, log=print, record_dir=None,
         rich_info = {'sha256': RR.save(FAMILY, version, rich, {'configs': sorted(oof_views),
                                                                'trained_on': 'MODEL_FIT out-of-fold releases, MODEL_FIT SEX'}),
                      'cpu_s': rich_cpu}
-    out.update({'saved': saved, 'sbc_tries': tries, 'sbc_target': chosen['label'], 'pseudo_info': pseudo_info, 'blind': blind,
+    out.update({'saved': saved, 'sbc_tries': tries, 'sbc_construction': chosen['label'], 'pseudo_info': pseudo_info, 'blind': blind,
                 'spend_path_bracket': sr['SPEND']['bracket'], 'ro_path_bracket': sr['RO']['bracket'], 'ro_record': sr['RO']['record'],
-                'ablation': abl, 'rich_readers': rich_info,
+                'shared_points': shared_ids, 'shared_status': shared_status, 'substituted_ladder': substituted,
+                'fineness_inputs': fineness, 'cand_spend': cand_sp, 'rich_readers': rich_info,
                 'mf_reader_check': {'note': 'descriptive MODEL_FIT out-of-fold readers (household 5-fold cross-fitted); never a decision '
                                             'input and never a stop; the decisions use the MODEL_SELECT grid',
                                     'auc': check, 'cpu_s': time.process_time() - t1},
@@ -492,14 +563,14 @@ def selftest_stage(n=2500, seed=5):
         prc.HGB = hp
         roles = {'MODEL_FIT': {'X': data['X'], 'feature_names': data['feature_names']}}
         out = stage_fit(0, data, 'invented-card', fake_save, roles=roles, log=lambda s: None, record_dir=False, save_rich=False,
-                        budget={k: 100.0 for k in BUDGET}, grid=(2, 3))
+                        budget={k: 100.0 for k in BUDGET}, grid=(1, 2, 3))
     finally:
         C.RUNS, TW.load_task_cache, TW.load_sex_cache, prc.HGB = old
     ok = {'cand_saved': 'IA_SFG' in saved, 'k_star_on_grid': out['selection']['k_star'] in (2, 3),
-          'controls_saved': any(c.startswith('IA_SBC') for c in saved) and any(c.startswith('IA_SPD') for c in saved)
-          and any(c.startswith('IA_RO') for c in saved),
-          'ablation_saved': 'IA_SFG_ABL' in saved,
-          'records_valid': all(r['kind'] == CONFIGS[c]['kind'] for c, (_, r) in saved.items())}
+          'controls_saved': any(c.startswith('IA_SBC') for c in saved) and any(c.startswith('CTL_DQ') for c in saved)
+          and any(c.startswith('CTL_RO') for c in saved),
+          'ablation_saved': 'IA_BLIND' in saved,
+          'records_valid': all(r['kind'] == (CONFIGS[c]['kind'] if c in CONFIGS else 'control') for c, (_, r) in saved.items())}
     a = saved['IA_SFG'][0]['MODEL_FIT']
     ok['cand_valid_vectors'] = bool(np.allclose(a['income'].sum(1), 1) and np.allclose(a['occupation'].sum(1), 1))
     st = out['selection']['steps'][str(out['selection']['k_star'])]
