@@ -30,13 +30,16 @@ First written 2026-10-24 from 06:58Z (`date -u`). Revised from 07:30Z after the 
   - SAR_REPORT_TABLES_V1 failed on the no-candidate readings' missing grid field; it was fixed and rerun.
   - A first deployment batch-dependence sweep, outside the queue, was stopped after about 10 minutes because it was too slow, and was
     rerun bounded.
-- **Resources.** Figures from `RESOURCE_ACCOUNTING.json`, written by `python3 -m sar.closeout` at 07:37:39Z:
-  - 3.59 h elapsed of the 8 h ceiling;
-  - 2.24 CPU-hours charged of 12, counting queue units and every out-of-queue and agent estimate;
+- **Resources.** Final figures from `RESOURCE_ACCOUNTING.json`, written by `python3 -m sar.closeout` after the queue was closed
+  (07:41:25Z):
+  - 3.66 h elapsed of the 8 h ceiling;
+  - 2.28 CPU-hours charged of 12, counting queue units and every out-of-queue and agent estimate;
   - 77 queue units done and 2 failed;
   - 28 of 36 configurations;
   - zero paid compute and no process left running.
-  The publication step and the queue close come after this record. Their CPU is a few seconds, reported in the final summary.
+- **Publication.** The sanitized publication is commit bca6e5b28, a child of the receipt. It was pushed to GitHub at 07:40:32Z and its
+  remote tip verified at 07:40:40Z (`PUBLICATION_RECEIPT.json`): 260 files, no scan problem, and every gated file equal to its
+  receipt blob apart from PROTOCOL.md's one redacted line. The research branch itself is not pushed.
 - **Data access** (`ACCESS_RECEIPT.json`).
   - 53 logged label reads, none before the public registration receipt.
   - No ATTACK or DEV_REPORT label, no CALIBRATION SEX, no sealed or capped-out record.

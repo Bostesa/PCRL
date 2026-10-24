@@ -154,3 +154,4 @@ Times are UTC, each copied from a `date -u` read at or before the event.
   only): only this campaign's receipt among the publication branches carries owner identifiers (deviation 13); the publication
   builder now redacts runtime-derived owner identifiers and refuses any remainder (dry build 248 files, no problem). Every claims-review
   correction applied to RESEARCH_DECISION, START_HERE, HANDOFF, QUICKSTART and ENDPOINTS.
+- **07:34-07:41Z** Final same-device backup (tip 4ae4809bf, 803 MB) restored from the backup alone; its copy on YOTUO (identity re-checked) checked WARM; resource accounting and access receipt; sanitized publication bca6e5b28 (260 files, child of the receipt; owner identifiers redacted; gated files equal to the receipt except PROTOCOL.md's one redacted line) pushed at 07:40:32Z and verified on the remote at 07:40:40Z; queue closed at 07:41:25Z; final accounting 3.66 h, 2.28 CPU-h.
