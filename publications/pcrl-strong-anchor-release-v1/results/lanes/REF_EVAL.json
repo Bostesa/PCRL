@@ -1,0 +1,12 @@
+[
+ {"unit": "SAR_REF_EVAL_V1", "stage": "evaluate", "rss_gib": 2.0,
+  "argv": ["PY", "-m", "sar.evaluate", "references", "--name", "W", "--name", "REF:NEURAL_RAW", "--name", "REF:H_LJ", "--name", "REF:B2TWIN",
+           "--name", "REF:RETIRED_B3CTL", "--name", "REF:SUCC", "--name", "REF:TWJ", "--name", "REF:H3+TASK_REFIT", "--name", "REF:H3+T_TREE",
+           "--name", "REF:U0", "--name", "REF:Ucal"]},
+ {"unit": "SAR_DDR_EVAL_PTC_R1_V1", "stage": "evaluate", "rss_gib": 2.0,
+  "argv": ["PY", "-m", "sar.evaluate", "source_ddr", "--family", "DB", "--config", "DB_PTC_R1", "--compare", "REF:NEURAL_RAW"]},
+ {"unit": "SAR_GRID_REFS_V0", "stage": "readers", "rss_gib": 3.0, "max_wall_s": 10800,
+  "argv": ["TORCH", "-m", "sar.devreaders", "run", "--spec", "results/pcrl_strong_anchor_release_v1/grid_specs/SAR1_REFS.json", "--seed", "0"]},
+ {"unit": "SAR_GRID_REFS_V1", "stage": "readers", "rss_gib": 3.0, "max_wall_s": 10800,
+  "argv": ["TORCH", "-m", "sar.devreaders", "run", "--spec", "results/pcrl_strong_anchor_release_v1/grid_specs/SAR1_REFS.json", "--seed", "1"]}
+]

@@ -1,0 +1,287 @@
+{
+ "schema": "SAR1-rules-v1",
+ "campaign": "pcrl_strong_anchor_release_v1",
+ "author_role": "statistical reviewer",
+ "written_before_outcomes": "writing started 2026-10-24T04:28:04Z (date -u), before any outcome of this campaign; no label read, no real-data computation, no label-reading loader called; no investigator proposal or card read (the ALT path and the selection-data rule were added at the coordinator's request, before registration, without reading them)",
+ "human_readable": "RULES.md (same directory); protocol review: REPORT_PREREGISTRATION.md (returned in the reviewer hand-back, to be saved verbatim in this directory by the coordinator)",
+ "implementation": "sar/rules.py (pure functions; imports nrm.rules unchanged as NR; load_rules() checks this file against the module constants, the NRM1 RULES.json hash and the nrm/rules.py hash); invented-data tests: python3 -m sar.test_rules (prints JSON; exit 0 iff all pass)",
+ "status_of_every_rule": "development rule on previously and adaptively used records (MODEL_FIT and MODEL_SELECT were used by earlier campaigns, and the anchors were chosen from MODEL_SELECT records); nothing is confirmation; no original limit changes; point eligibility (G1) gates, the confidence conjunction and the two-SE reserve are reported separately and never gate; every uncertainty statement is asymptotic and model-based; intervals do not correct the adaptive search",
+ "inherited": {
+  "module": "nrm.rules imported unchanged: point_eligibility (G1), reserve_status, mc_cell / se_mc handling, aggregate, benefit_screen, target_screen, recipient_screen, comparison, frontier_comparison, robustness, claims (G4, G5, G6); ohn.rules.conditions reached through nrm.rules (NR.OR) unchanged",
+  "nrm1_rules_json_sha256": "84f187768817e79ef9f2bb36151bea81f00b8f62d9179c8cd523069550674652",
+  "nrm_rules_py_sha256": "d5df868678d483a3452e251d8f24575932d23f0e5d22e3ef1ca3627a35030df1",
+  "derived_from": "ipr/rules.py and the IPR1 RULES.json (pcrl_input_and_pair_release_v1; RULES.json 4c235046..., ipr/rules.py 4ef5fa35...): grid validity, refit effectiveness, reader-budget credit, alias collapse, targeting version means, D5 collapse rules and the registered / adaptive labelling kept; the comparison structure replaced (change_record)"
+ },
+ "z": 2.0,
+ "tie_tolerance": 1e-12,
+ "recipient_limit_auc": 0.01,
+ "sign_convention": "NR's: pair benefit = comparator AUC - candidate AUC (positive favours the candidate); recipient difference = candidate AUC - comparator AUC; paired costs loss(candidate) - loss(comparator) (negative favours the candidate; accuracy enters as a loss); a condition difference CAND - START uses the matching paired-cost metric (the U0 / Ucal reference cancels on the same people)",
+ "reader_grid": {
+  "model_seed_base": 2026101205,
+  "seed_offset": 1000,
+  "seed_rule": "reader seed S<v>k<k> = MODEL_SEED_BASE + 1000 + 10 v + k exactly (k0, k1 registered; k2, k3 robustness; READER_SPLITS.json keys V<v>k<k> map to S<v>k<k>: 2026102205-2026102208, 2026102215-2026102218); recorded distinct integers; none equal to MODEL_SEED_BASE + {300, ..., 900} + 10 v + k (k = 0..9; 140 seeds)",
+  "forbidden_offsets": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "bootstrap_seed_base": 2026102400,
+  "bootstrap_rule": "household bootstrap of SCORE, B = 400, seed 2026102400 + 100 v + repetition index; recorded per (version, repetition) as S<v><R> and equal to the registered values; disclosed: the v = 0 seeds 2026102400-2026102403 equal IPR1's v = 1 seeds (applied there to different SCORE household sets; harmless, not a validity condition)",
+  "repetition_index": {
+   "R1": 0,
+   "R2": 1,
+   "R3": 2,
+   "R4": 3
+  },
+  "split_tag": "SAR1_devgrid_R{r}",
+  "registered_cells": [
+   "S0R1k0",
+   "S0R1k1",
+   "S0R2k0",
+   "S0R2k1",
+   "S1R1k0",
+   "S1R1k1",
+   "S1R2k0",
+   "S1R2k1"
+  ],
+  "robustness_cells": "R3, R4 with k0-k3 and R1, R2 with k2, k3 (24 cells when both R3 and R4 run); never a decision input",
+  "validity": "READER_SEEDS_EFFECTIVE iff the seed rule and the bootstrap rule hold and, per seed pair (k0 / k1; for the refit also k2 / k3), every seed-dependent recipe is checked and every seed-dependent equality is explained: off the minimum set by NRM1 A-SC1 (iii) or the few-valued explanation; on the minimum set by the extra-trees support explanation or the few-valued explanation; minimum set = a D2 reading's CAND, START, CONT (when declared), the saved CTRL points and the saved ALT points (when declared) (for the refit: the D2R release and its decisive comparators); references, ablations and D5 comparators are off it; claims need grid_valid recorded and exactly true"
+ },
+ "er_explanation": {
+  "status": "PROSPECTIVE (registered before any grid output)",
+  "min_leaf": {
+   "ET5": 5,
+   "ET25": 25
+  },
+  "pool_people": 8001,
+  "few_valued_max": 320,
+  "rule": "extra-trees support (inherited): a seed-dependent k-pair equality on the minimum set is explained iff the recipe is ET5 or ET25, NRM1 (iii) (a) + (b) + (c) hold and the recorded distinct-input count of the view is at most 8001 // min_leaf (1600 / 320); few-valued (SAR1): an equality anywhere is explained iff the view's recorded distinct-input count is at most 320 and the same recipe differs (a recorded check with equal_k0_k1 false) on another wire or view in the same version, repetition and seed pair; explained equalities are counted once (n_eff) and reported; any other seed-dependent equality invalidates the grid; seed pairs are judged separately"
+ },
+ "decisions": {
+  "configuration": "CAND = the family's operation at the strength chosen by its card's selection rule on the card's declared selection data (MODEL_FIT out-of-fold paired costs, or CALIBRATION task-label paired costs when START is in-sample on MODEL_FIT; within-SEX guard parts MODEL_FIT out-of-fold; never MODEL_SELECT), per version, before any MODEL_SELECT read; D1, UM and D2-D5 are read at CAND, never at another strength, the strongest release or an ablation",
+  "D1": {
+   "labels": [
+    "TASK_FEASIBLE",
+    "CAND_INFEASIBLE",
+    "NO_FEASIBLE_STRENGTH",
+    "INCOMPLETE"
+   ],
+   "confidence_labels": [
+    "CONFIDENCE_ALL_PASS",
+    "CONFIDENCE_UNRESOLVED",
+    "CONFIDENCE_VIOLATION",
+    "INCOMPLETE"
+   ],
+   "condition_states": [
+    "PASS",
+    "UNRESOLVED",
+    "VIOLATION"
+   ],
+   "rule": "gating: G1 = all 28 original conditions at the point (NR.point_eligibility) at CAND; reported separately and never gating: the confidence conjunction (per condition from its own household-clustered SE, sqrt(se^2 + se_mc^2), no floor: PASS iff value + 2 se <= cap, VIOLATION iff value - 2 se > cap, else UNRESOLVED, neither a pass nor a violation) of CAND, START and CONT, and the inherited two-SE reserve heuristic of each; flags START_POINT_INELIGIBLE, CONT_POINT_INELIGIBLE"
+  },
+  "UM": {
+   "labels": [
+    "MARGIN_RECOVERED",
+    "MARGIN_GAIN_SHIFTED_ELSEWHERE",
+    "MARGIN_GAIN_PROFILE_NOT_RETAINED",
+    "MARGIN_NOT_RESOLVED",
+    "NOT_ASSESSED_NO_FEASIBLE_STRENGTH",
+    "NOT_ASSESSED_EXACT_ALIAS",
+    "NOT_ASSESSED_TASK_INFEASIBLE",
+    "NOT_COMPUTED_GRID_VALIDITY_UNKNOWN",
+    "NOT_COMPUTED_GRID_INVALID",
+    "INCOMPLETE"
+   ],
+   "start_binding": {
+    "SUCC": {
+     "0": "guard|sex0",
+     "1": "guard|sex0"
+    },
+    "NEURAL_RAW": {
+     "0": "guard|sex0",
+     "1": "income|U0|brier_excess"
+    }
+   },
+   "guard_metrics": {
+    "guard|sex0": "occupation|men_brier",
+    "guard|sex1": "occupation|women_brier"
+   },
+   "clause_metrics": {
+    "accuracy_loss": "acc_loss",
+    "nll_excess": "nll",
+    "brier_excess": "brier"
+   },
+   "rule": "START's binding condition per version = the condition with the smallest two-SE reserve ratio of START's MODEL_SELECT record (must equal the declared one and, for FA / FB, the frozen anchor table); resolved improvement = the pooled paired difference CAND - START of that condition (NR pooling: mean of versions, SE = mean of version SEs incl. MC) has upper bound < 0 and both version differences < 0; MARGIN_RECOVERED iff resolved, CAND G1-eligible, the recovery profile retained (pair and both single views not more recoverable than START by more than 0.010 per version at the aggregate point, and no resolved pair worsening: aggregate upper bound of the pair benefit vs START not below 0) and CAND's whole-release point margin (min over the 14 conditions of (cap - value) / cap) not below START's in either version; otherwise MARGIN_GAIN_PROFILE_NOT_RETAINED, MARGIN_GAIN_SHIFTED_ELSEWHERE or MARGIN_NOT_RESOLVED; reported: all 8 paired condition differences with resolved better / worse, the reserve of CAND and START and its change, the confidence state of the binding condition; preparatory evidence only, never a protection or competitive claim"
+  },
+  "D2": {
+   "comparisons": [
+    "START",
+    "CONT",
+    "CTRL_FRONTIER",
+    "ALT_FRONTIER"
+   ],
+   "met_label": "COMPONENT_GAIN_BEYOND_START_AND_CONTROLS",
+   "ctrl_origins": [
+    "START",
+    "CONT"
+   ],
+   "gating": "START always; CONT iff the card declares it needed (cont_declared true); CTRL_FRONTIER always; ALT_FRONTIER iff the card declares it (alt_declared true; absent = false: the reading is unchanged); a CONT or ALT given without a declaration is reported beside (passed_if_it_were_gating) with flags <key>_REPORTED_BESIDE_NOT_DECLARED / <key>_NOT_SEPARATED_REPORTED_BESIDE",
+   "control_path": "CTRL path = its origin (START, or CONT when the card declares the untargeted operation's zero strength there) + the distinct saved CTRL points (aliases once; an alias of the origin collapses into it); a path not given is INCOMPLETE unless recorded as not run for budget (NOT_ASSESSED_CONTROLS_NOT_RUN)",
+   "rule": "met iff (a) G1 at CAND; (b) vs START: nrm.rules.comparison passes (AGG_POSITIVE pair benefit: mean - 2 se_agg > 0 and both version means > 0; recipient gate: each single view r_v <= 0.010 per version at the aggregate point); (b') vs CONT when declared: the same; (c) CTRL_FRONTIER: nrm.rules.frontier_comparison = DOMINATES_CONTROL_FRONTIER at Q* (the cheapest path point whose pooled MODEL_SELECT paired total-NLL cost is >= CAND's; AGG_POSITIVE vs Q*; no secondary metric resolved higher vs Q*) AND the recipient gate vs Q* AND no cheaper path point resolved less recoverable than CAND; (c') ALT_FRONTIER when declared: the same three conjuncts at the ALT bracket; (d) reader targeting: the non-table winner's point pair benefit > 0 in both version means vs START, CONT (when gating) and every gating Q*",
+   "labels": "in order: NOT_ASSESSED_NO_FEASIBLE_STRENGTH; NOT_ASSESSED_EXACT_ALIAS; INCOMPLETE (CAND status or utility); NOT_ASSESSED_TASK_INFEASIBLE; NOT_COMPUTED_GRID_VALIDITY_UNKNOWN / NOT_COMPUTED_GRID_INVALID; INCOMPLETE (START not the family's frozen anchor, cont_declared not boolean, alt_declared recorded but not boolean, ctrl_origin malformed); NOT_ASSESSED_CONTROLS_NOT_RUN; INCOMPLETE (a gating frontier path's selection data not recorded or not allowed; any needed input); READER_TARGETED; COMPONENT_GAIN_BEYOND_START_AND_CONTROLS; NOT_SEPARATED (no gating comparison passes); PARTIAL_<passed, joined by +, in the order START, CONT, CTRL_FRONTIER, ALT_FRONTIER>_ONLY",
+   "no_bracket": "a CTRL (or declared ALT) path whose every point spends less MODEL_SELECT total NLL than CAND has no bracket: the CTRL comparison reads NOT_SEPARATED (reason NO_BRACKET, flag NO_BRACKET_<key>): lower recovery cannot be separated from task spending; a limit of the control path, never evidence of equality or of no effect; the mechanism's contribution is not called isolated",
+   "residual_mismatch": "reported: cost(CAND) - cost(Q*) (pooled, SE, by version), the smallest overspend vs a cheaper point, NR's interpolation (never gating)",
+   "flags": [
+    "CAND_ALIAS_OF_START",
+    "CAND_ALIAS_OF_CONT",
+    "RECIPIENT_GATE_FAILED_VS_<Q*>",
+    "DOMINATED_BY_CHEAPER_<point>",
+    "READER_TARGETED_<comparison>",
+    "READER_SENSITIVE_ENHANCED_<point> (reported only)",
+    "CONTROL_GRID_COARSE_CTRL / CONTROL_PATH_MAY_NOT_BRACKET_CTRL / CONTROL_POINT_RULE_NOT_FOLLOWED_CTRL / CONTROL_GRID_FINENESS_INCOMPLETE_CTRL (from grid_fineness; reported)",
+    "<key>_AT_ORIGIN",
+    "<key>_BRACKET_IS_ORIGIN",
+    "NO_BRACKET_<key>",
+    "<key>_REPORTED_BESIDE_NOT_DECLARED (CONT, ALT)",
+    "<key>_NOT_SEPARATED_REPORTED_BESIDE (CONT, ALT)",
+    "SELECTION_DATA_CALIBRATION_<key>",
+    "CONTROL_SELECTION_DATA_NOT_ALLOWED_<key>"
+   ],
+   "grid_fineness": {
+    "fraction": 0.25,
+    "rule": "per frontier path (CTRL, ALT) on the card's declared selection data before any MODEL_SELECT read, SE from the same data: with s = CAND's paired total-NLL spend over START (> 0) and SE the household-clustered SE of the paired difference upper - CAND: FINE iff the saved lower point spends >= 0.75 s (and <= s) and the saved upper point spends >= s + 2 SE and <= s + 2 SE + 0.25 s; with the full grid recorded, the lower point must be the largest grid spend <= s (the origin counts as 0) and the upper the smallest with spend >= s + 2 SE of its own, else SAVED_POINT_RULE_NOT_FOLLOWED; CONTROL_PATH_MAY_NOT_BRACKET if the largest grid spend < s + 2 SE; NOT_APPLICABLE_CAND_NOT_ABOVE_START if s <= 0; SELECTION_DATA_NOT_ALLOWED for MODEL_SELECT or CALIBRATION without START in-sample on MODEL_FIT; INCOMPLETE when the selection data are not recorded; reported, never gating"
+   },
+   "partial": "no partial outcome is a claim; NOT_SEPARATED is the default reading, never \"equal\"",
+   "power": "per comparison 2 se_agg resolves a true benefit with about 50% and 2.84 se_agg with about 80% probability (normal approximation): 0.011-0.016 / 0.015-0.023 at the 0.0053-0.0081 se_agg realized against a close comparator, 0.015-0.028 / 0.021-0.039 at the 0.0074-0.0139 realized between strong references; with a declared ALT (a targeted control that may reproduce much of a gain) D2 needs a fourth resolved comparison and its power falls further (RULES.md 4.3)",
+   "frontier_paths": [
+    [
+     "CTRL_FRONTIER",
+     "CTRL"
+    ],
+    [
+     "ALT_FRONTIER",
+     "ALT"
+    ]
+   ],
+   "selection_data": {
+    "allowed": [
+     "MODEL_FIT_OOF",
+     "CALIBRATION"
+    ],
+    "rule": "the two-point bracket rule (CAND's spend over START, the saved points' spends and the SE in 'CAND's spend + 2 SE') and grid_fineness use the card's declared selection data, recorded per gating frontier path in the plan (selection_data[CTRL], selection_data[ALT]): MODEL_FIT out-of-fold paired costs (MODEL_FIT_OOF), or CALIBRATION paired costs (task labels only, never SEX) when START is in-sample on MODEL_FIT (start_in_sample_on_model_fit recorded True); never MODEL_SELECT; the SE comes from the same data; not recorded -> D2 INCOMPLETE; not allowed -> D2 INCOMPLETE with flag CONTROL_SELECTION_DATA_NOT_ALLOWED_<key> (a re-selection is a POST HOC repair); CALIBRATION is disclosed with flag SELECTION_DATA_CALIBRATION_<key>; in-sample components on the selection data (FA: H3 income and Ucal on CALIBRATION) are disclosed by the card; Q* itself is always read on MODEL_SELECT by NR's rule"
+   },
+   "alt_path": "ALT = the starting release's own protection operation continued to matched spend (card-declared, optional): origin START + the distinct saved ALT points (aliases once); the same two-point bracket rule on the declared selection data; the same frontier conjuncts (c1)-(c3) and targeting (d) against its Q*; flags NO_BRACKET_ALT, ALT_AT_ORIGIN, ALT_BRACKET_IS_ORIGIN; a declared ALT not run for budget -> NOT_ASSESSED_CONTROLS_NOT_RUN; a declared ALT path missing -> INCOMPLETE"
+  },
+  "D2R": {
+   "labels": [
+    "ROBUSTNESS_CONFIRMED",
+    "ROBUSTNESS_NOT_CONFIRMED",
+    "NOT_RUN",
+    "NOT_COMPUTED_GRID_VALIDITY_UNKNOWN",
+    "NOT_COMPUTED_GRID_INVALID",
+    "INCOMPLETE"
+   ],
+   "rule": "read at CAND with the registered decisive set {START, CONT when gating, the registered CTRL bracket Q*, the registered ALT bracket when declared} (never re-chosen on robustness cells; an unrecorded comparator is INCOMPLETE); ROBUSTNESS_CONFIRMED per comparator iff nrm.rules.robustness confirms (AGG_POSITIVE on the robustness cells and on all cells), the registered cells are present and refit_effectiveness is REFIT_GENUINELY_EFFECTIVE (at least one of R3 / R4 with genuinely different household assignments, all four reader seeds valid; flag ONE_ROBUSTNESS_SPLIT_ONLY); any sign change between the registered and the robustness-cell aggregate mean (decisive or beside) is flagged and carried into the headline; descriptive; never changes D2"
+  },
+  "D3": {
+   "references": [
+    "NEURAL_RAW",
+    "H_LJ",
+    "B2TWIN",
+    "RETIRED_B3CTL",
+    "SUCC",
+    "TWJ",
+    "W",
+    "TR100",
+    "TT100"
+   ],
+   "rule": "NRM1 G4 at CAND (every point-eligible reference: AGG_POSITIVE pair benefit and the recipient gate, intersection-union) with the reader-budget credit rule; SUPERIOR_TO_ALL_ELIGIBLE_REFERENCES only if every one passes; the references passed and failed are listed; U0 / Ucal are utility diagnostics; DDR_PTC_R1 is reported beside, never a member"
+  },
+  "D4": {
+   "target_references": [
+    "NEURAL_RAW",
+    "H_LJ"
+   ],
+   "rule": "NRM1 G5 at CAND with the reader-budget credit rule for the two targets; met iff MATERIAL_0020_RESOLVED (TARGET_AGG_RESOLVED at 0.020 against both, with the recipient gates); smaller gains keep their own level; never weakened"
+  },
+  "D5": {
+   "collapse_values": [
+    "SEPARATE",
+    "JOINT"
+   ],
+   "rule": "NRM1 G6 unchanged on rec.joint, only when a card claims joint design (local twin and both sequential orders built); NOT_APPLICABLE_NOT_JOINT (not claimed) otherwise; INCOMPLETE for missing records of a declared design; collapsed sequential orders as IPR1; gated like D3 / D4; never changes the outcome class"
+  },
+  "D6": "NOT_CLAIMED unless a separate prior-art review supplies NOVELTY_REVIEW_PENDING / NOVEL_PER_SEPARATE_REVIEW / PRIOR_ART_FOUND; never inferred from performance"
+ },
+ "outcome_class": {
+  "labels": [
+   "METHOD_CANDIDATE",
+   "COMPONENT_GAIN_NOT_COMPETITIVE",
+   "REFERENCE_ADVANTAGE_NOT_ATTRIBUTED",
+   "USEFULNESS_MARGIN_ONLY",
+   "FEASIBLE_NO_RELIABLE_GAIN",
+   "NO_OUTPUT_CHANGE",
+   "TASK_INFEASIBLE",
+   "SELECTED_STRENGTH_INFEASIBLE",
+   "PROTECTION_NOT_ASSESSED",
+   "INCOMPLETE"
+  ],
+  "rule": "first applicable: TASK_INFEASIBLE; SELECTED_STRENGTH_INFEASIBLE; INCOMPLETE (D1 incomplete, D2 incomplete or not computed); NO_OUTPUT_CHANGE (exact alias of START); PROTECTION_NOT_ASSESSED (a gating control not run); INCOMPLETE (D3 undecided); METHOD_CANDIDATE (D2 met and D3 met); COMPONENT_GAIN_NOT_COMPETITIVE (D2 met, D3 not); REFERENCE_ADVANTAGE_NOT_ATTRIBUTED (D3 met, D2 not); USEFULNESS_MARGIN_ONLY (UM MARGIN_RECOVERED, D2 and D3 not met); INCOMPLETE (UM undecided); FEASIBLE_NO_RELIABLE_GAIN; D4, D5 and D2R never change the class; the three outcomes (component gain, strong references, material target) and UM are always reported separately in 'outcomes' with one statement",
+  "flags": [
+   "D3_WITHOUT_D2",
+   "D4_WITHOUT_D2",
+   "POINT_FEASIBLE_NOT_RESERVE_QUALIFIED",
+   "POINT_FEASIBLE_NOT_CONFIDENCE_RESOLVED",
+   "FAMILY_STOPS_EXACT_ALIAS",
+   "NO_STRENGTH_MEETS_MODEL_FIT_BUDGET",
+   "CAND_STRENGTH_DIFFERS_BY_VERSION",
+   "D2R_SIGN_CHANGE_CARRIED_INTO_HEADLINE",
+   "the D1, UM, D2, D5 and MC flags"
+  ]
+ },
+ "registration_status": {
+  "kinds": [
+   "ADAPTIVE",
+   "REVISED"
+  ],
+  "family_pattern": "(FA|FB|FS_[A-Za-z0-9]+)",
+  "registered_families": [
+   "FA",
+   "FB"
+  ],
+  "starts": {
+   "FA": "SUCC",
+   "FB": "NEURAL_RAW"
+  },
+  "registered": "a reading is registered iff it is revision 0 of FA or FB and its card was committed before any MODEL_SELECT outcome of this campaign; a family name other than FA, FB or FS_<letters/digits> is refused; an FS family's START is a declared benchmark reference",
+  "tag": "otherwise <KIND>_<parts> (REVISED / ADAPTIVE; FS, R<n>, R0_LATE_CARD); every label prefixed <tag>__",
+  "multiplicity": "one AGG_POSITIVE comparison passes a true null in about 0.07-2% of replicates under six moderate NRM1 known laws and about 8% when one version or split dominates (NRM1 RULES.md 5.5); a D2 look is an intersection-union conjunction of two to four such comparisons (START, CONT when declared, the CTRL frontier at its bracket, the ALT frontier at its bracket when declared), so its false-pass rate is at most that of its weakest member; with K D2 looks the chance that at least one passes by chance is at most K times the per-look rate; no multiplicity correction is applied or claimed"
+ },
+ "scope": [
+  "Lower recovery for the declared development readers is not protection against every reader.",
+  "MODEL_SELECT is adaptively used: development evidence, never confirmation.",
+  "Versions share training rows; repetitions share households; reader recipes and overlapping splits are not independent datasets.",
+  "Novelty is never inferred from performance.",
+  "Point feasibility and the reserve are not confidence preservation.",
+  "A revision or replacement-family reading is never the registered result.",
+  "A usefulness-margin gain alone is preparatory evidence, never a protection or competitive claim.",
+  "The three outcomes (component gain, strong references, material target) are reported separately; none implies another."
+ ],
+ "change_record": [
+  "comparison structure: TWIN / SBC / SPEND / RO replaced by START (the frozen anchor), CONT (gating iff declared) and the CTRL frontier (origin START or CONT + two saved points bracketing CAND's MODEL_FIT spend over START); met label COMPONENT_GAIN_BEYOND_START_AND_CONTROLS; partials named by what passed; a missing CTRL bracket reads NOT_SEPARATED (NO_BRACKET); residual spend mismatch reported",
+  "D1: TWIN removed; the confidence conjunction (PASS / UNRESOLVED / VIOLATION, own household-clustered SEs) reported beside G1 and the reserve",
+  "UM (new): usefulness margin against START's binding condition with the recovery profile and the whole-release point margin; preparatory only",
+  "D2R: read at CAND with the registered decisive set; sign changes carried into the headline; at least one robustness split (R3 or R4)",
+  "D3: references passed and failed listed",
+  "outcome classes renamed so that no partial result reads as the desired method; NO_OUTPUT_CHANGE, REFERENCE_ADVANTAGE_NOT_ATTRIBUTED and USEFULNESS_MARGIN_ONLY added; the three outcomes reported separately",
+  "grid validity: few-valued explanation (distinct inputs <= 320 and the recipe's seed shown effective elsewhere in the cell): counted once (n_eff), never invalidating",
+  "families FA, FB, FS_<name>; registered only FA / FB revision 0; FA START = SUCC, FB START = NEURAL_RAW",
+  "reader grid: +1000 offset, 300-900 forbidden, bootstrap 2026102400, split tag SAR1_devgrid_R{r}",
+  "2026-10-24 about 05:00Z (coordinator's request before registration, from the investigators' designs, which the reviewer did not read): optional card-declared ALT path (the starting release's own protection operation continued to matched spend; origin START; same bracket rule and conjuncts as CTRL; gating iff declared; partial order START, CONT, CTRL_FRONTIER, ALT_FRONTIER); declared bracket selection data (MODEL_FIT_OOF, or CALIBRATION when START is in-sample on MODEL_FIT; never MODEL_SELECT; SE from the same data; recorded per path in the plan)",
+  "2026-10-24 about 05:00Z: the coordinator adopted the UM whole-release point-margin clause, kept the targeting conjunct (d), adopted the few-valued bound 320, and set the initial budgets (FA 8: CAND 2 + CTRL 4 + CONT 2; FB 12: CAND 2 + CONT 2 + CTRL 4 + ALT 4)"
+ ]
+}
