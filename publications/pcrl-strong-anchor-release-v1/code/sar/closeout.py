@@ -3,7 +3,7 @@
     python3 -m sar.closeout
 
 -> results/<campaign>/RESOURCE_ACCOUNTING.json  elapsed time, queue CPU by stage and unit prefix, units done / failed (all attempts
-   kept), agent charges; release configurations (the 48-configuration budget) by family and kind with their internal fit counts;
+   kept), agent charges; release configurations (the 36-configuration budget) by family and kind with their internal fit counts;
    processes left running (campaign-owned only);
 -> results/<campaign>/ACCESS_RECEIPT.json        every label read by operation, entry point, role, field and card (from the single
    access log), reads before the registration receipt, closed-role reads, MODEL_SELECT reads by fitting entry points, fitting reads
@@ -23,7 +23,7 @@ from . import common as C
 from . import jobqueue as Q
 from . import release as RL
 
-LINEAGE_SNAPSHOT = 'c7829e99e6af303cdf070f698b6088e024f3c2b806974a6b1f711785bb50c567'     # read 02:56:10Z by this campaign (unchanged since CTS1)
+LINEAGE_SNAPSHOT = 'c7829e99e6af303cdf070f698b6088e024f3c2b806974a6b1f711785bb50c567'     # unchanged since CTS1; equal again at 2026-10-24 06:52Z
 
 
 def _json(p):

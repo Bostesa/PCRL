@@ -1,0 +1,70 @@
+[
+ {
+  "argv": [
+   "PY",
+   "-m",
+   "sar.evaluate",
+   "roles",
+   "--role",
+   "FA_R2_CTRL_LO",
+   "--role",
+   "FA_R2_CTRL_HI",
+   "--compare",
+   "REF:SUCC",
+   "--compare",
+   "FA/FA_TFRO_R1_CONT"
+  ],
+  "rss_gib": 2.5,
+  "stage": "evaluate",
+  "unit": "SAR_EVAL_FA_R2_ROLES_V1"
+ },
+ {
+  "argv": [
+   "TORCH",
+   "-m",
+   "sar.devreaders",
+   "run",
+   "--spec",
+   "results/pcrl_strong_anchor_release_v1/grid_specs/SAR1_FA_R2.json",
+   "--seed",
+   "0"
+  ],
+  "max_wall_s": 10800,
+  "rss_gib": 3.0,
+  "stage": "readers",
+  "unit": "SAR_GRID_SAR1_FA_R2_V0"
+ },
+ {
+  "argv": [
+   "TORCH",
+   "-m",
+   "sar.devreaders",
+   "run",
+   "--spec",
+   "results/pcrl_strong_anchor_release_v1/grid_specs/SAR1_FA_R2.json",
+   "--seed",
+   "1"
+  ],
+  "max_wall_s": 10800,
+  "rss_gib": 3.0,
+  "stage": "readers",
+  "unit": "SAR_GRID_SAR1_FA_R2_V1"
+ },
+ {
+  "argv": [
+   "PY",
+   "-m",
+   "sar.claims",
+   "run",
+   "--plan",
+   "results/pcrl_strong_anchor_release_v1/claims/PLAN_FA_R2.json",
+   "--bank",
+   "SAR1_FA_R2",
+   "--out",
+   "results/pcrl_strong_anchor_release_v1/claims/FA_R2"
+  ],
+  "rss_gib": 1.5,
+  "stage": "claims",
+  "unit": "SAR_CLAIMS_FA_R2_V1"
+ }
+]

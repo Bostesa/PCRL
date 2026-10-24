@@ -77,6 +77,9 @@ def comparator_release(spec, v):
         real = RO.resolve(spec, v)
         if real is None:
             raise KeyError(f'{spec} has no version {v} configuration')
+        if real.startswith('REF:'):
+            from ohn.devrun import reference_release
+            return reference_release(real[4:], v, 'MODEL_SELECT'), f'{spec} = frozen reference {real[4:]} S{v} (alias)'
         fam, cfg = real.split('/')
         arr, rec = RL.load(fam, cfg, v, roles=('MODEL_SELECT',))
         return arr['MODEL_SELECT'], f'{spec} = {fam}/{cfg}/V{v} ({rec["kind"]})'
@@ -224,7 +227,13 @@ def release_cmd(family, config, compare=(), tag=None, source=False):
         d = C.RUNS / 'ROLES' / config
 
         def loader(f, c, v):
-            fam_, cfg_ = RO.resolve('ROLE:' + c, v).split('/')
+            real = RO.resolve('ROLE:' + c, v)
+            if real.startswith('REF:'):                    # an exact alias of the frozen START reference in this version
+                from ohn.devrun import reference_release
+                arr = reference_release(real[4:], v, 'MODEL_SELECT')
+                return ({'MODEL_SELECT': arr}, {'release_sha256': C.wire_sha(arr['income']) + C.wire_sha(arr['occupation']),
+                                                'kind': f'alias of frozen reference {real[4:]}', 'card': None})
+            fam_, cfg_ = real.split('/')
             return RL.load(fam_, cfg_, v, roles=('MODEL_SELECT',))
         exists = (lambda f, c, v: RO.resolve('ROLE:' + c, v) is not None)
     elif source == 'frc':

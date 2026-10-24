@@ -1,0 +1,53 @@
+[
+ {
+  "argv": [
+   "TORCH",
+   "-m",
+   "sar.devreaders",
+   "run",
+   "--spec",
+   "results/pcrl_strong_anchor_release_v1/grid_specs/SAR1_FA_R2_ROB.json",
+   "--seed",
+   "0"
+  ],
+  "max_wall_s": 10800,
+  "rss_gib": 3.0,
+  "stage": "readers",
+  "unit": "SAR_GRID_SAR1_FA_R2_ROB_V0"
+ },
+ {
+  "argv": [
+   "TORCH",
+   "-m",
+   "sar.devreaders",
+   "run",
+   "--spec",
+   "results/pcrl_strong_anchor_release_v1/grid_specs/SAR1_FA_R2_ROB.json",
+   "--seed",
+   "1"
+  ],
+  "max_wall_s": 10800,
+  "rss_gib": 3.0,
+  "stage": "readers",
+  "unit": "SAR_GRID_SAR1_FA_R2_ROB_V1"
+ },
+ {
+  "argv": [
+   "PY",
+   "-m",
+   "sar.claims",
+   "d2r",
+   "--plan",
+   "results/pcrl_strong_anchor_release_v1/claims/PLAN_FA_R2.json",
+   "--main",
+   "SAR1_FA_R2",
+   "--rob",
+   "SAR1_FA_R2_ROB",
+   "--out",
+   "results/pcrl_strong_anchor_release_v1/claims/FA_R2_D2R"
+  ],
+  "rss_gib": 1.5,
+  "stage": "claims",
+  "unit": "SAR_D2R_FA_R2_V1"
+ }
+]

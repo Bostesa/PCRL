@@ -4,19 +4,21 @@
     python3 -m sar.custody offdevice SRC_DIR DEST  # copy one backup to an already attached drive and repeat the check there (nothing is
                                                   # mounted, unmounted or forced by this tool)
 
-Adapted from frc.custody / nrm.custody (constants, plus the disk-budget change below). A backup holds: TIP_COMMIT; the branch bundle (base = the dual-design
-release research tip c577424c0 this branch started from .. this branch); code.tar (git archive of the code and the public
-records the check needs); private.tar.gz (this campaign's private tree, plus the admitted source copies the code reads);
-MANIFEST.sha256; RESTORE_CHECK.json.
+Adapted from frc.custody / nrm.custody (constants only). A backup holds: TIP_COMMIT; the branch bundle (base = the input-and-pair
+release research tip 9c9f95385 this branch started from .. this branch); code.tar (git archive of the code and the public records the
+check needs); private.tar.gz (this campaign's private tree, plus the inherited private files the code reads); MANIFEST.sha256;
+RESTORE_CHECK.json.
 
-Disk budget (this campaign, written 2026-10-22 05:45Z; PROTOCOL_DEVIATIONS item 11): the volume had about 4.4 GiB free, and a backup of the
-inherited scope (about 2.5 GB) plus its full extraction for the restore check would not fit. So the private archive is gzip-compressed
-(private.tar.gz; bsdtar detects the compression when extracting), and the occupation-headroom campaign's run tree is left out. The
-admitted mirror and the frozen reference bank this campaign reads stay in scope (they are under the income-headroom tree's
-`admitted/`), and the occupation-headroom runs keep their own same-device backup (pcrl-occupation-headroom-overnight-v1-backup). The
-restore check reads nothing from the excluded tree. The check re-hashes the manifest, verifies the bundle, extracts both archives into a fresh
-directory and runs sar.restore_check there with the restored code. A read-back right after writing on a still-mounted drive is WARM
-(possibly served from cache), never a cold check.
+Private scope (written 2026-10-24 06:50Z from a label-free open-file trace of every bank member's MODEL_SELECT wire and every packaged
+release's deployment function, `custody/SCOPE_TRACE.json`): this campaign's tree (runs, reader cache, packages, ledgers); the
+income-headroom tree (the admitted mirror the access layer reads, the frozen reference bank, H3, the HGB teachers and SUCC's frozen
+trees); the two inherited reference releases read from elsewhere (DDR_PTC_R1, W = A1_PO_16); the cached task teachers FA and FS read
+at fit time (nrm fa_cache TASK.pkl); the anchor-table inputs of the input-and-pair campaign (its REFERENCES, SOURCE_DDR, CTL_TWIN and
+IPR1_MAIN grid); and `external_inputs/` (an APFS-clone snapshot, hash-checked against the admission pins, of the replication tree's
+STAGE_A and NEURAL_RAW folders FB reads at fit time, which otherwise live only in an archived worktree outside this repository). The
+other inherited trees of the working cache are not read and stay out. The check re-hashes the manifest, verifies the bundle, extracts
+both archives into a fresh directory and runs sar.restore_check there with the restored code. A read-back right after writing on a
+still-mounted drive is WARM (possibly served from cache), never a cold check.
 """
 from __future__ import annotations
 import datetime as dt
@@ -32,21 +34,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CAMPAIGN = 'pcrl_strong_anchor_release_v1'
 BRANCH = 'research/pcrl-strong-anchor-release-v1'
-BASE = 'c577424c0'                                                   # the dual-design release research tip = this branch's base
-CODE = ['sar', 'ddr', 'fsa', 'frc', 'nrm', 'tsz', 'cts', 'ohn', 'ihs', 'ffv', 'amd', 'scm_bench', 'acs_replication', 'acs_hybrids',
+BASE = '9c9f95385'                                                   # the input-and-pair release research tip = this branch's base
+CODE = ['sar', 'ipr', 'ddr', 'fsa', 'frc', 'nrm', 'tsz', 'cts', 'ohn', 'ihs', 'ffv', 'amd', 'scm_bench', 'acs_replication', 'acs_hybrids',
         'task_conditioned_representation', 'task_headroom', 'mechanism_design', f'results/{CAMPAIGN}',
-        'results/pcrl_dual_design_release_v1',
+        'results/pcrl_input_and_pair_release_v1', 'results/pcrl_dual_design_release_v1',
         'results/pcrl_finite_solver_adequacy_v1', 'results/pcrl_finite_routing_comparison_v1', 'results/pcrl_new_release_mechanisms_v1',
         'results/pcrl_controlled_training_size_v1',
         'results/pcrl_occupation_headroom_overnight_v1', 'results/pcrl_income_headroom_successor_v1',
         'results/pcrl_frozen_finalist_validation_v1', 'results/pcrl_autonomous_method_development_v1',
         'results/pcrl_acs_protected_tree_replication_v1', 'results/pcrl_acs_frozen_hybrids_v1', 'results/pcrl_scm_engineering_benchmark_v1',
         'results/pcrl_scm_utility_matched_v1', 'results/pcrl_correction_transfer_stability_v1']
-PRIVATE = [f'.private/{CAMPAIGN}', '.private/pcrl_dual_design_release_v1/runs/DA/DA_TWIN',
-           '.private/pcrl_dual_design_release_v1/runs/DB/DB_PTC_R1', '.private/pcrl_dual_design_release_v1/runs/DB/DB_ZTILT_R1',
-           '.private/pcrl_finite_routing_comparison_v1/runs/FA', '.private/pcrl_finite_routing_comparison_v1/fa_cache',
-           '.private/pcrl_new_release_mechanisms_v1/runs/FA', '.private/pcrl_new_release_mechanisms_v1/fa_cache',
-           '.private/pcrl_occupation_headroom_overnight_v1/admitted_logs', '.private/pcrl_income_headroom_successor_v1']
+PRIVATE = [f'.private/{CAMPAIGN}', '.private/pcrl_income_headroom_successor_v1',
+           '.private/pcrl_dual_design_release_v1/runs/DB/DB_PTC_R1', '.private/pcrl_occupation_headroom_overnight_v1/runs/A/A1_PO_16',
+           '.private/pcrl_new_release_mechanisms_v1/fa_cache',
+           '.private/pcrl_input_and_pair_release_v1/runs/REFERENCES', '.private/pcrl_input_and_pair_release_v1/runs/SOURCE_DDR',
+           '.private/pcrl_input_and_pair_release_v1/runs/CTL/CTL_TWIN', '.private/pcrl_input_and_pair_release_v1/runs/GRID/IPR1_MAIN']
 EXCLUDE = [f'.private/{CAMPAIGN}/compute/tickets']
 PY = os.environ.get('SAR_PYTHON', 'python3')
 TORCH_PY = '<repository>/.venv/bin/python'                 # the reader grid's interpreter (torch venv)
@@ -117,12 +119,36 @@ def backup(parent: Path) -> dict:
     return rec
 
 
+def _mount_of(p: Path) -> Path:
+    p = p.resolve() if p.exists() else p
+    for q in [p, *p.parents]:
+        if os.path.ismount(q):
+            return q
+    return Path('/')
+
+
 def offdevice(src: Path, dest: Path) -> dict:
-    if not dest.parent.exists():
-        return {'status': 'UNAVAILABLE', 'reason': f'destination volume not present: {dest.parent}'}
-    dest.mkdir(parents=True, exist_ok=True)
+    """Copy one flat backup directory to an already mounted external volume. Never creates a volume root or any missing parent (a
+    detached drive must not be impersonated by a directory on the internal disk): the destination's parent must already exist on a
+    mounted volume other than the repository's, and the device is re-checked before every file."""
+    vol = _mount_of(dest.parent)
+    if vol == Path('/') or not dest.parent.is_dir() or os.stat(dest.parent).st_dev == os.stat(ROOT).st_dev:
+        return {'status': 'UNAVAILABLE', 'reason': f'destination parent is not on a mounted external volume: {dest.parent}'}
+    dev = os.stat(dest.parent).st_dev
+    if any(p.is_dir() for p in src.iterdir()):
+        raise ValueError('offdevice copies flat backup directories only')
+
+    def same_device():
+        return os.path.ismount(vol) and dest.parent.is_dir() and os.stat(dest.parent).st_dev == dev
+
+    if not dest.is_dir():
+        dest.mkdir()                                                  # parents=False: the parent already exists on the drive
     tgt = dest / src.name
-    shutil.copytree(src, tgt)
+    tgt.mkdir()                                                       # a fresh copy; an existing one is never overwritten
+    for f in sorted(src.iterdir()):
+        if not same_device():
+            raise OSError(f'external volume {vol} changed or detached during the copy (at {f.name})')
+        shutil.copy2(f, tgt / f.name)
     (tgt / 'RESTORE_CHECK.json').unlink(missing_ok=True)
     rec = restore_check(tgt, 'WARM: the drive stayed mounted between the copy and the check; a cold re-check after an ordinary remount is pending')
     rec['path'] = str(tgt)

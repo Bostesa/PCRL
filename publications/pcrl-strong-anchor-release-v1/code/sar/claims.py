@@ -265,6 +265,7 @@ def run(plan_path, bank, out):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     C.write_json_x(out / 'DECISIONS.json', {'schema': 'SAR1-decisions-v1', 'utc': C.now(), 'plan': plan.get('plan_id'), 'bank': bank,
+                                            'plan_sha256': C.sha(Path(plan_path)),
                                             'rules_sha256': C.sha(RU.RULES_PATH), 'decisions': dec, 'grid_validity': gv,
                                             'grid_validity_checks': len(checks), 'seeds': seeds, 'boot_seeds': boot,
                                             'registration_status': rec.get('registration_status_detail'),
@@ -276,6 +277,35 @@ def run(plan_path, bank, out):
                                                                                   if v is not None)}})
     print(json.dumps({k: (v.get('label') if isinstance(v, dict) else v) for k, v in dec.items() if k != 'scope'}, indent=1,
                      default=str))
+    return dec
+
+
+def no_feasible(plan_path, out):
+    """Decision record of a reading whose card rule saved no candidate in both versions (D1 NO_FEASIBLE_STRENGTH): no grid and no
+    MODEL_SELECT input is needed; the record carries the plan's per-version candidate status."""
+    plan = json.loads(Path(plan_path).read_text())
+    if not C.committed(Path(plan_path)):
+        raise PermissionError('the plan must be committed before its decision record is written')
+    if plan.get('cand') is not None:
+        raise PermissionError('the plan has a candidate: use `run`')
+    ok, reg = registration_status(plan['card'])
+    rec = {'family': plan['family'], 'card': plan['card'], 'revision': int(plan.get('revision', 0)),
+           'card_committed_before_any_model_select_outcome': ok,
+           'start': {'id': plan['start']['id'], 'evals': {}, 'binding': {int(k): b for k, b in plan['start']['binding'].items()}},
+           'cand': {'status': 'NO_FEASIBLE_STRENGTH'}, 'cont_declared': bool(plan.get('cont_declared')),
+           'ctrl_origin': plan.get('ctrl_origin', 'START'), 'alt_declared': bool(plan.get('alt_declared')),
+           'paths': plan.get('paths') or {}, 'selection_data': plan.get('selection_data') or {},
+           'start_in_sample_on_model_fit': plan.get('start_in_sample_on_model_fit'),
+           'controls_not_run': {'CONT': False, 'CTRL': False, 'ALT': False}, 'alias_of': {}, 'grid': {}, 'costs_vs': {}, 'nolookup': {}}
+    dec = RU.decisions(rec)
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    C.write_json_x(out / 'DECISIONS.json', {'schema': 'SAR1-decisions-v1', 'utc': C.now(), 'plan': plan.get('plan_id'), 'bank': None,
+                                            'plan_sha256': C.sha(Path(plan_path)),
+                                            'rules_sha256': C.sha(RU.RULES_PATH), 'decisions': dec,
+                                            'cand_status_by_version': plan.get('cand_status_by_version'),
+                                            'registration_status': reg, 'note': plan.get('note')})
+    print(json.dumps({k: (v.get('label') if isinstance(v, dict) else v) for k, v in dec.items() if k != 'scope'}, indent=1, default=str))
     return dec
 
 
@@ -299,39 +329,44 @@ def split_records():
 
 
 def d2r(plan_path, main_bank, rob_bank, out):
-    """D2R of the plan's release (the strongest feasible nonzero release; descriptive): merged registered + robustness cells,
-    refit effectiveness on the eight seeds, and the ablation comparisons when present."""
+    """D2R of a reading's CAND (RULES.md 8; descriptive; never changes D2): the registered and robustness cells merged, refit
+    effectiveness on the eight reader seeds and four repetitions, and the registered decisive comparators (START, CONT when gating,
+    the registered CTRL / ALT brackets Q* read from the reading's DECISIONS.json; never re-chosen on robustness cells), with the
+    material-target references beside."""
     plan = json.loads(Path(plan_path).read_text())
+    dec = json.loads((Path(out).parent / plan['plan_id'] / 'DECISIONS.json').read_text())['decisions']
     gm, gr = load_grid(main_bank), load_grid(rob_bank)
     g = merge_grids(gm, gr)
-    rel, twin = plan['cand'], plan['twin']
-    brk = plan.get('brackets') or []
+    cand, start = plan['cand'], plan['start']['id']
+    cont = plan.get('cont') if plan.get('cont_declared') else None
+    d2 = dec.get('D2') or {}
+    comps = d2.get('comparisons') or {}
+
+    def q_of(key):
+        c = comps.get(key) or {}
+        fr = c.get('frontier') or {}
+        return fr.get('bracketing_control')            # None when the frontier had no bracket on MODEL_SELECT
+    comparators = {'START': start, 'CONT': cont, 'CTRL': q_of('CTRL_FRONTIER')}
+    if plan.get('alt_declared'):
+        comparators['ALT'] = q_of('ALT_FRONTIER')
     seeds, boot = seed_records(ks=(0, 1, 2, 3), reps=('R1', 'R2', 'R3', 'R4'))
     checks = seed_checks(g, pairs=((0, 1), (2, 3)))
-    minimum = [rel, twin] + list(brk)
+    minimum = [m for m in [cand, start, cont] + [comparators.get('CTRL'), comparators.get('ALT')] if m]
     distinct = distinct_inputs(rob_bank)
     eff = RU.refit_effectiveness(split_records(), seeds, checks, minimum, distinct, boot_seeds=boot)
-    entries = {'TWIN': g['paired'].get(rel, {}).get(twin), **{b: g['paired'].get(rel, {}).get(b) for b in brk},
-               **{r: g['paired'].get(rel, {}).get(r) for r in ('NEURAL_RAW', 'H_LJ')}}
+    keys = [m for m in [start, cont, comparators.get('CTRL'), comparators.get('ALT')] if m] + [r for r in REFS if r != start]
+    rob = {k: g['paired'].get(cand, {}).get(k) for k in dict.fromkeys(keys)}
     s_reg, b_reg = seed_records()
     gv = RU.grid_validity(s_reg, seed_checks(gm), minimum, distinct_inputs(main_bank), boot_seeds=b_reg)
-    rec = {'grid_valid': gv['effective'], 'strongest': plan.get('strongest') or {'label': 'SELECTED', 'config_id': rel},
-           'refit': eff, 'rob': {k: v for k, v in entries.items() if v is not None},
-           'brackets': plan.get('bracket_ids') or {}}
+    rec = {'grid_valid': gv['effective'], 'release': cand, 'refit': eff, 'rob': {k: v for k, v in rob.items() if v is not None},
+           'comparators': comparators, 'alt_declared': bool(plan.get('alt_declared'))}
     res = RU.d2r(rec)
-    abl = {}
-    for a in plan.get('ablations') or []:
-        for comp, key in ((rel, 'vs_release'), (twin, 'vs_twin')):
-            e = g['paired'].get(a, {}).get(comp)
-            if e:
-                abl[f'{a}_{key}'] = {'registered': NR.comparison(e), 'robustness': NR.robustness(e)}
-    out = Path(out)
-    out.mkdir(parents=True, exist_ok=True)
-    C.write_json_x(out / 'D2R.json', {'schema': 'SAR1-d2r-v1', 'utc': C.now(), 'plan': plan.get('plan_id'), 'main_bank': main_bank,
-                                      'rob_bank': rob_bank, 'd2r': res, 'refit_effectiveness': eff, 'ablation': abl,
-                                      'refit_checks': len(checks), 'seeds': seeds, 'boot_seeds': boot})
-    print(json.dumps({'d2r': res.get('label'), 'refit': eff['label'], 'ablation': {k: (v['registered']['benefit']['label'],
-                      v['robustness']['label']) for k, v in abl.items()}}, indent=1, default=str))
+    outd = Path(out)
+    outd.mkdir(parents=True, exist_ok=True)
+    C.write_json_x(outd / 'D2R.json', {'schema': 'SAR1-d2r-v1', 'utc': C.now(), 'plan': plan.get('plan_id'), 'main_bank': main_bank,
+                                       'rob_bank': rob_bank, 'comparators': comparators, 'd2r': res, 'refit_effectiveness': eff,
+                                       'refit_checks': len(checks), 'seeds': seeds, 'boot_seeds': boot})
+    print(json.dumps({'d2r': res.get('label'), 'refit': eff.get('label'), 'comparators': comparators}, indent=1, default=str))
     return res
 
 
@@ -345,12 +380,15 @@ def summary(dirs, out):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest='cmd', required=True)
+    nf = sub.add_parser('no_feasible'); nf.add_argument('--plan', required=True); nf.add_argument('--out', required=True)
     r = sub.add_parser('run'); r.add_argument('--plan', required=True); r.add_argument('--bank', required=True)
     r.add_argument('--out', required=True)
     d = sub.add_parser('d2r'); d.add_argument('--plan', required=True); d.add_argument('--main', required=True)
     d.add_argument('--rob', required=True); d.add_argument('--out', required=True)
     s = sub.add_parser('summary'); s.add_argument('--decisions', nargs='+', required=True); s.add_argument('--out', required=True)
     a = ap.parse_args(argv)
+    if a.cmd == 'no_feasible':
+        no_feasible(a.plan, a.out); return 0
     if a.cmd == 'run':
         run(a.plan, a.bank, a.out)
     elif a.cmd == 'd2r':

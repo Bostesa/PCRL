@@ -5,7 +5,8 @@ CTL_DQ_<step>, CTL_RO_<strength>), so a family's bracket point of one path can b
 member names that point by its role, for example `IA_SPD_LO` = {version 0: CTL/CTL_DQ_0p750000, version 1: CTL/CTL_DQ_0p825000},
 written to `results/<campaign>/paths/SHARED_ROLES.json` by `sar.plan` from the family fit records before any grid output is read.
 
-    spec 'ROLE:<name>'   resolved per version by `resolve(spec, v)` -> 'CTL/<config>' (or None when the role is absent in v)
+    spec 'ROLE:<name>'   resolved per version by `resolve(spec, v)` -> 'FAMILY/<config>', or 'REF:<name>' when the role is an exact
+                         alias of the frozen START reference in that version (or None when the role is absent in v)
 """
 from __future__ import annotations
 import json
@@ -37,6 +38,9 @@ def array_member(name, path=ROLES_PATH):
     m = role_map(path)[name]
     seeds = {}
     for v, spec in m.items():
+        if str(spec).startswith('REF:'):              # the role is an exact alias of the frozen START reference in this version
+            seeds[str(v)] = {'income': {'frozen_reference': spec[4:]}, 'occupation': {'frozen_reference': spec[4:]}}
+            continue
         fam, cfg = spec.split('/')
         d = RL.rdir(fam, cfg, int(v))
         sha = json.loads((d / 'RELEASE.json').read_text())['release_sha256']

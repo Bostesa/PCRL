@@ -26,3 +26,23 @@ Checks (each PASS / FAIL with numbers; a failed check is preserved, never relaxe
    commit; no MODEL_SELECT label read inside a fitting module; no closed role read.
 
 Deliver `VERIFICATION_REPORT.md` and `CHECKS.json` (each check with its inputs' SHA-256), then a hand-back with the totals.
+
+## Launch details (05:53Z)
+
+Readings to verify now (more follow; the coordinator sends their paths when they exist):
+- `claims/FA_REG` and `claims/FB_REG` (D1 NO_FEASIBLE_STRENGTH): from the fit records `fa/FIT_V<v>.json` and `fb/FIT_PFD_V<v>.json`,
+  re-apply each card's selection rule to the recorded per-strength spends and confirm that no strength qualifies (FA: rho 0.3 fails
+  (a) and (b) in both versions; FB: version 1 fails E1); no label read needed.
+- `claims/FB_R1` (decisions; plan `claims/PLAN_FB_R1.json`; bank `SAR1_FB_R1`; card `cards/FB_PFO_R1.md`; fit records
+  `fb/FIT_PFO_V<v>.json`): checks 1-5 of the list above, including the k* = S50 selections, the CTRL / ALT saved points, the
+  MODEL_SELECT utility of FB_PFO and its paired costs against NEURAL_RAW, FB_PFO_TASK, the CTRL and ALT points, every D2 / D3 / D4
+  comparison and the labels (PARTIAL_START+CONT_ONLY; NO_BRACKET on CTRL).
+- `claims/FA_R1` (D1 CAND_INFEASIBLE): the version-1 men's occupation guard of FA_TFRO_R1 on MODEL_SELECT (+0.0099 against 0.005)
+  and the version-0 point feasibility, with your own metric code; the selection of rho* 1.0 / 0.6 from `fa/FIT_R1_V<v>.json`.
+- The reference utility records (`runs/REFERENCES/EVAL_MS.json`) for NEURAL_RAW, H_LJ, SUCC (spot checks).
+- Reader refits: a random sample (state the seed) of 6 winning readers from the SAR1_FB_R1 and SAR1_FA_R1 grids (cells R1 / R2,
+  k0 / k1), refitted from scratch with the locked recipe code on the frozen splits; compare SCORE AUCs.
+Use the queue for every label read and heavy step (`python3 -m sar.jobqueue run --unit SAR_VERIFY_<n> --stage verify --rss-gib 2 --
+<interpreter> results/pcrl_strong_anchor_release_v1/roles/verifier/code/<script>.py ...`); at most one verifier unit at a time (the
+coordinator's lanes use the other slot). CPU cap: 2,400 CPU-s in total. Torch venv: <repository>/.venv/bin/python;
+python3 has no torch.

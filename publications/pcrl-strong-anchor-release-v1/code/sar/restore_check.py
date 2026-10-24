@@ -8,9 +8,11 @@
 - reader-grid results (GRID.json / BOOT.npz) are present and parse; the reader cache entries pass their own checksums;
 - every deployment package (under the campaign's private deploy/ folder) redeploys the restored DEV_REPORT raw inputs and reproduces
   its stored wire bitwise, with every refusal (sar.deploy check). Derived from nrm.restore_check (relative imports resolve to sar).
-Adapted for this campaign: the cached task and SEX-side teachers this campaign reads (TASK.pkl, SEXSIDE.pkl) re-hash against
-SOURCE_ADMISSION.json; every IA / IB / CTL (and FS) MODEL.pkl against its MODEL.json; the data-rich reader files against their sidecars;
-and the check fails if a reader grid exists but no custody reader was restored."""
+Adapted for this campaign (2026-10-24): the cached task teachers (nrm fa_cache TASK.pkl) and SUCC's frozen files re-hash against
+SOURCE_ADMISSION.json (sar.fa.tfr.preflight); the external-input snapshot (FB's fit-time STAGE_A / NEURAL_RAW files) against the
+admission pins; every FA / FB / FS / CTL MODEL.pkl against its MODEL.json; every bank member of every reader grid re-loads from the
+restored files and reproduces the wire hashes the grid recorded (references included); and the check fails if a reader grid exists but
+no custody reader was restored."""
 from __future__ import annotations
 import json
 import pickle
@@ -100,28 +102,53 @@ def main(out):
         dep = DP.check(mine, Path(out).with_name(f'restore_deploy_detail_py{here}.json'))
     else:
         dep = {'all_bitwise': None, 'all_refused': None}
-    # source artefacts this campaign reads (the cached teachers), every IA / IB / CTL model file and the data-rich reader files
+    # source artefacts this campaign reads: TASK.pkl and SUCC's frozen files (FA's preflight), FB's fit-time external inputs, and the
+    # wire of every bank member the reader grids read (references included), against the hashes the grids recorded
     src_bad, src_n = [], 0
-    adm2 = json.loads((C.RESULTS / 'SOURCE_ADMISSION.json').read_text())
+    from .fa import tfr as TF
     for v in C.VERSIONS:
-        for f, want in ((C.NRM_FA_CACHE / f'V{v}' / 'TASK.pkl', adm2['source_private_artefacts'][f'fa_cache/V{v}/TASK.pkl']['sha256']),
-                        (C.FRC_FA_CACHE / f'V{v}' / 'SEXSIDE.pkl', adm2['frc_private_artefacts'][f'frc/fa_cache/V{v}/SEXSIDE.pkl']['sha256'])):
+        pf = TF.preflight(v)
+        src_n += 1 + len(pf['frozen'])
+        src_bad += [f'{x} V{v}' for x in pf['missing'] + pf['mismatched']]
+    adm2 = json.loads((C.RESULTS / 'SOURCE_ADMISSION.json').read_text())
+    ext = C.PRIV / 'external_inputs' / 'acs_replication_runs'
+    for v, rec_v in adm2['acs_replication_inputs']['files'].items():
+        sv = v[1:]
+        u0 = ext / f'STAGE_A_{sv}' / 'U0_MODEL.pt'
+        src_n += 1
+        if not u0.is_file() or C.sha(u0) != rec_v.get('U0_MODEL.pt'):
+            src_bad.append(f'external U0_MODEL.pt {v}')
+        for ck, r in (rec_v.get('NEURAL_RAW_checkpoints') or {}).items():
+            rho, e = ck.split('/')
+            f = ext / f'NEURAL_RAW_{sv}' / f'NEURAL_RAW__{rho}__{e}.pt'
             src_n += 1
-            if not f.is_file() or C.sha(f) != want:
-                src_bad.append(str(f.name) + f' V{v}')
+            if not f.is_file() or C.sha(f) != r['sha256']:
+                src_bad.append(f'external NEURAL_RAW {v} {ck}')
+    from . import devreaders as DR
+    members_ok, members_bad = 0, []
+    for g in sorted((C.RUNS / 'GRID').glob('*/S*/GRID.json')) if (C.RUNS / 'GRID').is_dir() else []:
+        G = json.loads(g.read_text())
+        spec = json.loads((C.RESULTS / 'grid_specs' / f"{G['bank_id']}.json").read_text())
+        for m, prov in G['members'].items():
+            try:
+                _, p2 = DR.load_member(spec['members'][m], int(G['seed']), row_id=S['row_id'])
+                ok = p2['wire_sha256'] == prov['wire_sha256']
+            except Exception as ex:                                     # recorded, never an abort
+                ok = False
+                skipped[f"{G['bank_id']}/S{G['seed']}/{m}__error"] = f'{type(ex).__name__}: {str(ex)[:160]}'
+            if ok:
+                members_ok += 1
+            else:
+                members_bad.append(f"{G['bank_id']}/S{G['seed']}/{m}")
     cache_bad2 = []
-    for fam in ('IA', 'IB', 'CTL'):
-        for v in C.VERSIONS:
-            pk = C.RUNS / fam / f'RICH_READERS_V{v}.pkl'
-            if pk.is_file() and C.sha(pk) != (pk.with_suffix('.sha256')).read_text().strip():
-                cache_bad2.append(f'{fam} rich readers V{v}')
     model_bad, model_n = [], 0
-    for mj in sorted(C.RUNS.glob('I[AB]/*/V*/MODEL.json')) + sorted(C.RUNS.glob('CTL/*/V*/MODEL.json')) + sorted(C.RUNS.glob('FS*/*/V*/MODEL.json')):
+    for mj in [m for fam in ('FA', 'FB', 'FS', 'CTL') for m in sorted(C.RUNS.glob(f'{fam}/*/V*/MODEL.json'))]:
         model_n += 1
         if C.sha(mj.parent / 'MODEL.pkl') != json.loads(mj.read_text())['model_sha256']:
             model_bad.append(str(mj.parent.relative_to(C.RUNS)))
     rec = {'admitted_copies_rehash_ok': not bad_adm, 'admitted_copies_checked': len(adm), 'mismatched': bad_adm[:10],
            'source_artefacts_checked': src_n, 'source_artefacts_mismatched': src_bad,
+           'bank_member_wires_reloaded_ok': members_ok, 'bank_member_wires_mismatched': members_bad,
            'private_cache_problems': cache_bad2, 'family_models_rehashed': model_n, 'family_models_mismatched': model_bad,
            'python': here, 'models_not_rerun_in_this_pass': skipped,
            'releases_rehashed_ok': rel_ok, 'releases_mismatched': rel_bad[:20], 'models_rerun_bitwise': reran,
@@ -132,7 +159,7 @@ def main(out):
            'labels_read': False}
     rec['custody_readers_required'] = bool(grid)
     rec['all_ok'] = (rec['admitted_copies_rehash_ok'] and not rel_bad and all(reran.values()) and all(readers.values())
-                     and not src_bad and not cache_bad2 and not model_bad and (bool(readers) or bool(readers_other) or not grid)
+                     and not src_bad and not cache_bad2 and not model_bad and not members_bad and members_ok > 0 and (bool(readers) or bool(readers_other) or not grid)
                      and all(v['json_parses'] and v['boot_present'] for v in grid.values()) and not cache_bad
                      and dep['all_bitwise'] is not False and dep.get('all_refused') is not False)
     Path(out).write_text(json.dumps(rec, indent=1) + '\n')

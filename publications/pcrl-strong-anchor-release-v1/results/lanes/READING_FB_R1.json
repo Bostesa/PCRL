@@ -1,0 +1,93 @@
+[
+ {
+  "argv": [
+   "PY",
+   "-m",
+   "sar.evaluate",
+   "many",
+   "--release",
+   "FB/FB_PFO",
+   "--release",
+   "FB/FB_PFO_TASK",
+   "--compare",
+   "REF:NEURAL_RAW",
+   "--compare",
+   "FB/FB_PFO_TASK",
+   "--compare",
+   "ROLE:FB_R1_CTRL_HI",
+   "--compare",
+   "ROLE:FB_R1_ALT_HI"
+  ],
+  "rss_gib": 2.5,
+  "stage": "evaluate",
+  "unit": "SAR_EVAL_FB_R1_V1"
+ },
+ {
+  "argv": [
+   "PY",
+   "-m",
+   "sar.evaluate",
+   "roles",
+   "--role",
+   "FB_R1_CTRL_HI",
+   "--role",
+   "FB_R1_ALT_HI",
+   "--compare",
+   "REF:NEURAL_RAW",
+   "--compare",
+   "FB/FB_PFO_TASK"
+  ],
+  "rss_gib": 2.5,
+  "stage": "evaluate",
+  "unit": "SAR_EVAL_FB_R1_ROLES_V1"
+ },
+ {
+  "argv": [
+   "TORCH",
+   "-m",
+   "sar.devreaders",
+   "run",
+   "--spec",
+   "results/pcrl_strong_anchor_release_v1/grid_specs/SAR1_FB_R1.json",
+   "--seed",
+   "0"
+  ],
+  "max_wall_s": 10800,
+  "rss_gib": 3.0,
+  "stage": "readers",
+  "unit": "SAR_GRID_SAR1_FB_R1_V0"
+ },
+ {
+  "argv": [
+   "TORCH",
+   "-m",
+   "sar.devreaders",
+   "run",
+   "--spec",
+   "results/pcrl_strong_anchor_release_v1/grid_specs/SAR1_FB_R1.json",
+   "--seed",
+   "1"
+  ],
+  "max_wall_s": 10800,
+  "rss_gib": 3.0,
+  "stage": "readers",
+  "unit": "SAR_GRID_SAR1_FB_R1_V1"
+ },
+ {
+  "argv": [
+   "PY",
+   "-m",
+   "sar.claims",
+   "run",
+   "--plan",
+   "results/pcrl_strong_anchor_release_v1/claims/PLAN_FB_R1.json",
+   "--bank",
+   "SAR1_FB_R1",
+   "--out",
+   "results/pcrl_strong_anchor_release_v1/claims/FB_R1"
+  ],
+  "rss_gib": 1.5,
+  "stage": "claims",
+  "unit": "SAR_CLAIMS_FB_R1_V1"
+ }
+]

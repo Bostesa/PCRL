@@ -115,7 +115,7 @@ def build(name, v, out):
             raise PermissionError(f'{p}: package dependencies must lie inside the repository')
     st = store_dir() / _fname(name, v)
     deps[f'SAR::{st.relative_to(C.RUNS)}'] = C.sha(st)
-    code = set(CODE_BASE) | {mod.__name__} | {m for m in getattr(mod, 'CODE_MODULES', ())}
+    code = set(CODE_BASE) | {mod.__name__} | {m for m in getattr(mod, 'CODE_MODULES', ())} | _runtime_modules(name, v)
     deps.update({f'CODE::{m}': C.sha(_code_path(m)) for m in sorted(code)})
     _, rec = RL.load(family, config, v, roles=('DEV_REPORT',))
     meta = {'schema': 'SAR1-deploy-package-v1', 'name': name, 'version': v, 'encoder': enc, 'depends_sha256': deps,
@@ -124,6 +124,24 @@ def build(name, v, out):
             'environment_at_build': OD._environment(), 'utc': C.now()}
     (out / 'PACKAGE.json').write_text(json.dumps(meta, indent=1, sort_keys=True) + '\n')
     return meta
+
+
+def _runtime_modules(name, v):
+    """Every repository module the deployment function loads: the family package routes lazily (sar.fa -> tfrb -> tfro -> tfr, famkit,
+    famrun, ...), so `CODE_MODULES` of the package root does not name them. A smoke prediction on three admitted MODEL_FIT feature rows
+    (label-free) loads them; every loaded module whose file lies in the repository (outside any virtual environment) is then bound, so a
+    later change to any of them is a dependency-hash refusal (stale package) rather than a silent difference."""
+    F = C.features('MODEL_FIT')
+    from_features(name, v, F['X'][:3], F['feature_names'])
+    root, out = C.ROOT.resolve(), set()
+    for m, mo in list(sys.modules.items()):
+        f = getattr(mo, '__file__', None)
+        if not f:
+            continue
+        fp = Path(f).resolve()
+        if fp.is_relative_to(root) and not ({'.venv', 'site-packages', '.private'} & set(fp.parts)) and _code_path(m).resolve() == fp:
+            out.add(m)
+    return out
 
 
 def _code_path(module):

@@ -13,7 +13,9 @@ update-ref); no working tree is switched; earlier branches and history are untou
 """
 from __future__ import annotations
 import json
+import re
 import shutil
+import socket
 import subprocess
 import sys
 from pathlib import Path
@@ -27,12 +29,50 @@ NAME = C.PUBLICATION_NAME
 UNPUBLISHED_SUFFIXES = ('.lock', '.jsonl')   # not accepted by the leak scan; left unpublished openly (listed in the build output)
 
 
+def owner_patterns():
+    """Owner identifiers, derived at run time so that no form of them is written into this code: the account's full name (spaced and
+    joined), the home folder name and the host names. Each becomes a case-insensitive redaction applied after the shared sanitizer.
+    Added 2026-10-24 after verifier wave 3 found the owner's name in a drive relocation folder name and the host name in the coordinator
+    log (PROTOCOL_DEVIATIONS item 13); the shared sanitizer has no pattern for either."""
+    names, hosts = set(), set()
+    full = subprocess.run(['id', '-F'], capture_output=True, text=True).stdout.strip()
+    if full:
+        names |= {full, full.replace(' ', ''), full.replace(' ', '-'), full.replace(' ', '_')} | set(full.split())
+    names.add(Path.home().name)
+    mail = subprocess.run(['git', '-C', str(C.ROOT), 'config', 'user.email'], capture_output=True, text=True).stdout.strip()
+    if '@' in mail:
+        names.add(mail.split('@')[0])
+    h = socket.gethostname()
+    hosts |= {h, h.split('.')[0]}
+    cn = subprocess.run(['scutil', '--get', 'ComputerName'], capture_output=True, text=True).stdout.strip()
+    if cn:
+        hosts.add(cn)
+    pats = [(re.compile(re.escape(x), re.I), '<owner host>') for x in sorted(hosts, key=len, reverse=True) if len(x) >= 4]
+    pats += [(re.compile(re.escape(x), re.I), '<owner>') for x in sorted(names, key=len, reverse=True) if len(x) >= 4]
+    return pats
+
+
+# Leak-scan hits reviewed by the coordinator (2026-10-24, before 07:29Z by `date -u`) and judged harmless: the verifier's own
+# description, table and search patterns name the credential words its scan looked for; no credential is present. Matched on file and
+# problem.
+REVIEWED_SCAN_HITS = {('results/roles/verifier/VERIFICATION_REPORT.md', 'credential-like string'),
+                      ('results/roles/verifier/code/v3_assemble.py', 'credential-like string'),
+                      ('results/roles/verifier/code/v3_pubscan.py', 'credential-like string')}   # its own search regexes
+
+
+def redact_owner(text: str, pats) -> str:
+    for p, r in pats:
+        text = p.sub(r, text)
+    return text
+
+
 def build(dest: Path, committed_only: bool = True) -> dict:
     """committed_only: publish only files that are tracked, committed and clean (the package then equals a research commit)."""
     out = dest / 'publications' / NAME
     if out.exists():
         shutil.rmtree(out)
-    copied, changed, skipped = [], [], []
+    copied, changed, skipped, owner_redacted = [], [], [], []
+    pats = owner_patterns()
     for f in sorted(C.RESULTS.rglob('*')):
         if not f.is_file() or f.name in ('.DS_Store',) or '__pycache__' in f.parts:
             continue
@@ -42,9 +82,11 @@ def build(dest: Path, committed_only: bool = True) -> dict:
             skipped.append(str(f.relative_to(C.ROOT))); continue
         d = out / 'results' / f.relative_to(C.RESULTS); d.parent.mkdir(parents=True, exist_ok=True)
         if f.suffix.lower() in PC.TEXT_SUFFIXES:
-            t = f.read_text(); s = sanitise(t); d.write_text(s)
+            t = f.read_text(); s = sanitise(t); s2 = redact_owner(s, pats); d.write_text(s2)
             if s != t:
                 changed.append(str(f.relative_to(C.RESULTS)))
+            if s2 != s:
+                owner_redacted.append(str(f.relative_to(C.RESULTS)))
         else:
             shutil.copy2(f, d)
         copied.append(str(d.relative_to(out)))
@@ -54,12 +96,23 @@ def build(dest: Path, committed_only: bool = True) -> dict:
         if committed_only and not C.committed(f):
             skipped.append(str(f.relative_to(C.ROOT))); continue
         d = out / 'code' / f.relative_to(C.ROOT); d.parent.mkdir(parents=True, exist_ok=True)
-        d.write_text(sanitise(f.read_text())); copied.append(str(d.relative_to(out)))
+        s = sanitise(f.read_text()); s2 = redact_owner(s, pats); d.write_text(s2); copied.append(str(d.relative_to(out)))
+        if s2 != s:
+            owner_redacted.append(str(f.relative_to(C.ROOT)))
     gated_changed = [f for f in C.REGISTRATION_FILES if f in changed]
-    problems = PC.scan(out)
+    gated_owner_redacted = [f for f in C.REGISTRATION_FILES if f in owner_redacted]   # differ from the registered bytes only there
+    scan = PC.scan(out)
+    reviewed = [p for p in scan if isinstance(p, dict) and (p.get('file'), p.get('problem')) in REVIEWED_SCAN_HITS]
+    problems = [p for p in scan if p not in reviewed]
     if gated_changed:
         problems.append(f'gated files changed by the sanitizer (must be publishable verbatim): {gated_changed}')
-    return {'out': str(out), 'files': len(copied), 'sanitized_files': changed, 'skipped_uncommitted': skipped, 'problems': problems}
+    left = [str(p.relative_to(out)) for p in sorted(out.rglob('*')) if p.is_file() and p.suffix.lower() in PC.TEXT_SUFFIXES
+            and any(q.search(p.read_text()) for q, _ in pats)]
+    if left:
+        problems.append(f'owner identifiers left after redaction: {left}')
+    return {'out': str(out), 'files': len(copied), 'sanitized_files': changed, 'owner_redacted_files': owner_redacted,
+            'gated_files_owner_redacted': gated_owner_redacted, 'reviewed_scan_hits': reviewed, 'skipped_uncommitted': skipped,
+            'problems': problems}
 
 
 def _git(*args, inp=None):
@@ -91,7 +144,10 @@ def main(argv=None):
     argv = argv or sys.argv[1:]
     if argv[0] == 'build':
         res = build(Path(argv[1]))
-        print(json.dumps({'files': res['files'], 'sanitized_files': res['sanitized_files'][:40], 'skipped_uncommitted': res['skipped_uncommitted'][:60], 'problem_count': len(res['problems']),
+        print(json.dumps({'files': res['files'], 'sanitized_files': res['sanitized_files'][:40],
+                          'owner_redacted_files': res['owner_redacted_files'], 'gated_files_owner_redacted': res['gated_files_owner_redacted'],
+                          'reviewed_scan_hits': res['reviewed_scan_hits'],
+                          'skipped_uncommitted': res['skipped_uncommitted'][:60], 'problem_count': len(res['problems']),
                           'problems': res['problems'][:40]}, indent=1))
         return 1 if res['problems'] else 0
     if argv[0] == 'commit':

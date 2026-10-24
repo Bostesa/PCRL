@@ -11,6 +11,7 @@ records, for the declared readers only.
 from __future__ import annotations
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -175,7 +176,8 @@ def tables(main='SAR1_MAIN', extra=(), rob=None):
         dec = json.loads(d.read_text())
         rec['decisions'][d.parent.name] = dec['decisions']
         labs = {k: (v.get('label') if isinstance(v, dict) else v) for k, v in dec['decisions'].items() if k.startswith('D') or k == 'outcome_class'}
-        lines.append(f"- **{d.parent.name}** (grid valid: {dec['grid_validity']['label']}): " + '; '.join(f'{k} `{v}`' for k, v in labs.items()))
+        gv = (dec.get('grid_validity') or {}).get('label') or 'no grid (no candidate was fitted)'
+        lines.append(f"- **{d.parent.name}** (grid validity: {gv}): " + '; '.join(f'{k} `{v}`' for k, v in labs.items()))
     lines += ['', '## 4. Data-rich readers (descriptive; rich/RICH_*.json)', '']
     for p in sorted((C.RESULTS / 'rich').glob('RICH_*.json')):
         if p.name.startswith('RICH_SPEC'):
@@ -228,7 +230,21 @@ def tables(main='SAR1_MAIN', extra=(), rob=None):
         rec['campaign_summary'] = summ
         lines += ['', '## 9. Campaign summary (sar.claims summary; RULES.md 7)', '', '```',
                   json.dumps(summ.get('summary'), indent=1, default=str)[:6000], '```']
-    (C.RESULTS / 'TABLES.md').write_text('\n'.join(lines) + '\n')
+    lines = [ln for ln in lines if not re.fullmatch(r'- \S+: - / -', ln)]     # spends against a twin this campaign does not hold
+    keep, i, n = [], 0, 0
+    while i < len(lines):                                                      # sections without records are left out, renumbered
+        if lines[i].startswith('## '):
+            j = i + 1
+            while j < len(lines) and not lines[j].startswith('## '):
+                j += 1
+            if any(x.strip() for x in lines[i + 1:j]):
+                n += 1
+                keep += [re.sub(r'^## \d+\. ', f'## {n}. ', lines[i])] + lines[i + 1:j]
+            i = j
+        else:
+            keep.append(lines[i])
+            i += 1
+    (C.RESULTS / 'TABLES.md').write_text('\n'.join(keep) + '\n')
     C.write_json(C.RESULTS / 'TABLES.json', rec)
     print(f'TABLES.md written: {len(rec["releases"])} releases, {len(rec["comparisons"])} comparisons, {len(rec["decisions"])} readings')
     return rec

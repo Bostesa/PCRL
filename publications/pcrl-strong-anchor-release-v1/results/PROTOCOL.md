@@ -56,7 +56,7 @@ here is confirmation.
   dot-archive-first extraction order for `._*` side archives). 84 items are external-only on YOTUO; 72 archived and kept.
 - **Drive.** YOTUO was absent at 04:02:04Z and present at 04:25:08Z (not mounted by this session): `/dev/disk6s1`, ExFAT (FSKit), USB,
   volume UUID 3D74932B-33DD-3896-8CC6-0D2FDDAD6B8D (equal to the manifest), 1.0 TB, 582,460,375,040 B free, writable. The external
-  index (the drive's `NathanSamson-Mac-relocated-2026-10-22/manifest.json`) is byte-identical to the local copy (SHA-256
+  index (the drive's `<owner>-Mac-relocated-2026-10-22/manifest.json`) is byte-identical to the local copy (SHA-256
   f904c871...4efc). Nothing on the drive is written before closeout; existing archives and relocation records are never modified.
 - **Dependencies.** The anchors (SUCC, NEURAL_RAW), every reference and every source artefact this campaign reads are local: the
   protected-tree replication tree (`.worktrees/pcrl-acs-protected-tree-replication-v1/.private/acs_replication`, archived and kept),
