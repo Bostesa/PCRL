@@ -1,0 +1,116 @@
+{
+ "admitted_fields": {
+  "ATTACK_FIT": [
+   "features",
+   "sex"
+  ],
+  "ATTACK_VALIDATION": [
+   "features",
+   "sex"
+  ],
+  "CALIBRATION": [
+   "features",
+   "income",
+   "occupation"
+  ],
+  "DEV_REPORT": [
+   "features",
+   "raw_inputs"
+  ],
+  "MODEL_FIT": [
+   "features",
+   "income",
+   "occupation",
+   "sex",
+   "raw_inputs"
+  ],
+  "MODEL_SELECT": [
+   "features",
+   "income",
+   "occupation",
+   "sex"
+  ]
+ },
+ "closed_label_roles": [
+  "ATTACK_FIT",
+  "ATTACK_VALIDATION",
+  "DEV_REPORT"
+ ],
+ "configuration_limit": 32,
+ "gates": [
+  "no label read before the committed registration and its verified public receipt (drf.common.registered)",
+  "'fit' reads need a committed, unchanged mechanism card under results/<campaign>/cards/ (path, SHA-256 and commit logged with the read)",
+  "MODEL_SELECT labels are never read by a fitting entry point (drf.dr)",
+  "CALIBRATION labels are not read by this campaign (no calibrate operation)",
+  "label reads run only inside a queue unit (DRF_UNIT_ID)",
+  "entry points can be added only by a dated, committed ACCESS_AMENDMENTS.json entry before first use"
+ ],
+ "log": ".private/<campaign>/access/LABEL_ACCESS.jsonl (append-only; utc, unit id, entry point, role, fields, operation, purpose, people, households, row-set hash, card)",
+ "operations": {
+  "benchmark": {
+   "entry_points": [
+    "drf.evaluate"
+   ],
+   "fields": [
+    "income",
+    "occupation",
+    "sex"
+   ],
+   "roles": [
+    "MODEL_SELECT"
+   ],
+   "what": "original-benchmark utility (24 clauses + 4 guards), the development reserve and paired utility costs of saved releases (logged adaptive evaluation; never a fitting input)"
+  },
+  "fit": {
+   "card": true,
+   "entry_points": [
+    "drf.dr"
+   ],
+   "fields": [
+    "occupation",
+    "income",
+    "sex"
+   ],
+   "roles": [
+    "MODEL_FIT"
+   ],
+   "what": "fitting release parameters of the family, its continuation or a control on the full MODEL_FIT pool (household-grouped internal folds for any cross-fitting or calibration); SEX only as a training label of a protection objective or a within-SEX utility constraint named by the committed card, or as the evaluation label of a MODEL_FIT check"
+  },
+  "readers": {
+   "entry_points": [
+    "drf.devreaders",
+    "drf.readercustody",
+    "drf.richreaders"
+   ],
+   "fields": [
+    "sex"
+   ],
+   "roles": [
+    "MODEL_SELECT"
+   ],
+   "what": "fresh development reader grid (FIT / VALIDATION / SCORE reader roles inside MODEL_SELECT)"
+  },
+  "verify": {
+   "entry_points": [
+    "results/pcrl_direct_recovery_frontier_v1/roles/verifier/code/"
+   ],
+   "fields": [
+    "income",
+    "occupation",
+    "sex"
+   ],
+   "roles": [
+    "MODEL_FIT",
+    "MODEL_SELECT"
+   ],
+   "what": "independent verifier replay with separate metric, selection and reader code"
+  }
+ },
+ "refused_everywhere": [
+  "SEALED_ASSESSMENT",
+  "capped-out records"
+ ],
+ "schema": "DRF1-access-policy-v1",
+ "source_artefacts": "the inherited private trees of the working cache (finite-routing comparison, new-release-mechanisms, input-and-pair, dual-design, income- and occupation-headroom and the others) and the acs_replication tree are read-only inputs (SOURCE_ADMISSION.json); nothing is written under the source campaigns' paths",
+ "utc": "2026-10-25T02:57:06+00:00"
+}

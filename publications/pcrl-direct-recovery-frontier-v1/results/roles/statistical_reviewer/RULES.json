@@ -1,0 +1,164 @@
+{
+ "schema": "DRF1-rules-v1",
+ "campaign": "pcrl_direct_recovery_frontier_v1",
+ "author_role": "statistical reviewer",
+ "written_before_outcomes": "writing started 2026-10-25T02:38:01Z (date -u), before any outcome of this campaign; no label read, no real-data computation, no label-reading loader called, no investigator file or card read",
+ "human_readable": "RULES.md (same directory); protocol review: REPORT_PREREGISTRATION.md (returned in the reviewer hand-back, to be saved verbatim in this directory by the coordinator)",
+ "implementation": "drf/rules.py (pure functions; imports nrm.rules unchanged as NR; load_rules() checks this file against the module constants, the NRM1 RULES.json hash and the nrm/rules.py hash); invented-data tests: python3 -m drf.test_rules (prints JSON; exit 0 iff all pass)",
+ "status_of_every_rule": "development rule on previously and adaptively used records (MODEL_FIT and MODEL_SELECT were used by earlier campaigns; the DR budgets were set from published MODEL_SELECT aggregates); nothing is confirmation; no original limit changes; G1 gates; the confidence conjunction and the two-SE reserve are reported beside and never gate; the optimistic diagnostic and the failure stage never gate; every interval is a conditional development summary that does not correct the accumulated adaptive search",
+ "inherited": {
+  "module": "nrm.rules imported unchanged: point_eligibility (G1, 28 conditions), reserve_status, aggregate, benefit_screen, target_screen, recipient_screen, comparison, frontier_comparison, robustness, claims (G4, G5, G6); ohn.rules.conditions reached through nrm.rules (NR.OR) unchanged",
+  "nrm1_rules_json_sha256": "84f187768817e79ef9f2bb36151bea81f00b8f62d9179c8cd523069550674652",
+  "nrm_rules_py_sha256": "d5df868678d483a3452e251d8f24575932d23f0e5d22e3ef1ca3627a35030df1",
+  "derived_from": "sar/rules.py and the SAR1 RULES.json (pcrl_strong_anchor_release_v1): grid validity (extra-trees and few-valued explanations), refit effectiveness, reader-budget credit, alias collapse, targeting version means, the confidence conjunction, D3 / D4 / D5 and the CTRL frontier conjuncts kept; START / CONT / ALT / UM / strength selection removed; the comparison structure replaced (change_record)"
+ },
+ "z": 2.0,
+ "tie_tolerance": 1e-12,
+ "recipient_limit_auc": 0.01,
+ "sign_convention": "NR's: pair benefit = comparator AUC - DR AUC (positive favours DR); recipient difference = DR AUC - comparator AUC; paired costs loss(DR) - loss(comparator) (negative favours DR; accuracy enters as a loss)",
+ "original_conditions": {
+  "G1": "all 28 original usefulness conditions at the point: per version 12 task clauses (income and occupation x U0 and Ucal x accuracy loss <= 0.010, NLL excess <= 0.010 nats, summed Brier excess <= 0.005) + 2 within-SEX occupation guards (men's and women's occupation summed Brier excess vs U0 <= 0.005); two versions = 28 in total (nrm.rules.point_eligibility)",
+  "recipient": "neither single view more recoverable than the comparator's by more than 0.010 AUC per version at the aggregate point (nrm.rules.recipient_screen gate)",
+  "aggregate_screen": "8 registered cells = 2 versions x 2 repetitions (R1, R2) x 2 reader seeds (k0, k1); blocks = version x repetition, block means over reader seeds; se_agg = max(sqrt(se_hh^2 + se_rs^2 + se_mc^2), 0.001); resolved iff mean - 2 se_agg > threshold and both version means > threshold",
+  "material_target": "D4: a resolved 0.020 pair benefit against NEURAL_RAW and against H_LJ with the recipient gates (nrm.rules G5)",
+  "no_absolute_auc_threshold": "no absolute AUC threshold is installed anywhere (in particular not 0.58, a planning consequence of estimated variability in an earlier report); every criterion is comparator-based"
+ },
+ "comparators": {
+  "START": "SUCC",
+  "TWIN": "TWIN",
+  "OBJ": "OBJ_MI",
+  "id_rule": "START, TWIN and OBJ above are the default keys; drf.rules.comparator_ids(rec) reads the twin key from twin.id (protocol: TWB_C64) and the OBJ_MI key from obj_mi.config_id (protocol: DR_MI); the candidate is cand.config_id (protocol: DR_AUC); CTRL points keep their saved ids (DR_CTRL_LO, DR_CTRL_HI); SUCC and the references are keyed by their reference names",
+  "roles": "DR = the candidate (exact optimal-reader AUC objective with explicit constraints); START = SUCC (the unchanged strong starting release, outside the finite family; the family change FC is reported separately); TWIN = the family origin TWB_C64 (weak task-only twin; reported beside, never sufficient alone; also the CTRL path origin); CTRL = the SEX-blind task-only coarsening path in the same family (origin TWIN + two saved bracket points); OBJ_MI = the previous dependence objective (pi-weighted plug-in MI) in the same family with identical constraints, moves, data exposure and optimizer budget (one point per version); the nine references for D3 plus U0 / Ucal diagnostics"
+ },
+ "reader_grid": {
+  "model_seed_base": 2026101205,
+  "seed_offset": 1100,
+  "seed_rule": "reader seed S<v>k<k> = MODEL_SEED_BASE + 1100 + 10 v + k exactly (k0, k1 registered; k2, k3 robustness: 2026102305-2026102308, 2026102315-2026102318); recorded distinct integers; none equal to MODEL_SEED_BASE + {300, 400, ..., 1000} + 10 v + k (k = 0..9; 160 seeds)",
+  "forbidden_offsets": [300, 400, 500, 600, 700, 800, 900, 1000],
+  "bootstrap_seed_base": 2026102500,
+  "bootstrap_rule": "household bootstrap of SCORE, seed 2026102500 + 100 v + repetition index, recorded per (version, repetition) as S<v><R>; disclosed: the v = 0 seeds 2026102500-2026102503 equal SAR1's v = 1 seeds (applied there to different SCORE household sets of another split; harmless, not a validity condition)",
+  "repetition_index": {"R1": 0, "R2": 1, "R3": 2, "R4": 3},
+  "split_tag": "DRF1_devgrid_R{r}",
+  "registered_cells": ["S0R1k0", "S0R1k1", "S0R2k0", "S0R2k1", "S1R1k0", "S1R1k1", "S1R2k0", "S1R2k1"],
+  "robustness_cells": "R3, R4 with k0-k3 and R1, R2 with k2, k3; never a decision input",
+  "minimum_set": "DR, TWIN, the saved CTRL points, OBJ_MI and SUCC (for the refit: the D2R release and its decisive comparators); references off it",
+  "validity": "READER_SEEDS_EFFECTIVE iff the seed rule and the bootstrap rule hold and, per seed pair (k0 / k1; for the refit also k2 / k3), every seed-dependent recipe is checked and every seed-dependent equality is explained: off the minimum set by NRM1 A-SC1 (iii), the few-valued or the finite-pair explanation; on it by the extra-trees support, the few-valued or the finite-pair explanation; claims need grid_valid recorded and exactly true"
+ },
+ "er_explanation": {
+  "status": "PROSPECTIVE (registered before any grid output)",
+  "min_leaf": {"ET5": 5, "ET25": 25},
+  "pool_people": 8001,
+  "few_valued_max": 320,
+  "capacity": {"income": 16, "occupation": 64},
+  "pair_finite_max": 1024,
+  "rule": "extra-trees support (inherited, minimum set): ET5 / ET25, NRM1 (iii) (a) + (b) + (c), distinct inputs <= 8001 // min_leaf (1600 / 320); few-valued (SAR1, unchanged, anywhere): the view's recorded distinct-input count <= 320 and the same recipe differs on another wire or view in the same version, repetition and seed pair; finite-pair extension (DRF1, anywhere, pair view only): 320 < n <= n_inc x n_occ <= 1024 with the same wire's recorded income and occupation counts both <= 320, and the same recipe differs on the pair view of another wire in the same version, repetition and seed pair (flag FEW_VALUED_PAIR_ABOVE_320); explained equalities are counted once (n_eff) and reported; the strict NRM1 reading and the SAR1 reading (320 on every view) are reported beside; any other seed-dependent equality invalidates the grid; seed pairs are judged separately"
+ },
+ "decisions": {
+  "configuration": "DR = the single constrained exact-AUC mapping fitted on all MODEL_FIT (estimated law) per version, deployed from the six fields; read at that release only (never at another fit, an internal iterate, an optimistic construction or a fold fit)",
+  "D1": {
+   "labels": ["TASK_FEASIBLE", "CAND_INFEASIBLE", "INCOMPLETE"],
+   "confidence_labels": ["CONFIDENCE_ALL_PASS", "CONFIDENCE_UNRESOLVED", "CONFIDENCE_VIOLATION", "INCOMPLETE"],
+   "condition_states": ["PASS", "UNRESOLVED", "VIOLATION"],
+   "rule": "gating: G1 at DR (NR.point_eligibility); reported beside, never gating: the confidence conjunction (per condition from its own household-clustered SE: PASS iff value + 2 se <= cap, VIOLATION iff value - 2 se > cap, else UNRESOLVED) and the two-SE reserve of DR, SUCC, TWIN and OBJ_MI; flags START_POINT_INELIGIBLE, TWIN_POINT_INELIGIBLE, OBJ_MI_POINT_INELIGIBLE; a usefulness failure may stop the competitive reader stage (reader_stage STOPPED_USEFULNESS_FAILURE), the fitted release is preserved"
+  },
+  "D2": {
+   "comparisons": ["CTRL_FRONTIER", "OBJ"],
+   "met_label": "COMPONENT_GAIN_BEYOND_FAMILY_CONTROLS",
+   "obj_spend_states": ["OBJ_MI_SPENDS_AT_LEAST_AS_MUCH", "OBJ_MI_SPENDS_LESS_UNRESOLVED", "OBJ_MI_SPENDS_LESS_RESOLVED"],
+   "rule": "met iff (a) G1 at DR; (c) CTRL_FRONTIER: nrm.rules.frontier_comparison on the path [TWIN, saved CTRL points] = DOMINATES_CONTROL_FRONTIER at Q* (the cheapest path point whose pooled MODEL_SELECT paired total-NLL cost is >= DR's; AGG_POSITIVE vs Q*; no secondary metric resolved higher vs Q*) AND the recipient gate vs Q* AND no cheaper path point resolved less recoverable than DR; (o) OBJ: AGG_POSITIVE pair benefit vs OBJ_MI, the recipient gate vs OBJ_MI, no secondary metric resolved higher vs OBJ_MI, and OBJ_MI not resolved cheaper (d = pooled MODEL_SELECT paired total-NLL cost(DR) - cost(OBJ_MI); fails iff d - 2 SE > 0); (d) reader targeting: the non-table winner's point pair benefit > 0 in both version means vs Q* and OBJ_MI",
+   "labels": "in order: INCOMPLETE (DR status or utility); NOT_ASSESSED_EXACT_ALIAS (DR = TWIN); NOT_ASSESSED_TASK_INFEASIBLE; NOT_COMPUTED_GRID_VALIDITY_UNKNOWN / NOT_COMPUTED_GRID_INVALID; NOT_ASSESSED_CONTROLS_NOT_RUN; INCOMPLETE (CTRL selection data not recorded or not MODEL_FIT_NESTED; any needed input); READER_TARGETED; COMPONENT_GAIN_BEYOND_FAMILY_CONTROLS; NOT_SEPARATED; PARTIAL_CTRL_FRONTIER_ONLY / PARTIAL_OBJ_ONLY",
+   "obj_spend_rule": "a single control point cannot be chosen to match spend, so the inherited point-bracket choice becomes a resolution rule: OBJ_MI_SPENDS_AT_LEAST_AS_MUCH (d <= 0), OBJ_MI_SPENDS_LESS_UNRESOLVED (0 < d, d - 2 SE <= 0: credited, flag OBJ_MI_SPENDS_LESS_UNRESOLVED, statement), OBJ_MI_SPENDS_LESS_RESOLVED (d - 2 SE > 0: reason NOT_SEPARATED_FROM_SPEND, the objective is not credited for a spend change, reported as a budget-use difference); reported always: d (pooled, SE, by version), the 8 secondary paired differences, both MODEL_FIT nested spends, passed_if_spend_matched, and the strict NRM1 one-point frontier reading beside",
+   "no_bracket": "a CTRL path whose every point spends less MODEL_SELECT total NLL than DR has no bracket: the CTRL comparison reads NOT_SEPARATED (reason NO_BRACKET, flag NO_BRACKET_CTRL): lower recovery cannot be separated from task spending; a limit of the control path, never evidence of equality or of no effect",
+   "residual_mismatch": "reported: cost(DR) - cost(Q*) (pooled, SE, by version), the smallest overspend vs a cheaper point, NR's interpolation (never gating)",
+   "partial": "no partial outcome is a claim; NOT_SEPARATED is the default reading, never equal; PARTIAL_CTRL_FRONTIER_ONLY: the gain may come from SEX-aware routing in the family rather than the changed objective; PARTIAL_OBJ_ONLY: the gain may be explained by task spending",
+   "flags": ["CAND_ALIAS_OF_OBJ_MI", "OBJ_MI_SPENDS_LESS_UNRESOLVED", "OBJ_MI_SPENDS_LESS_RESOLVED", "RECIPIENT_GATE_FAILED_VS_<id>", "DOMINATED_BY_CHEAPER_<point>", "READER_TARGETED_<comparison>", "READER_SENSITIVE_ENHANCED_<point> (reported only)", "NO_BRACKET_CTRL", "CTRL_AT_ORIGIN", "CTRL_BRACKET_IS_ORIGIN", "CONTROL_GRID_COARSE_CTRL / CONTROL_PATH_MAY_NOT_BRACKET_CTRL / CONTROL_POINT_RULE_NOT_FOLLOWED_CTRL / CONTROL_GRID_FINENESS_INCOMPLETE_CTRL (grid_fineness; reported)", "CONTROL_SELECTION_DATA_NOT_ALLOWED_CTRL"],
+   "selection_data": {
+    "allowed": ["MODEL_FIT_NESTED"],
+    "rule": "the two CTRL bracket points are saved before any MODEL_SELECT read on the MODEL_FIT nested held-out total-NLL spend over TWIN (largest path point with spend <= DR's; smallest with spend >= DR's + 2 SE, SE = household-clustered SE of that point's paired held-out difference against DR on the same data); never MODEL_SELECT; CALIBRATION is not read by this campaign; not recorded -> D2 INCOMPLETE; not allowed -> D2 INCOMPLETE (re-selection is a POST HOC repair); Q* itself is always read on MODEL_SELECT by NR's rule"
+   },
+   "grid_fineness": {
+    "fraction": 0.25,
+    "rule": "on MODEL_FIT_NESTED with s = DR's nested spend over TWIN (> 0) and SE from the same data: FINE iff lower >= 0.75 s (and <= s) and upper >= s + 2 SE and <= s + 2 SE + 0.25 s; with the full path recorded the saved points must be the largest / smallest qualifying points, else SAVED_POINT_RULE_NOT_FOLLOWED; CONTROL_PATH_MAY_NOT_BRACKET if the largest path spend < s + 2 SE; NOT_APPLICABLE_CAND_NOT_ABOVE_TWIN if s <= 0; reported, never gating"
+   },
+   "power": "normal approximation, invented settings: one comparison resolves 2 se_agg with 50% and 2.84 se_agg with 80% probability; D2 with se_agg 0.008 (CTRL) and 0.007 (OBJ), correlation 0.5: 0.12 / 0.33 / 0.61 / 0.84 / 0.95 at a true benefit of 0.010 / 0.015 / 0.020 / 0.025 / 0.030 against both; when OBJ_MI reproduces half of the gain 0.25 / 0.40 / 0.55 at 0.020 / 0.025 / 0.030"
+  },
+  "FC": {
+   "labels": ["FAMILY_CHANGE_BELOW_START_RESOLVED", "FAMILY_CHANGE_NOT_RESOLVED"],
+   "rule": "DR vs SUCC: AGG_POSITIVE pair benefit and both recipient gates; reported separately from the objective comparison; attributes nothing to the objective; never part of D2; SUCC is also a D3 reference"
+  },
+  "TWIN": {
+   "labels": ["BELOW_TWIN_RESOLVED", "NOT_RESOLVED_VS_TWIN"],
+   "rule": "DR vs TWB_C64: AGG_POSITIVE pair benefit and both recipient gates; reported beside D2, never sufficient alone (flag TWIN_ONLY_ATTRIBUTION_INSUFFICIENT when met without D2)"
+  },
+  "D2R": {
+   "labels": ["ROBUSTNESS_CONFIRMED", "ROBUSTNESS_NOT_CONFIRMED", "NOT_RUN", "NOT_COMPUTED_GRID_VALIDITY_UNKNOWN", "NOT_COMPUTED_GRID_INVALID", "INCOMPLETE"],
+   "rule": "read at DR with the registered decisive set {the registered CTRL bracket Q*, OBJ_MI} (never re-chosen on robustness cells; no retuning); ROBUSTNESS_CONFIRMED per comparator iff nrm.rules.robustness confirms (AGG_POSITIVE on the robustness cells and on all cells), both single-view recipient gates hold on the robustness cells, the registered cells are present and refit_effectiveness is REFIT_GENUINELY_EFFECTIVE (at least one of R3 / R4; all four reader seeds valid); any sign change between the registered and the robustness-cell aggregate mean and any failed robustness recipient gate, decisive or beside (SUCC, TWIN, the references present, at least NEURAL_RAW and H_LJ), is flagged and carried into the headline; descriptive; never changes D2"
+  },
+  "D3": {
+   "references": ["NEURAL_RAW", "H_LJ", "B2TWIN", "RETIRED_B3CTL", "SUCC", "TWJ", "W", "TR100", "TT100"],
+   "rule": "NRM1 G4 at DR (every point-eligible reference: AGG_POSITIVE pair benefit and the recipient gate, intersection-union) with the reader-budget credit rule; SUPERIOR_TO_ALL_ELIGIBLE_REFERENCES only if every one passes; passed and failed listed; U0 / Ucal are utility diagnostics"
+  },
+  "D4": {
+   "target_references": ["NEURAL_RAW", "H_LJ"],
+   "rule": "NRM1 G5 at DR with the reader-budget credit rule; met iff MATERIAL_0020_RESOLVED (TARGET_AGG_RESOLVED at 0.020 against both, with the recipient gates); smaller gains keep their own level; never weakened"
+  },
+  "D5": {
+   "rule": "NRM1 G6 unchanged, only when a card claims joint design with the local twin and both sequential orders built; otherwise NOT_APPLICABLE_NOT_JOINT (not claimed); never changes the outcome class"
+  },
+  "D6": "NOT_CLAIMED unless a separate prior-art review supplies NOVELTY_REVIEW_PENDING / NOVEL_PER_SEPARATE_REVIEW / PRIOR_ART_FOUND; never inferred from performance"
+ },
+ "optimistic": {
+  "kinds": ["OPT_S", "OPT_L"],
+  "modes": ["in_sample", "nested"],
+  "useful_margin_auc": 0.02,
+  "labels": ["USEFUL_OPTIMISTIC_POINT", "NO_USEFUL_OPTIMISTIC_POINT", "UNDETERMINED"],
+  "rule": "MODEL_FIT only, prospective, comparator-based, reported, NEVER a gate: a construction is USEFUL in a mode iff in both versions it is within all 8 DR budgets (in-sample record) and, against B = the cheapest SEX-blind CTRL path point (TWIN first, spend 0) on the same law and mode whose MODEL_FIT total-NLL spend over the twin is >= its own, AUC*_pair(B) - AUC*_pair(X) >= 0.020 and neither single view's AUC* exceeds B's by more than 0.010; USEFUL_OPTIMISTIC_POINT iff OPT_S or OPT_L is useful in the in-sample mode; NO_USEFUL_OPTIMISTIC_POINT iff both are evaluable there (bracketed, complete) and neither is; else UNDETERMINED; the nested mode is reported beside (held_out_survives); exact plug-in values, no SE; no absolute AUC threshold; no preliminary significance, optimistic forecast or novelty gate may prevent an exploratory fit"
+ },
+ "failure_stage": {
+  "labels": ["STAGE_1_NO_USEFUL_OPTIMISTIC_POINT", "STAGE_2_OPTIMISTIC_SUCCEEDS_LEGAL_MAPPING_FAILS", "STAGE_3_KEEPS_UTILITY_TIES_CONTROLS", "STAGE_4_BEATS_CONTROLS_MISSES_STRONG_REFERENCES", "STAGE_5_COMPETITIVE_CONDITIONS_PASS", "UNDETERMINED_OPTIMISTIC_DIAGNOSTIC", "INCOMPLETE"],
+  "rule": "legal stage: L2 (DR fails G1 on MODEL_SELECT or DR = TWIN), L3 (G1 kept, neither D2 nor D3 met), L4 (D2 met, D3 not), L5 (D3 met); stage: L5 -> 5 (flag D3_WITHOUT_D2 if D2 not met); L4 -> 4 (SCOPED_COMPONENT_RESULT_ROBUSTNESS_SUPPORTED iff D2R ROBUSTNESS_CONFIRMED with no sign change and no robustness recipient failure, else COMPONENT_RESULT_NOT_ROBUSTNESS_SUPPORTED); L2 / L3 with NO_USEFUL_OPTIMISTIC_POINT -> 1; L2 with USEFUL_OPTIMISTIC_POINT -> 2; L3 with USEFUL_OPTIMISTIC_POINT -> 3; L2 / L3 with UNDETERMINED -> UNDETERMINED_OPTIMISTIC_DIAGNOSTIC; INCOMPLETE when D1, D2 or D3 is undecided; reported, never gating; flag NO_USEFUL_OPTIMISTIC_POINT_BUT_LEGAL_MAPPING_PROGRESSED at L4 / L5",
+  "meaning": {
+   "1": "failure within the chosen finite model, estimated law and optimizer; not a general impossibility",
+   "2": "a possible estimation, representation, optimization or generalization limitation",
+   "3": "no demonstrated mechanism advantage",
+   "4": "at most a scoped component result if robustness supports it",
+   "5": "exploratory development evidence requiring fresh confirmation"
+  }
+ },
+ "outcome_class": {
+  "labels": ["METHOD_CANDIDATE", "COMPONENT_GAIN_NOT_COMPETITIVE", "REFERENCE_ADVANTAGE_NOT_ATTRIBUTED", "FEASIBLE_NO_RELIABLE_GAIN", "NO_OUTPUT_CHANGE", "TASK_INFEASIBLE", "PROTECTION_NOT_ASSESSED", "INCOMPLETE"],
+  "rule": "first applicable: INCOMPLETE (D1 incomplete); NO_OUTPUT_CHANGE (DR = TWIN); TASK_INFEASIBLE (DR fails G1); INCOMPLETE (D2 incomplete or not computed); PROTECTION_NOT_ASSESSED (a family control not run); INCOMPLETE (D3 undecided); METHOD_CANDIDATE (D2 and D3 met); COMPONENT_GAIN_NOT_COMPETITIVE (D2 met, D3 not); REFERENCE_ADVANTAGE_NOT_ATTRIBUTED (D3 met, D2 not); FEASIBLE_NO_RELIABLE_GAIN; D4, D5, FC, TWIN, D2R and the failure stage never change the class; the three outcomes (component gain, strong references, material target) are always reported separately, with FC, TWIN and the stage beside",
+  "flags": ["D3_WITHOUT_D2", "D4_WITHOUT_D2", "TWIN_ONLY_ATTRIBUTION_INSUFFICIENT", "POINT_FEASIBLE_NOT_RESERVE_QUALIFIED", "POINT_FEASIBLE_NOT_CONFIDENCE_RESOLVED", "FAMILY_STOPS_EXACT_ALIAS_OF_TWIN", "READER_STAGE_STOPPED_RELEASE_PRESERVED", "D2R_SIGN_CHANGE_CARRIED_INTO_HEADLINE", "D2R_RECIPIENT_FAILURE_CARRIED_INTO_HEADLINE", "REVISION_NOTE_MISSING", "the D1, D2, D5 and stage flags"]
+ },
+ "registration_status": {
+  "family": "DR",
+  "max_revisions": 2,
+  "revision_triggers": ["MODEL_SELECT", "MODEL_FIT", "SYNTHETIC"],
+  "kinds": ["ADAPTIVE"],
+  "registered": "a reading is registered iff its card was committed before any MODEL_SELECT outcome of this campaign (revision 0, or a revision with a complete prospective note whose trigger is MODEL_FIT or SYNTHETIC evidence); the headline is the registered reading with the highest revision (the latest pre-outcome card), earlier registered readings are listed as superseded",
+  "revisions": "at most two evidence-driven revisions (revision 3+ refused), each with a prospective note naming the observed failure, the actual changed operation and the trigger; a revision triggered by a MODEL_SELECT outcome or committed after one is ADAPTIVE_R<n>; a revision without a complete note is ADAPTIVE_R<n>_NO_NOTE; a late revision-0 card is ADAPTIVE_R0_LATE_CARD; every label of a non-registered reading is prefixed <tag>__",
+  "model_select_outcome": "any MODEL_SELECT-derived number of this campaign (utility, reader AUC, paired cost) of any configuration, DR, OBJ_MI, CTRL points or a re-read reference; the coordinator records the time of the first such read",
+  "multiplicity": "one AGG_POSITIVE comparison passes a true null in about 0.07-2% of replicates under six moderate NRM1 known laws and about 8% when one version or split dominates (NRM1 RULES.md 5.5); a D2 look is an intersection-union conjunction of two such comparisons (the CTRL frontier at its bracket and OBJ_MI), so its false-pass rate is at most that of its weaker member; with K D2 looks the chance that at least one passes by chance is at most K times the per-look rate; no multiplicity correction is applied or claimed"
+ },
+ "estimators": "household sampling (household-clustered condition SEs; household bootstrap of SCORE for cell SEs), fitting variation (versions are procedure repeats sharing every MODEL_FIT row and the MODEL_SELECT people; repetitions are household splits of the same people; the nested MODEL_FIT estimator estimates the procedure's expected held-out behaviour at 80% training size, not the deployed single fit's conditional performance, and its fold spread is not a valid SE of anything deployed) and numerical randomness (the DRF optimizer is deterministic given its seed and data: no MC term; reader seeds enter through block means) are kept apart (RULES.md section 10); every interval is a conditional development summary that does not correct the accumulated adaptive search",
+ "scope": [
+  "Lower recovery for the declared development readers is not protection against every reader.",
+  "MODEL_SELECT is adaptively used: development evidence, never confirmation.",
+  "Versions share training rows; repetitions share households; reader recipes and overlapping splits are not independent datasets.",
+  "Novelty is never inferred from performance.",
+  "Point feasibility and the reserve are not confidence preservation.",
+  "A late-card or MODEL_SELECT-triggered revision is never the registered result.",
+  "The three outcomes (component gain, strong references, material target) are reported separately; none implies another; the family change and TWIN are reported apart.",
+  "The failure stage and the optimistic diagnostic never gate."
+ ],
+ "change_record": [
+  "comparison structure: SAR1's START / CONT / CTRL / ALT replaced by the family controls CTRL (origin TWIN, two saved points bracketing DR's MODEL_FIT nested spend over TWIN) and OBJ_MI (one point, the single-point spend-resolution rule); met label COMPONENT_GAIN_BEYOND_FAMILY_CONTROLS; START = SUCC moved to the separately reported family change FC; TWIN reported beside, never sufficient",
+  "UM, strength selection, CONT, ALT, CALIBRATION bracket data and strongest_nonzero removed (DR is one constrained fit per version; CALIBRATION is not read)",
+  "optimistic diagnostic (new): useful optimistic point vs the SEX-blind CTRL path at matched MODEL_FIT spend, 0.020 pair and 0.010 single-view margins, in-sample and nested, reported never gating",
+  "failure stage (new): stages 1-5 from the legal stage and the optimistic diagnostic",
+  "D2R: decisive set {Q*, OBJ_MI}; robustness recipient failures carried into the headline as well as sign changes",
+  "grid validity: finite-pair extension of the few-valued explanation (pair view, 320 < n <= n_inc x n_occ <= 1024, seed shown on the pair view of another wire); SAR1 reading reported beside",
+  "registration: family DR, revisions 0-2 with prospective notes; registered iff the card precedes any MODEL_SELECT outcome; headline = latest pre-outcome card",
+  "reader grid: +1100 offset, 300-1000 forbidden (160 seeds), bootstrap 2026102500, split tag DRF1_devgrid_R{r}"
+ ]
+}
