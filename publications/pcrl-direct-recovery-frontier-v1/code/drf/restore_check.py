@@ -6,13 +6,14 @@
 - representative readers (runs/READER_CUSTODY/*.pkl, fitted reader models saved with their SCORE outputs) re-load from the backup and
   reproduce their saved scores bitwise on the restored released wires;
 - reader-grid results (GRID.json / BOOT.npz) are present and parse; the reader cache entries pass their own checksums;
-- every deployment package (under the campaign's private deploy/ folder) redeploys the restored DEV_REPORT raw inputs and reproduces
-  its stored wire bitwise, with every refusal (drf.deploy check). Derived from nrm.restore_check (relative imports resolve to drf).
-Adapted for this campaign (2026-10-24): the cached task teachers (nrm fa_cache TASK.pkl) and SUCC's frozen files re-hash against
-SOURCE_ADMISSION.json (drf.fa.tfr.preflight); the external-input snapshot (FB's fit-time STAGE_A / NEURAL_RAW files) against the
-admission pins; every FA / FB / FS / CTL MODEL.pkl against its MODEL.json; every bank member of every reader grid re-loads from the
-restored files and reproduces the wire hashes the grid recorded (references included); and the check fails if a reader grid exists but
-no custody reader was restored."""
+- every deployment package (under the campaign's private deploy/ folder) redeploys restored raw inputs and reproduces its stored wire
+  bitwise, with every refusal (drf.deploy check; for DRF1 the inputs are MODEL_FIT's, see below). Derived from nrm.restore_check
+  (relative imports resolve to drf).
+Adapted for DRF1 (2026-10-25): the frozen inputs of family DR (drf.dr.SOURCE_PINS: the NRM1 task cache, the FRC1 SEX-side cache,
+the FRC1 twin model, the FRC1 utility ledger) re-hash against their pins; every DR MODEL.pkl against its MODEL.json; every bank member
+of every reader grid re-loads from the restored files and reproduces the wire hashes the grid recorded (references and the FRC1 twin
+included); the deployment packages are checked on MODEL_FIT raw inputs and on the attacked MODEL_SELECT output (DEV_REPORT is not
+used); and the check fails if a reader grid exists but no custody reader was restored."""
 from __future__ import annotations
 import json
 import pickle
@@ -95,35 +96,22 @@ def main(out):
     for p in pkgs:
         meta = json.loads((Path(p) / 'PACKAGE.json').read_text())
         fam, cfg = meta['name'].split('/')
-        if RL.load(fam, cfg, int(meta['version']), roles=('DEV_REPORT',))[1].get('python') == here:
+        if RL.load(fam, cfg, int(meta['version']), roles=('MODEL_SELECT',))[1].get('python') == here:
             mine.append(p)
     if mine:
         from . import deploy as DP
         dep = DP.check(mine, Path(out).with_name(f'restore_deploy_detail_py{here}.json'))
     else:
         dep = {'all_bitwise': None, 'all_refused': None}
-    # source artefacts this campaign reads: TASK.pkl and SUCC's frozen files (FA's preflight), FB's fit-time external inputs, and the
-    # wire of every bank member the reader grids read (references included), against the hashes the grids recorded
+    # source artefacts this campaign reads: the frozen inputs of family DR (pinned in drf.dr), and the wire of every bank member the
+    # reader grids read (references and the twin included), against the hashes the grids recorded
     src_bad, src_n = [], 0
-    from .fa import tfr as TF
-    for v in C.VERSIONS:
-        pf = TF.preflight(v)
-        src_n += 1 + len(pf['frozen'])
-        src_bad += [f'{x} V{v}' for x in pf['missing'] + pf['mismatched']]
-    adm2 = json.loads((C.RESULTS / 'SOURCE_ADMISSION.json').read_text())
-    ext = C.PRIV / 'external_inputs' / 'acs_replication_runs'
-    for v, rec_v in adm2['acs_replication_inputs']['files'].items():
-        sv = v[1:]
-        u0 = ext / f'STAGE_A_{sv}' / 'U0_MODEL.pt'
+    from . import dr as DRM
+    for key, want in DRM.SOURCE_PINS.items():
         src_n += 1
-        if not u0.is_file() or C.sha(u0) != rec_v.get('U0_MODEL.pt'):
-            src_bad.append(f'external U0_MODEL.pt {v}')
-        for ck, r in (rec_v.get('NEURAL_RAW_checkpoints') or {}).items():
-            rho, e = ck.split('/')
-            f = ext / f'NEURAL_RAW_{sv}' / f'NEURAL_RAW__{rho}__{e}.pt'
-            src_n += 1
-            if not f.is_file() or C.sha(f) != r['sha256']:
-                src_bad.append(f'external NEURAL_RAW {v} {ck}')
+        q = DRM._src_path(key)
+        if not q.is_file() or C.sha(q) != want:
+            src_bad.append(key)
     from . import devreaders as DR
     members_ok, members_bad = 0, []
     for g in sorted((C.RUNS / 'GRID').glob('*/S*/GRID.json')) if (C.RUNS / 'GRID').is_dir() else []:
@@ -142,7 +130,7 @@ def main(out):
                 members_bad.append(f"{G['bank_id']}/S{G['seed']}/{m}")
     cache_bad2 = []
     model_bad, model_n = [], 0
-    for mj in [m for fam in ('FA', 'FB', 'FS', 'CTL') for m in sorted(C.RUNS.glob(f'{fam}/*/V*/MODEL.json'))]:
+    for mj in [m for fam in ('DR',) for m in sorted(C.RUNS.glob(f'{fam}/*/V*/MODEL.json'))]:
         model_n += 1
         if C.sha(mj.parent / 'MODEL.pkl') != json.loads(mj.read_text())['model_sha256']:
             model_bad.append(str(mj.parent.relative_to(C.RUNS)))

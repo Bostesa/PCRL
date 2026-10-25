@@ -94,7 +94,12 @@ class Problem:
     """Per-person inputs aggregated into fine-cell sufficient statistics (see the module docstring)."""
 
     def __init__(self, inc_cell, occ_cell, y_inc, y_occ, sex, w1, qI, qO, start_inc, start_occ, n_inc_atoms, n_occ_atoms,
-                 fallback_inc=None, fallback_occ=None):
+                 fallback_inc=None, fallback_occ=None, soft=None):
+        """soft (optional; DRF1 revision R1, the EXPECTED-cost constraint estimator): {'inc': (N, 2), 'occ': (N, 5), 'occ_s0':
+        (N, 5), 'occ_s1': (N, 5)} per-person label distributions that replace the realized label counts in every task cost (the
+        frozen out-of-fold teacher posteriors; the within-SEX occupation costs use the SEX-conditional teacher of the person's own
+        SEX group). Every cost formula is linear in the label counts, so soft counts give the expected costs under the teachers;
+        no realized label then enters the search. None = realized labels (the registered estimator)."""
         inc_cell = np.asarray(inc_cell, dtype=np.int64)
         occ_cell = np.asarray(occ_cell, dtype=np.int64)
         y_inc = np.asarray(y_inc, dtype=np.int64)
@@ -131,6 +136,17 @@ class Problem:
                     'n1': np.bincount(occ_cell[sex == 1], minlength=J).astype(np.float64),
                     'cy0': _counts(occ_cell[sex == 0], y_occ[sex == 0], J, self.KO),
                     'cy1': _counts(occ_cell[sex == 1], y_occ[sex == 1], J, self.KO)}
+        self.estimator = 'realized'
+        if soft is not None:
+            si_, so_ = np.asarray(soft['inc'], dtype=np.float64), np.asarray(soft['occ'], dtype=np.float64)
+            s0_, s1_ = np.asarray(soft['occ_s0'], dtype=np.float64), np.asarray(soft['occ_s1'], dtype=np.float64)
+            if si_.shape != qI.shape or so_.shape != qO.shape or s0_.shape != qO.shape or s1_.shape != qO.shape:
+                raise ValueError('soft label distributions must match the teacher shapes')
+            self.inc['cy'] = _sum_rows(inc_cell, si_, I)
+            self.occ['cy'] = _sum_rows(occ_cell, so_, J)
+            self.occ['cy0'] = _sum_rows(occ_cell[sex == 0], s0_[sex == 0], J)
+            self.occ['cy1'] = _sum_rows(occ_cell[sex == 1], s1_[sex == 1], J)
+            self.estimator = 'expected'
         W = np.zeros((I * J, 2))
         np.add.at(W[:, 0], inc_cell * J + occ_cell, w1)
         np.add.at(W[:, 1], inc_cell * J + occ_cell, 1.0 - w1)
@@ -144,7 +160,7 @@ class Problem:
         return {'people': int(self.N), 'income_fine_cells': int(self.I), 'occupation_fine_cells': int(self.J),
                 'occupied_income_fine_cells': int((self.inc['n'] > 0).sum()),
                 'occupied_occupation_fine_cells': int((self.occ['n'] > 0).sum()),
-                'income_atoms': int(self.MI), 'occupation_atoms': int(self.MO)}
+                'income_atoms': int(self.MI), 'occupation_atoms': int(self.MO), 'constraint_estimator': self.estimator}
 
 
 def _sum_rows(cells, Q, K):
@@ -691,6 +707,24 @@ def selftest():
     pa = coarsening_path(P, max_steps=6)
     pb = coarsening_path(P_b, max_steps=6)
     checks['coarsening_sex_blind'] = bool(all(np.array_equal(x[0], y[0]) and np.array_equal(x[1], y[1]) for x, y in zip(pa, pb)))
+    # 8b. the expected-cost estimator (R1): one-hot soft labels reproduce the realized-label problem exactly; teacher posteriors
+    # give the teacher-expected costs (spends differ from the realized ones)
+    rng2 = np.random.default_rng(11)
+    n2, I2, J2 = 1500, 5, 9
+    ic2, oc2 = rng2.integers(0, I2, n2), rng2.integers(0, J2, n2)
+    sx2 = (rng2.random(n2) < 0.45).astype(np.int64)
+    qI2, qO2 = rng2.dirichlet(np.ones(2), n2), rng2.dirichlet(np.ones(5), n2)
+    yi2 = np.array([rng2.choice(2, p=p) for p in qI2]); yo2 = np.array([rng2.choice(5, p=p) for p in qO2])
+    args = (ic2, oc2, yi2, yo2, sx2, sx2.astype(float), qI2, qO2, np.arange(I2) % 3, np.arange(J2) % 4, 3, 4)
+    Pr = Problem(*args)
+    oh = lambda y, k: np.eye(k)[y]
+    Ph = Problem(*args, soft={'inc': oh(yi2, 2), 'occ': oh(yo2, 5), 'occ_s0': oh(yo2, 5), 'occ_s1': oh(yo2, 5)})
+    Pt = Problem(*args, soft={'inc': qI2, 'occ': qO2, 'occ_s0': qO2, 'occ_s1': qO2})
+    Ai2, Ao2 = np.arange(I2) % 2, np.arange(J2) % 3
+    mr, mh, mt = metrics_of(Pr, Ai2, Ao2), metrics_of(Ph, Ai2, Ao2), metrics_of(Pt, Ai2, Ao2)
+    checks['soft_onehot_equals_realized'] = bool(np.allclose(mr['totals'], mh['totals'], atol=1e-9) and Ph.estimator == 'expected')
+    checks['soft_teacher_differs_from_realized'] = bool(not np.allclose(mr['totals'], mt['totals']) and Pr.estimator == 'realized')
+    checks['soft_recovery_unchanged'] = bool(abs(mr['J_auc'] - mt['J_auc']) < 1e-15)
     # 9. held-out tables reproduce in-sample tables on the same people
     Ti, To = apply_tables(P, a1[0], a1[1])
     ai = _agg(P.inc, a1[0], P.MI)

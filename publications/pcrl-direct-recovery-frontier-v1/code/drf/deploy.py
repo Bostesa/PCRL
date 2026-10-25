@@ -5,7 +5,8 @@ checks and refusal probes; derived from nrm.deploy; no label is read anywhere in
     python3 -m drf.deploy store --name FAMILY/CONFIG --version V      label-free: the release recomputed from admitted features on all six
                                                                      roles; must equal the saved, evaluated RELEASE.npz bitwise
     python3 -m drf.deploy build --name FAMILY/CONFIG --version V --out DIR
-    python3 -m drf.deploy check --packages DIR1 DIR2 ... --report OUT.json   bitwise parity on DEV_REPORT raw inputs + refusals
+    python3 -m drf.deploy check --packages DIR1 DIR2 ... --report OUT.json   parity on MODEL_FIT raw inputs, attacked MODEL_SELECT parity
+                                                                     across request sizes, refusals (DRF1: DEV_REPORT is not used)
 
 Family interface (each family package drf.<family lower case> provides it in its `release` module or package root):
     predict(config_id, version, X, feature_names, draw=0, keys=None) -> {'income': (n, 2), 'occupation': (n, 5)} float64
@@ -117,7 +118,7 @@ def build(name, v, out):
     deps[f'DRF::{st.relative_to(C.RUNS)}'] = C.sha(st)
     code = set(CODE_BASE) | {mod.__name__} | {m for m in getattr(mod, 'CODE_MODULES', ())} | _runtime_modules(name, v)
     deps.update({f'CODE::{m}': C.sha(_code_path(m)) for m in sorted(code)})
-    _, rec = RL.load(family, config, v, roles=('DEV_REPORT',))
+    _, rec = RL.load(family, config, v, roles=('MODEL_SELECT',))
     meta = {'schema': 'DRF1-deploy-package-v1', 'name': name, 'version': v, 'encoder': enc, 'depends_sha256': deps,
             'release_sha256': rec['release_sha256'], 'randomized': bool(rec.get('randomized')),
             'release_contract': 'probability and decision per recipient; nothing else', 'permitted_inputs': PERMITTED,
@@ -202,13 +203,41 @@ def release_csv(pkg, path, requested=('probability', 'decision'), keys=None):
     return release(pkg, SRC_DEPLOY.read_raw_csv(path), requested, keys=keys)
 
 
-def stored(meta):
+CHECK_ROLE = 'MODEL_FIT'           # DRF1: the six-field raw-input parity uses MODEL_FIT raw inputs (label-free); DEV_REPORT is not used
+ATTACKED_ROLE = 'MODEL_SELECT'     # the attacked output: package `underlying` on MODEL_SELECT features vs the evaluated wire
+REQUEST_SIZES = (1, 7, 50, 333)
+
+
+def stored(meta, role=CHECK_ROLE):
     with np.load(store_dir() / _fname(meta['name'], meta['version'])) as z:
-        return {t: z[f'{t}__DEV_REPORT'].copy() for t in C.TASKS}
+        return {t: z[f'{t}__{role}'].copy() for t in C.TASKS}
+
+
+def attacked_parity(pkg, meta):
+    """Equivalence to the attacked output: the package on MODEL_SELECT features (whole batch and request sizes REQUEST_SIZES in
+    order) against the stored MODEL_SELECT wire that the readers attacked; bitwise flags and the largest absolute difference."""
+    F = C.features(ATTACKED_ROLE)
+    ref = stored(meta, ATTACKED_ROLE)
+    full = underlying(pkg, F['X'], F['feature_names'])
+    out = {'full_batch_bitwise': {t: bool(np.array_equal(full[t], ref[t])) for t in C.TASKS},
+           'full_batch_max_abs_diff': {t: float(np.abs(full[t] - ref[t]).max()) for t in C.TASKS},
+           'full_batch_decisions_equal': {t: bool(np.array_equal(full[t].argmax(1), ref[t].argmax(1))) for t in C.TASKS}}
+    n = len(F['row_id'])
+    for size in REQUEST_SIZES:
+        parts = {t: [] for t in C.TASKS}
+        for a in range(0, n, size):
+            r = underlying(pkg, F['X'][a:a + size], F['feature_names'])
+            for t in C.TASKS:
+                parts[t].append(r[t])
+        cat = {t: np.vstack(parts[t]) for t in C.TASKS}
+        out[f'size_{size}'] = {'bitwise': {t: bool(np.array_equal(cat[t], ref[t])) for t in C.TASKS},
+                               'max_abs_diff': {t: float(np.abs(cat[t] - ref[t]).max()) for t in C.TASKS},
+                               'decisions_equal': {t: bool(np.array_equal(cat[t].argmax(1), ref[t].argmax(1))) for t in C.TASKS}}
+    return out
 
 
 def check(packages, report):
-    R = C.features('DEV_REPORT', raw=True)                       # label-free: DEV_REPORT features and raw inputs only
+    R = C.features(CHECK_ROLE, raw=True)                         # label-free: MODEL_FIT features and raw inputs only
     raw = R['raw_inputs']
     rows = [{c: raw[c][i].item() if hasattr(raw[c][i], 'item') else raw[c][i] for c in PERMITTED} for i in range(len(R['row_id']))]
     tmp = Path(tempfile.mkdtemp(dir=C.PRIV)); p = tmp / 'raw.csv'
@@ -219,7 +248,7 @@ def check(packages, report):
         t0 = time.process_time()
         meta = _load(pkg)
         ref = stored(meta)
-        keys = {'role': 'DEV_REPORT', 'row_id': np.asarray(R['row_id'])} if meta.get('randomized') else None
+        keys = {'role': CHECK_ROLE, 'row_id': np.asarray(R['row_id'])} if meta.get('randomized') else None
         a = release(pkg, rows, keys=keys); b = release_csv(pkg, p, keys=keys); u = underlying(pkg, R['X'], R['feature_names'], keys=keys)
         same = {nm: {t: bool(np.array_equal(o[t]['probability'], ref[t])) for t in C.TASKS}
                 for nm, o in (('wrapper_api', a), ('wrapper_csv', b), ('underlying', {t: {'probability': u[t]} for t in C.TASKS}))}
@@ -260,18 +289,21 @@ def check(packages, report):
             if meta.get('randomized'):
                 release(pkg, rows[:3]); refusals['randomized_without_draw_keys'] = 'NOT_REFUSED'
             else:
-                release(pkg, rows[:3], keys={'role': 'DEV_REPORT', 'row_id': np.arange(3)})
+                release(pkg, rows[:3], keys={'role': CHECK_ROLE, 'row_id': np.arange(3)})
                 refusals['deterministic_with_draw_keys'] = 'NOT_REFUSED'
         except PermissionError:
             refusals['randomized_without_draw_keys' if meta.get('randomized') else 'deterministic_with_draw_keys'] = 'refused: PermissionError'
         res[Path(pkg).name] = {'name': meta['name'], 'version': meta['version'], 'randomized': meta.get('randomized'),
-                               'bitwise_equal_to_stored_DEV_REPORT_wire': same,
+                               'bitwise_equal_to_stored_raw_input_role_wire': same, 'raw_input_role': CHECK_ROLE,
+                               'attacked_output_parity': attacked_parity(pkg, meta),
                                'decisions_equal': {t: bool(np.array_equal(a[t]['decision'], ref[t].argmax(1))) for t in C.TASKS},
                                'refusals': refusals, 'exported_keys': {t: sorted(a[t]) for t in C.TASKS},
                                'cpu_s': round(time.process_time() - t0, 2), 'n_dependencies': len(meta['depends_sha256'])}
     shutil.rmtree(tmp, ignore_errors=True)
     rec = {'schema': 'DRF1-deployment-check-v1', 'utc': C.now(), 'packages': res, 'labels_read': False, 'environment': OD._environment()}
-    rec['all_bitwise'] = all(all(all(v.values()) for v in r['bitwise_equal_to_stored_DEV_REPORT_wire'].values()) for r in res.values())
+    rec['all_bitwise'] = all(all(all(v.values()) for v in r['bitwise_equal_to_stored_raw_input_role_wire'].values()) for r in res.values())
+    rec['all_attacked_full_batch_bitwise'] = all(all(r['attacked_output_parity']['full_batch_bitwise'].values()) for r in res.values())
+    rec['all_decisions_equal_every_request_size'] = all(all(all(x['decisions_equal'].values()) for k, x in r['attacked_output_parity'].items() if k.startswith('size_')) for r in res.values())
     rec['all_refused'] = all(v.startswith('refused') for r in res.values() for v in r['refusals'].values())
     C.write_json_x(report, rec)
     print(json.dumps({'all_bitwise': rec['all_bitwise'], 'all_refused': rec['all_refused']}, indent=1))

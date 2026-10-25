@@ -84,6 +84,19 @@ CONFIGS = {
                    'what': 'SEX-blind task-only coarsening of the twin: the smallest path point whose nested MODEL_FIT total-NLL spend is '
                            'at least DR_AUC\'s + 2 household-clustered SE of their paired difference'},
 }
+# Revision R1 (card DR_DRF_R1; MODEL_FIT-triggered, before any MODEL_SELECT read): the EXPECTED-cost constraint estimator (frozen
+# out-of-fold teachers; no realized label in the search) and a larger search budget, identical for both objectives and the path.
+REVISIONS = {'v1': {'suffix': '', 'estimator': 'realized', 'card_prefix': 'DR_DRF_v1'},
+             'R1': {'suffix': '_R1', 'estimator': 'expected', 'card_prefix': 'DR_DRF_R1'},
+             'R2': {'suffix': '_R2', 'estimator': 'expected', 'card_prefix': 'DR_DRF_R2'}}
+SOLVE_BY_REVISION = {'v1': SOLVE, 'R1': {'max_sweeps': 30, 'restarts': 3, 'perturb_moves': 16, 'seeds': 4},
+                     'R2': {'max_sweeps': 30, 'restarts': 3, 'perturb_moves': 16, 'seeds': 12}}
+SEED_SHIFT = {'v1': 0, 'R1': 10, 'R2': 10}           # R2's 12 seeds start at R1's first seed: a superset search
+for _b in ('DR_AUC', 'DR_MI', 'DR_CTRL_LO', 'DR_CTRL_HI'):
+    CONFIGS[_b + '_R1'] = {**CONFIGS[_b], 'what': CONFIGS[_b]['what'] + ' [revision R1: expected-cost constraint estimator under '
+                                                                       'the frozen out-of-fold teachers; 4 seeds x (1 + 3 restarts)]'}
+    CONFIGS[_b + '_R2'] = {**CONFIGS[_b], 'what': CONFIGS[_b]['what'] + ' [revision R2 (adaptive): R1 with 12 seeds x (1 + 3 restarts), '
+                                                                       'a superset of R1\'s search]'}
 OPTIMISTIC = {
     'OPT_L': {'objective': 'auc', 'law': 'empirical', 'sex_split': False,
               'what': 'optimistic diagnostic: legal fine cells, exact AUC of the true-SEX empirical MODEL_FIT law, in-sample'},
@@ -214,8 +227,10 @@ def statistics(version, Z, row_sha):
     k, l = route_twin(qI, qO, book)
     cuts = pi_cuts(pi)
     ic, oc, m = fine_cells(k, l, pi, cuts)
+    qO0 = np.asarray(ss['oof']['occ_s'][0], dtype=np.float64)       # P(occ | x, SEX = 0), out of fold (R1's within-SEX costs)
+    qO1 = np.asarray(ss['oof']['occ_s'][1], dtype=np.float64)       # P(occ | x, SEX = 1)
     return {'qI': qI, 'qO': qO, 'pi': pi, 'k': k, 'l': l, 'm': m, 'inc_cell': ic, 'occ_cell': oc, 'cuts': cuts, 'book': book,
-            'task': task, 'ss': ss, 'tw': tw}
+            'qO0': qO0, 'qO1': qO1, 'task': task, 'ss': ss, 'tw': tw}
 
 
 def identity():
@@ -223,7 +238,10 @@ def identity():
     return np.repeat(np.arange(KI), B_PI), np.repeat(np.arange(KO), B_PI)
 
 
-def problem(st, lab, rows=None, law='estimated', sex_split=False):
+def problem(st, lab, rows=None, law='estimated', sex_split=False, estimator='realized'):
+    """estimator 'realized' (card DR_DRF_v1: the realized MODEL_FIT labels in every task cost) or 'expected' (card DR_DRF_R1: the
+    frozen out-of-fold teachers' expected costs; the within-SEX occupation costs with the SEX-conditional teacher of the person's
+    own SEX group)."""
     rows = np.arange(len(lab['sex'])) if rows is None else np.asarray(rows)
     sex = np.asarray(lab['sex'])[rows]
     ic, oc = st['inc_cell'][rows], st['occ_cell'][rows]
@@ -232,8 +250,14 @@ def problem(st, lab, rows=None, law='estimated', sex_split=False):
         ic, oc = ic * 2 + sex, oc * 2 + sex
         si, so = np.repeat(si, 2), np.repeat(so, 2)
     w1 = st['pi'][rows] if law == 'estimated' else sex.astype(np.float64)
+    soft = None
+    if estimator == 'expected':
+        soft = {'inc': st['qI'][rows], 'occ': st['qO'][rows], 'occ_s0': st['qO0'][rows], 'occ_s1': st['qO1'][rows]}
+    elif estimator != 'realized':
+        raise ValueError(f'unknown constraint estimator {estimator!r}')
     return S.Problem(ic, oc, np.asarray(lab['income'])[rows], np.asarray(lab['occupation'])[rows], sex, w1, st['qI'][rows],
-                     st['qO'][rows], si, so, CAPACITY[0], CAPACITY[1], fallback_inc=st['book']['CI'], fallback_occ=st['book']['CO'])
+                     st['qO'][rows], si, so, CAPACITY[0], CAPACITY[1], fallback_inc=st['book']['CI'], fallback_occ=st['book']['CO'],
+                     soft=soft)
 
 
 # ---------------------------------------------------------------- nested estimator (MODEL_FIT; outer household folds)
@@ -280,7 +304,7 @@ def _views(A_inc, A_occ, ic, oc):
     return {'pair': a * 1000 + b, 'income': a, 'occupation': b}
 
 
-def nested(st, lab, unit, version, bud, entries, path_steps=0, log=print):
+def nested(st, lab, unit, version, bud, entries, path_steps=0, log=print, estimator='realized', solve=None, seed_shift=0):
     """entries: {name: (objective, law, sex_split)}; the identity is always computed. For each outer fold the whole release
     optimization (and, with path_steps > 0, the coarsening path) is refitted on the outer-training people with their own tables;
     the held-out fold gets task costs (tables from training), held-out LOOKUP scores (training true-SEX rates per atom) and the exact
@@ -307,8 +331,8 @@ def nested(st, lab, unit, version, bud, entries, path_steps=0, log=print):
                 sols[name] = identity() + (False,)
                 continue
             obj, law, split = entries[name]
-            Ptr = problem(st, lab, tr, law=law, sex_split=split)
-            ai, ao, trc = S.solve(Ptr, obj, bud, seed=1000 * int(version) + 100 * (o + 1), **SOLVE)
+            Ptr = problem(st, lab, tr, law=law, sex_split=split, estimator=estimator)
+            ai, ao, trc = S.solve(Ptr, obj, bud, seed=1000 * int(version) + 100 * (o + 1) + seed_shift, **(solve or SOLVE))
             sols[name] = (ai, ao, split)
             traces[name].append({'fold': o, 'best_J': trc['best_J'], 'iterations': trc['internal_iterations']})
         for name, (ai, ao, split) in sols.items():
@@ -328,7 +352,7 @@ def nested(st, lab, unit, version, bud, entries, path_steps=0, log=print):
             exact[name].append({'fold': o, 'people': int(len(te)), 'auc_pair': e['auc_pair'], 'auc_inc': e['auc_inc'],
                                 'auc_occ': e['auc_occ']})
         if path_steps:
-            Ptr = problem(st, lab, tr, law='estimated')
+            Ptr = problem(st, lab, tr, law='estimated', estimator=estimator)
             Pte_path = problem(st, lab, te, law='empirical')
             path = S.coarsening_path(Ptr, max_steps=path_steps, max_spend=PATH_MAX_SPEND)
             n_path = len(path) if n_path is None else min(n_path, len(path))
@@ -509,9 +533,11 @@ def _jsonable(o):
     return o
 
 
-def _insample(st, lab, ai, ao, bud, split=False):
+def _insample(st, lab, ai, ao, bud, split=False, estimator='realized'):
     """In-sample (MODEL_FIT, out-of-fold routing) values of a mapping under each law: the solver's atom-level values and the
-    observable values of the merged emitted wires recomputed independently by drf.finite_law (identical vectors merged)."""
+    observable values of the merged emitted wires recomputed independently by drf.finite_law (identical vectors merged). Spends,
+    feasibility and the binding constraint use the fit's constraint estimator; with 'expected', the realized in-sample spends are
+    reported beside ('spend_realized')."""
     from . import finite_law as FL
     out = {}
     sex = np.asarray(lab['sex'])
@@ -521,10 +547,13 @@ def _insample(st, lab, ai, ao, bud, split=False):
     for law in ('estimated', 'empirical'):
         if split and law == 'estimated':
             continue
-        Pl = problem(st, lab, law=law, sex_split=split)
+        Pl = problem(st, lab, law=law, sex_split=split, estimator=estimator)
         e = S.evaluate(Pl, ai, ao, bud)
         rec = {k: e[k] for k in ('auc_pair', 'auc_inc', 'auc_occ', 'J_auc', 'mi_pair', 'mi_inc', 'mi_occ', 'J_mi',
                                  'atoms_used_inc', 'atoms_used_occ', 'pair_atoms_used', 'spend', 'feasible')}
+        rec['constraint_estimator'] = estimator
+        if estimator != 'realized':
+            rec['spend_realized'] = S.evaluate(problem(st, lab, law=law, sex_split=split), ai, ao)['spend']
         Ti, To = S.apply_tables(Pl, ai, ao)
         vi, vo = Ti[np.asarray(ai)[ic]], To[np.asarray(ao)[oc]]
         w1 = st['pi'] if law == 'estimated' else sex.astype(np.float64)
@@ -542,9 +571,15 @@ def _insample(st, lab, ai, ao, bud, split=False):
     return out
 
 
-def stage_fit(version, data, role_features, card, save, log=print, stats=lambda **k: None):
+def stage_fit(version, data, role_features, card, save, log=print, stats=lambda **k: None, revision='v1'):
     """DR_AUC, DR_MI (full MODEL_FIT, estimated law), the SEX-blind coarsening path, the nested estimator of all three, the CTRL
-    brackets, and the releases of DR_AUC, DR_MI and the two bracket points (unless a bracket point is the origin = the twin)."""
+    brackets, and the releases of DR_AUC, DR_MI and the two bracket points (unless a bracket point is the origin = the twin).
+    revision 'v1' (card DR_DRF_v1: realized-label constraints) or 'R1' (card DR_DRF_R1: expected-cost constraints, larger search;
+    configuration ids carry the suffix _R1)."""
+    rv = REVISIONS[revision]
+    sfx, est, solve, shift = rv['suffix'], rv['estimator'], SOLVE_BY_REVISION[revision], SEED_SHIFT[revision]
+    if not str(card).split('/')[-1].startswith(rv['card_prefix']):
+        raise PermissionError(f'revision {revision} is governed by card {rv["card_prefix"]}*, not {card}')
     from . import common as C
     from ohn import fam_a as FA
     t0 = time.process_time()
@@ -556,28 +591,29 @@ def stage_fit(version, data, role_features, card, save, log=print, stats=lambda 
     row_sha = C.arr_sha(np.asarray(data['row_id']))
     st = statistics(v, Z, row_sha)
     bud = frozen_budgets(v)
-    Pest = problem(st, lab, law='estimated')
+    Pest = problem(st, lab, law='estimated', estimator=est)
     si, so = identity()
     Ti0, To0 = S.apply_tables(Pest, si, so)
     twin_dec = st['tw']['dec']
     ident = {'max_abs_diff_income_table': float(np.abs(Ti0 - twin_dec['I']).max()),
              'max_abs_diff_occupation_table': float(np.abs(To0 - twin_dec['O']).max())}
     fits = {}
-    for cid in ('DR_AUC', 'DR_MI'):
-        ai, ao, trc = S.solve(Pest, CONFIGS[cid]['objective'], bud, seed=1000 * v, **SOLVE,
+    for cid in ('DR_AUC' + sfx, 'DR_MI' + sfx):
+        ai, ao, trc = S.solve(Pest, CONFIGS[cid]['objective'], bud, seed=1000 * v + shift, **solve,
                               log=lambda s: log(json.dumps({'config': cid, **json.loads(s)})))
         fits[cid] = {'A_inc': ai, 'A_occ': ao, 'trace': trc}
         log(json.dumps({'config': cid, 'version': v, 'best_J': trc['best_J'], 'cpu_s': trc['cpu_s']}))
     path = S.coarsening_path(Pest, max_steps=PATH_STEPS, max_spend=PATH_MAX_SPEND)
-    entries = {'DR_AUC': ('auc', 'estimated', False), 'DR_MI': ('mi', 'estimated', False)}
-    nest, costs, path_costs = nested(st, lab, unit, v, bud, entries, path_steps=PATH_STEPS, log=log)
-    br = brackets(costs, path_costs, unit, 'DR_AUC')
+    entries = {'DR_AUC' + sfx: ('auc', 'estimated', False), 'DR_MI' + sfx: ('mi', 'estimated', False)}
+    nest, costs, path_costs = nested(st, lab, unit, v, bud, entries, path_steps=PATH_STEPS, log=log, estimator=est, solve=solve,
+                                     seed_shift=shift)
+    br = brackets(costs, path_costs, unit, 'DR_AUC' + sfx)
     stats(n_solver_runs=2 + 2 * N_OUTER, nested_outer_fits=N_OUTER)
     saved, records = {}, {}
-    plan = [('DR_AUC', fits['DR_AUC']['A_inc'], fits['DR_AUC']['A_occ']), ('DR_MI', fits['DR_MI']['A_inc'], fits['DR_MI']['A_occ'])]
+    plan = [(c, fits[c]['A_inc'], fits[c]['A_occ']) for c in ('DR_AUC' + sfx, 'DR_MI' + sfx)]
     full_steps = {p[2]: p for p in path}
     alias = {}
-    for cid, step in (('DR_CTRL_LO', br['lower_step']), ('DR_CTRL_HI', br['upper_step'])):
+    for cid, step in (('DR_CTRL_LO' + sfx, br['lower_step']), ('DR_CTRL_HI' + sfx, br['upper_step'])):
         if step is None:
             alias[cid] = 'NOT_AVAILABLE'
         elif step == 0:
@@ -594,11 +630,12 @@ def stage_fit(version, data, role_features, card, save, log=print, stats=lambda 
         fit_rel = predict(cid, v, data['X'], names)
         rec = _record(card, CONFIGS[cid]['kind'], CONFIGS[cid]['what'], 'MODEL_FIT: income, occupation, sex', EXPOSURE, len(Z),
                       len(np.unique(unit)), time.process_time() - t0,
-                      {'insample_model_fit': _jsonable(_insample(st, lab, ai, ao, bud)),
+                      {'insample_model_fit': _jsonable(_insample(st, lab, ai, ao, bud, estimator=est)),
                        'nested_model_fit': _jsonable(nest['entries'].get(cid) or {}),
                        'distinct_wires_model_fit': distinct_wires(fit_rel),
                        'distinct_wires_model_select': distinct_wires(arrays['MODEL_SELECT']),
-                       'budgets': bud, 'solve': SOLVE, 'capacity': list(CAPACITY), 'pi_bins': B_PI,
+                       'budgets': bud, 'solve': solve, 'capacity': list(CAPACITY), 'pi_bins': B_PI, 'revision': revision,
+                       'constraint_estimator': est,
                        'trace': _jsonable({k: v2 for k, v2 in fits.get(cid, {}).get('trace', {}).items() if k != 'runs'}),
                        'path_step': next((p[2] for p in path if cid.startswith('DR_CTRL') and np.array_equal(p[0], ai)
                                           and np.array_equal(p[1], ao)), None)})
@@ -606,12 +643,13 @@ def stage_fit(version, data, role_features, card, save, log=print, stats=lambda 
         saved[cid] = True
         records[cid] = rec
     fit = {'schema': SCHEMA, 'stage': 'fit', 'version': v, 'card': card, 'utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+           'revision': revision, 'constraint_estimator': est, 'config_suffix': sfx, 'seed_shift': shift,
            'budgets': bud, 'twin_slack': twin_slack(v), 'budget_factor': BUDGET_FACTOR, 'pi_cuts': list(map(float, st['cuts'])),
-           'identity_vs_twin_tables': ident, 'problem': Pest.describe(), 'solve': SOLVE,
-           'insample': {cid: _jsonable(_insample(st, lab, f['A_inc'], f['A_occ'], bud)) for cid, f in fits.items()},
+           'identity_vs_twin_tables': ident, 'problem': Pest.describe(), 'solve': solve,
+           'insample': {cid: _jsonable(_insample(st, lab, f['A_inc'], f['A_occ'], bud, estimator=est)) for cid, f in fits.items()},
            'traces': {cid: _jsonable(f['trace']) for cid, f in fits.items()},
            'path_full': [{'step': int(p[2]), 'spend_total_nll_insample': float(p[3]),
-                          'insample': _jsonable(_insample(st, lab, p[0], p[1], bud))} for p in path],
+                          'insample': _jsonable(_insample(st, lab, p[0], p[1], bud, estimator=est))} for p in path],
            'nested': _jsonable(nest), 'brackets': br, 'ctrl_alias': alias, 'saved': sorted(saved),
            'cpu_s': round(time.process_time() - t0, 1)}
     return fit
@@ -656,16 +694,17 @@ PURPOSE = {'fit': 'DR_AUC / DR_MI fits, SEX-blind coarsening path, nested MODEL_
            'optimistic': 'optimistic MODEL_FIT-only diagnostics OPT_L / OPT_S and their nested estimator (card DR_DRF_v1)'}
 
 
-def run(cmd, version, card):
+def run(cmd, version, card, revision='v1'):
     from . import common as C
     from . import release as RL
-    data = C.load('MODEL_FIT', ('income', 'occupation', 'sex'), 'fit', PURPOSE[cmd], card=card)
+    data = C.load('MODEL_FIT', ('income', 'occupation', 'sex'), 'fit', PURPOSE[cmd] + f' [revision {revision}]', card=card)
     stats = C.unit_stats
     out_dir = C.RESULTS / 'dr'
     if cmd == 'fit':
         role_features = {r: C.features(r) for r in C.ROLES6}
-        rec = stage_fit(version, data, role_features, card, RL.save, stats=stats)
-        C.write_json_x(out_dir / f'FIT_V{int(version)}.json', rec)
+        rec = stage_fit(version, data, role_features, card, RL.save, stats=stats, revision=revision)
+        tag = '' if revision == 'v1' else f'{revision}_'
+        C.write_json_x(out_dir / f'FIT_{tag}V{int(version)}.json', rec)
     else:
         rec = stage_optimistic(version, data, card, RL.register, stats=stats)
         C.write_json_x(out_dir / f'OPTIMISTIC_V{int(version)}.json', rec)
@@ -688,7 +727,8 @@ def selftest():
     k, l = route_twin(qI, qO, book)
     cuts = pi_cuts(pi)
     ic, oc, m = fine_cells(k, l, pi, cuts)
-    st = {'qI': qI, 'qO': qO, 'pi': pi, 'k': k, 'l': l, 'm': m, 'inc_cell': ic, 'occ_cell': oc, 'cuts': cuts, 'book': book}
+    st = {'qI': qI, 'qO': qO, 'pi': pi, 'k': k, 'l': l, 'm': m, 'inc_cell': ic, 'occ_cell': oc, 'cuts': cuts, 'book': book,
+          'qO0': qO, 'qO1': qO}
     unit = rng.integers(0, 1600, n)
     bud = {key: 0.01 for key in S.METRICS}
     checks = {}
@@ -710,6 +750,19 @@ def selftest():
     finally:
         SOLVE, N_OUTER = keep
     checks['nested_has_entries'] = set(nest['entries']) == {'IDENTITY', 'DR_AUC'}
+    # revision R1: the expected-cost estimator gives a feasible solve and a nested record with the same structure
+    Pexp = problem(st, lab, estimator='expected')
+    ae, ao2, _ = S.solve(Pexp, 'auc', bud, max_sweeps=3, restarts=0, seed=0)
+    checks['expected_estimator_feasible'] = bool(S.evaluate(Pexp, ae, ao2, bud)['feasible'] and Pexp.estimator == 'expected')
+    SOLVE, N_OUTER = {'max_sweeps': 2, 'restarts': 0, 'seeds': 1}, 2
+    try:
+        nest_e, _, pc_e = nested(st, lab, unit, 0, bud, {'DR_AUC_R1': ('auc', 'estimated', False)}, path_steps=3, log=None,
+                                 estimator='expected', solve={'max_sweeps': 2, 'restarts': 0, 'seeds': 1}, seed_shift=10)
+    finally:
+        SOLVE, N_OUTER = keep
+    checks['nested_expected_runs'] = set(nest_e['entries']) == {'IDENTITY', 'DR_AUC_R1'} and len(pc_e) >= 2
+    ins_e = _insample(st, lab, ae, ao2, bud, estimator='expected')
+    checks['insample_reports_realized_beside_expected'] = 'spend_realized' in ins_e['estimated']
     checks['nested_identity_zero_spend'] = True
     checks['path_steps_recorded'] = nest['path']['steps_common'] >= 2
     checks['bracket_grid'] = len(br['grid']) == nest['path']['steps_common']
@@ -733,12 +786,15 @@ def main(argv=None):
     ap.add_argument('cmd', choices=('selftest', 'fit', 'optimistic'))
     ap.add_argument('--version', type=int)
     ap.add_argument('--card')
+    ap.add_argument('--revision', default='v1', choices=tuple(REVISIONS))
     a = ap.parse_args(argv)
     if a.cmd == 'selftest':
         return selftest()
     if a.version is None or not a.card:
         ap.error('--version and --card are required')
-    return run(a.cmd, a.version, a.card)
+    if a.cmd == 'optimistic' and a.revision != 'v1':
+        ap.error('the optimistic diagnostics run as registered by card DR_DRF_v1')
+    return run(a.cmd, a.version, a.card, a.revision)
 
 
 if __name__ == '__main__':

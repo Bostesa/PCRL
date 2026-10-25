@@ -3,7 +3,7 @@
     python3 -m drf.closeout
 
 -> results/<campaign>/RESOURCE_ACCOUNTING.json  elapsed time, queue CPU by stage and unit prefix, units done / failed (all attempts
-   kept), agent charges; release configurations (the 36-configuration budget) by family and kind with their internal fit counts;
+   kept), agent charges; release specifications (the 32-specification budget) by family and kind with their internal fit counts;
    processes left running (campaign-owned only);
 -> results/<campaign>/ACCESS_RECEIPT.json        every label read by operation, entry point, role, field and card (from the single
    access log), reads before the registration receipt, closed-role reads, MODEL_SELECT reads by fitting entry points, fitting reads
@@ -92,9 +92,10 @@ def main():
            'MODEL_SELECT_reads_outside_benchmark_readers_verify': fit_ms,
            'fitting_reads_with_card_committed_after_the_read': late_card,
            'ATTACK_or_DEV_REPORT_label_reads': [e for e in acc if e.get('role') in C.CLOSED_LABEL_ROLES],
+           'CALIBRATION_label_reads': [e for e in acc if e.get('role') == 'CALIBRATION'],
            'lineage_dev_report_log': {'campaign_start_snapshot_sha256': LINEAGE_SNAPSHOT, 'now_sha256': lineage_now,
                                       'unchanged': lineage_now == LINEAGE_SNAPSHOT},
-           'never_read': ['ATTACK_FIT labels', 'ATTACK_VALIDATION labels', 'DEV_REPORT labels', 'CALIBRATION SEX (not admitted)',
+           'never_read': ['ATTACK_FIT labels', 'ATTACK_VALIDATION labels', 'DEV_REPORT labels', 'CALIBRATION labels (not used by DRF1)',
                           'sealed assessment', 'capped-out records']}
     C.write_json(C.RESULTS / 'ACCESS_RECEIPT.json', rec)
     print(json.dumps({'elapsed_h': res['elapsed_h'], 'charged_cpu_h': res['charged_cpu_h'], 'units_done': res['units_done'],

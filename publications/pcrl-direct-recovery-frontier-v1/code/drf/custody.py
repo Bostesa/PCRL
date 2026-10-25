@@ -4,21 +4,16 @@
     python3 -m drf.custody offdevice SRC_DIR DEST  # copy one backup to an already attached drive and repeat the check there (nothing is
                                                   # mounted, unmounted or forced by this tool)
 
-Adapted from frc.custody / nrm.custody (constants only). A backup holds: TIP_COMMIT; the branch bundle (base = the input-and-pair
-release research tip 9c9f95385 this branch started from .. this branch); code.tar (git archive of the code and the public records the
-check needs); private.tar.gz (this campaign's private tree, plus the inherited private files the code reads); MANIFEST.sha256;
-RESTORE_CHECK.json.
+Adapted from sar.custody (constants only). A backup holds: TIP_COMMIT; the branch bundle (base = the strong-anchor research tip
+73931682e this branch started from .. this branch); code.tar (git archive of the code and the public records the check needs);
+private.tar.gz (this campaign's private tree, plus the inherited private files the code reads); MANIFEST.sha256; RESTORE_CHECK.json.
 
-Private scope (written 2026-10-24 06:50Z from a label-free open-file trace of every bank member's MODEL_SELECT wire and every packaged
-release's deployment function, `custody/SCOPE_TRACE.json`): this campaign's tree (runs, reader cache, packages, ledgers); the
-income-headroom tree (the admitted mirror the access layer reads, the frozen reference bank, H3, the HGB teachers and SUCC's frozen
-trees); the two inherited reference releases read from elsewhere (DDR_PTC_R1, W = A1_PO_16); the cached task teachers FA and FS read
-at fit time (nrm fa_cache TASK.pkl); the anchor-table inputs of the input-and-pair campaign (its REFERENCES, SOURCE_DDR, CTL_TWIN and
-IPR1_MAIN grid); and `external_inputs/` (an APFS-clone snapshot, hash-checked against the admission pins, of the replication tree's
-STAGE_A and NEURAL_RAW folders FB reads at fit time, which otherwise live only in an archived worktree outside this repository). The
-other inherited trees of the working cache are not read and stay out. The check re-hashes the manifest, verifies the bundle, extracts
-both archives into a fresh directory and runs drf.restore_check there with the restored code. A read-back right after writing on a
-still-mounted drive is WARM (possibly served from cache), never a cold check.
+Private scope (DRF1): this campaign's tree (runs, reader cache, packages, ledgers, access log); the income-headroom tree (the admitted
+mirror the access layer reads and the frozen reference bank the reader grid loads); W's occupation witness (A1_PO_16); the frozen
+inputs of family DR (the NRM1 task cache fa_cache, the FRC1 SEX-side cache fa_cache and the FRC1 twin TWB_C64's model and release).
+The other inherited trees of the working cache are not read and stay out. The check re-hashes the manifest, verifies the bundle,
+extracts both archives into a fresh directory and runs drf.restore_check there with the restored code. A read-back right after
+writing on a still-mounted drive is WARM (possibly served from cache), never a cold check.
 """
 from __future__ import annotations
 import datetime as dt
@@ -34,8 +29,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CAMPAIGN = 'pcrl_direct_recovery_frontier_v1'
 BRANCH = 'research/pcrl-direct-recovery-frontier-v1'
-BASE = '9c9f95385'                                                   # the input-and-pair release research tip = this branch's base
-CODE = ['drf', 'ipr', 'ddr', 'fsa', 'frc', 'nrm', 'tsz', 'cts', 'ohn', 'ihs', 'ffv', 'amd', 'scm_bench', 'acs_replication', 'acs_hybrids',
+BASE = '73931682e'                                                   # the strong-anchor release research tip = this branch's base
+CODE = ['drf', 'sar', 'ipr', 'ddr', 'fsa', 'frc', 'nrm', 'tsz', 'cts', 'ohn', 'ihs', 'ffv', 'amd', 'scm_bench', 'acs_replication', 'acs_hybrids',
         'task_conditioned_representation', 'task_headroom', 'mechanism_design', f'results/{CAMPAIGN}',
         'results/pcrl_input_and_pair_release_v1', 'results/pcrl_dual_design_release_v1',
         'results/pcrl_finite_solver_adequacy_v1', 'results/pcrl_finite_routing_comparison_v1', 'results/pcrl_new_release_mechanisms_v1',
@@ -45,10 +40,8 @@ CODE = ['drf', 'ipr', 'ddr', 'fsa', 'frc', 'nrm', 'tsz', 'cts', 'ohn', 'ihs', 'f
         'results/pcrl_acs_protected_tree_replication_v1', 'results/pcrl_acs_frozen_hybrids_v1', 'results/pcrl_scm_engineering_benchmark_v1',
         'results/pcrl_scm_utility_matched_v1', 'results/pcrl_correction_transfer_stability_v1']
 PRIVATE = [f'.private/{CAMPAIGN}', '.private/pcrl_income_headroom_successor_v1',
-           '.private/pcrl_dual_design_release_v1/runs/DB/DB_PTC_R1', '.private/pcrl_occupation_headroom_overnight_v1/runs/A/A1_PO_16',
-           '.private/pcrl_new_release_mechanisms_v1/fa_cache',
-           '.private/pcrl_input_and_pair_release_v1/runs/REFERENCES', '.private/pcrl_input_and_pair_release_v1/runs/SOURCE_DDR',
-           '.private/pcrl_input_and_pair_release_v1/runs/CTL/CTL_TWIN', '.private/pcrl_input_and_pair_release_v1/runs/GRID/IPR1_MAIN']
+           '.private/pcrl_occupation_headroom_overnight_v1/runs/A/A1_PO_16', '.private/pcrl_new_release_mechanisms_v1/fa_cache',
+           '.private/pcrl_finite_routing_comparison_v1/fa_cache', '.private/pcrl_finite_routing_comparison_v1/runs/FA/TWB_C64']
 EXCLUDE = [f'.private/{CAMPAIGN}/compute/tickets']
 PY = os.environ.get('DRF_PYTHON', 'python3')
 TORCH_PY = '<repository>/.venv/bin/python'                 # the reader grid's interpreter (torch venv)
@@ -72,7 +65,7 @@ def restore_check(d: Path, read_back: str) -> dict:
     man = dict(l.split('  ', 1)[::-1] for l in (d / 'MANIFEST.sha256').read_text().splitlines() if l.strip())
     rehash = all(_sha(d / f) == man[f] for f in FILES)
     rc_b, out_b = _run(['git', '-C', str(ROOT), 'bundle', 'verify', str(d / 'branch_since_base.bundle')])
-    w = Path(tempfile.mkdtemp(prefix='ipr_restore_'))
+    w = Path(tempfile.mkdtemp(prefix='drf_restore_'))
     try:
         _run(['tar', '-xf', str(d / 'code.tar'), '-C', str(w)]); _run(['tar', '-xf', str(d / 'private.tar.gz'), '-C', str(w)])
         env = {**os.environ, 'PYTHONPATH': str(w), 'OMP_NUM_THREADS': '1', 'OPENBLAS_NUM_THREADS': '1', 'VECLIB_MAXIMUM_THREADS': '1'}
