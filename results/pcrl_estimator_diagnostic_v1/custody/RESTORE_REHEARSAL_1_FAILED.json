@@ -1,0 +1,12 @@
+{
+ "schema": "EDG1-restore-record-v1",
+ "kind": "rehearsal 1 (kept as a failure record)",
+ "backup_snapshot": "pcrl_estimator_diagnostic_v1_20261025T173741Z (sibling folder pcrl-estimator-diagnostic-v1-backup)",
+ "restore_output_verbatim": {"manifest_ok": true, "tip_matches": true, "tip": "81937d3116b674d4a24553c416aeb5f41c30ab25", "selftest_exit_status": 1, "rows_recomputed_equal": [[13, 0, true], [13, 1, true], [13, 2, true], [37, 0, true], [37, 1, true], [48, 0, true], [48, 1, true]], "analyze_exit_status": 0, "summary_equal_to_committed": false, "tables_equal_to_committed": true, "restored_from": "the bundle alone (fresh clone in a temporary directory)", "all_pass": false, "utc": "2026-10-25T17:37:53Z"},
+ "diagnosis": {
+  "selftest_exit_status_1": "edg/selftest.py defect: in a clone restored from the branch bundle the DRF1 research commit 913eb5c91 is absent, `git show` returns nothing, and the check indexed the empty blob before testing for it (ValueError). Tooling defect only; no result depends on it.",
+  "summary_equal_to_committed_false": "byte comparison only. A NaN-aware value comparison of the restored SUMMARY.json with the committed one found 0 differences. The byte order differs because analyze.py orders the bank 'winners' entries with equal counts by Python set iteration, which depends on the per-process string hash seed. TABLES.md was byte-equal."
+ },
+ "correction": "amendment A3: selftest skips the blob comparison when the blob is unavailable (recorded as 'git blob unavailable'); custody compares SUMMARY.json by NaN-aware value equality. No estimator, analysis value or output was recomputed.",
+ "written_utc": "2026-10-25T17:39Z"
+}

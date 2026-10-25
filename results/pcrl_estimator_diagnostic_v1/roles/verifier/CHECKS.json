@@ -1,0 +1,172 @@
+{
+ "schema": "EDG1-verifier-checks-round1",
+ "role": "independent verifier",
+ "checks": [
+  {
+   "check": "0 (verifier tooling)",
+   "status": "PASS",
+   "detail": "Own exact-AUC library validated on hand-computable cases (3/5, 11/20, pure wires, ties, enumeration maximum, merging, 60-digit coarse-signal solve) before judging the study.",
+   "out_file": "out/CHECK0_vlib_selftest.json"
+  },
+  {
+   "check": "1 independence: population AUC exactly 1/2",
+   "status": "PASS",
+   "detail": "All 12 views of the 4 study IND laws and of 4 own exact-rational IND laws: P1 == P0 exactly; exact AUC = 1/2 (Fraction equality) for the optimal ranking, random tied / untied fixed scores, the wire index, the study float posterior and LOOKUP tables fitted on own samples; the study float A, drf auc_of_score and the d_nested / d_bank fitted-reader pops are within 1e-12 of 1/2. Failures: 0.",
+   "out_file": "out/CHECK1_independence.json"
+  },
+  {
+   "check": "2 known-score sample AUC vs brute-force enumeration",
+   "status": "PASS",
+   "detail": "1456 sample x score cases (all 16 laws, every view, n = 20-1,000, own seeds): max |auc_if - exact| 1.7e-16, max |b_known - exact| 1.7e-16; IF equals brute-force DeLong placements (max 5.6e-17); person-unit SE relative error 4.3e-16; UNDEFINED (one class) -> NaN, never 1/2; ties 1/2.",
+   "out_file": "out/CHECK2_known_score.json"
+  },
+  {
+   "check": "3a merging: observable supports and partitions",
+   "status": "PASS",
+   "detail": "Own byte-level merging of every view of all 16 study laws: supports equal the study K and the protocol table (IND 16/64/1024, REF 16/64/256/1024, RED 16/64/256, COMP 16/15/240); own partition = study partition (bijection); merged masses equal (relative <= 1e-12); all emitted vectors valid.",
+   "out_file": "out/CHECK3_ties_merging.json"
+  },
+  {
+   "check": "3b COMP identical wires merged; unmerged internal ids overstate A",
+   "status": "PASS",
+   "detail": "All 4 study COMP laws and 4 own exact COMP laws: occupation cells 14 and 15 emit bitwise-identical vectors (15 distinct, no other coincidence); supports 15 / 240; exact A on 256 unmerged internal ids exceeds merged A (study laws by 0.0009-0.0019); merged cells carry different q. Own uniform COMP reproduces the study exactly (A(pair) 0.5828515625 / 0.603564453125).",
+   "out_file": "out/CHECK3_ties_merging.json"
+  },
+  {
+   "check": "3c tied likelihood ratios in A (REF 8 posterior levels)",
+   "status": "PASS",
+   "detail": "REF coarse q: 8 distinct values, atoms 2k / 2k+1 bitwise tied, 8 internal levels (study and own laws); the study float A equals the exact tied-ratio A within 1.5e-15 at every level, so A handles the ties correctly.",
+   "out_file": "out/CHECK3_ties_merging.json"
+  },
+  {
+   "check": "3d ties 1/2 in the B known score (B_same / B_indep) - STUDY DEFECT",
+   "status": "FAIL",
+   "detail": "laws.build sets post = m1 / (m1 + m0) from float masses, and b_known ranks that float. Wires whose posteriors are exactly equal (in the float law and in the specification) get posteriors differing in the last bits, so b_known orders pairs that must tie: 18 of 52 views split float-law ties (e.g. REF|0.5|skewed L16: 8 exact levels -> 15 floats). Against the specification, 15 of 32 dA = 0 comparisons give B differences that are not identically 0 (the exact-tie known score gives d = 0 on every sample): IND|0.2|skewed (3), REF|*|skewed (6), RED|*|skewed pair-income (2), COMP occupation-income (all 4 laws). Over the affected comparisons (parts 2 and 3, own samples): at n = 2,000, SD of d up to 0.022, |d| >= 0.020 in up to 37% of samples, R2SE resolved 89/2100 pooled (4.2%; at most 10% per comparison); at n = 20,000, SD up to 0.0093, M20 up to 5%, R2SE 45/780 pooled (5.8%; at most 25% per comparison, R = 20-40). The exact-tie known score gives 0 for all of these. B stays unbiased (mean deviations within about 2 MCSE of 0) and A, C, D are unaffected. Fix suggestion: rank B by the exact tie structure (e.g. group wires by the internal q, which is bitwise tied in REF / RED / IND, or use rationals; COMP needs exactly centred u, v), then recompute B rows; C and D rows need no change.",
+   "out_file": "out/CHECK3_ties_merging.json; out/CHECK3b_known_score_ties.json; out/CHECK3c_b_ties_vs_spec.json"
+  },
+  {
+   "check": "4 irrelevant refinement preserves the population optimum",
+   "status": "PASS",
+   "detail": "All 4 study REF laws and 4 own exact REF laws: exact A identical (Fraction equality) at L16, L64, L256, L1024; nested partitions with 4 children per parent; every child exact posterior equals its parent exactly; study float A spread across levels <= 1.8e-15; study A range 0.6708-0.6814 as stated; own uniform laws and an exact rebuild of the study skewed laws (recovered Zipf permutation, own 60-digit alpha) reproduce the study A within 3.3e-16.",
+   "out_file": "out/CHECK4_refinement.json"
+  },
+  {
+   "check": "5 redundant and complementary views; null / non-null classification",
+   "status": "PASS",
+   "detail": "RED (study + own): A(pair) == A(income) exactly, A(income) > A(occupation), every pair-wire posterior equals its income-wire posterior exactly (S independent of occupation given income); ranges 0.642-0.677. COMP (study + own): A(income) = A(occupation) = 1/2 (own exact; study float law within 1.1e-17), A(pair) 0.563-0.604 > 1/2. Own uniform laws equal the study A. All 32 + 16 registered comparisons classified as the protocol states; largest null |dA| 1.8e-15, smallest non-null |dA| 0.0081.",
+   "out_file": "out/CHECK5_red_comp.json"
+  },
+  {
+   "check": "6 static review: label access in estimators.py, simulate.py, bank.py",
+   "status": "PASS",
+   "detail": "37 cited lines, each verified programmatically to contain the quoted code: LOOKUP tables use training-fold / FIT labels only; every bank recipe, its feature design and scaler fit on FIT rows; orientation and winner selection use VALIDATION only; SCORE labels score the D_bank table and the selected winner once; support rows have False FIT / VALIDATION masks; C_same / C_nested are same-sample by design. The reviewed files equal the registration lock.",
+   "out_file": "out/CHECK6_code_review.json"
+  },
+  {
+   "check": "6 static review: lock comparison recorded inside the review file",
+   "status": "NOTE",
+   "detail": "The file's own status field reads FAIL because its lock list also included selftest.py, which differs from the GRID.json registration lock: disclosed amendment A3 (2 lines, tooling only, after outcomes). No estimator, law, simulate, bank or analysis file changed (CHECK7 7d). The file is kept unchanged.",
+   "out_file": "out/CHECK6_code_review.json"
+  },
+  {
+   "check": "6a estimator behaviour - ORIGINAL run (kept)",
+   "status": "FAIL",
+   "detail": "Verifier-check defect, not a study defect: D_nested was compared with an exact-rational idealization of the DRF1 float LOOKUP reader and differed by up to 2.2e-5 in 4 of 52 views. Diagnosed in DIAG6a (brute force on the reader's own float scores equals the study value exactly; 10 rational ties split by float rounding). Superseded by r2.",
+   "out_file": "out/CHECK6a_estimators.json"
+  },
+  {
+   "check": "6a diagnostic of the original failure",
+   "status": "NOTE",
+   "detail": "10 exact ties of shrunk LOOKUP rates split by float rounding across 52 own-sample views; brute force on float scores minus study: value 0.0e+00, pop_fold_mean 5.6e-16.",
+   "out_file": "out/DIAG6a_dnested_ties.json"
+  },
+  {
+   "check": "6a estimator behaviour - CORRECTED run r2",
+   "status": "PASS",
+   "detail": "728 own samples (all 16 laws, every view, n = 200 / 2,000 / 20,000): C_same equals drf.solver.auc_star, drf.finite_law.auc_star and the exact brute force (max 9.8e-15); C_same >= B_same on every sample (0 violations exact, both float and exact-tie B; min C - B 6.6e-05); C_same equals the maximum over ALL rankings on 93 tiny tables (k <= 6). C_nested exact (7.8e-16). D_nested and D_bank equal brute force on the readers' float scores (max 1.2e-15); every lookup_scores call receives exactly ids / labels of folds != f (0 violations); relabelling a fold leaves its held-out scores unchanged; relabelling SCORE leaves the D_bank table, orientation, VALIDATION AUC and pop bitwise unchanged (52/52); sample_rep never splits a household across folds or parts (cell 48) and the parts are 50 / 20 / 30% of units. NOTE: exact-idealization differences kept, max 2.2e-05 (source reader behaviour).",
+   "out_file": "out/CHECK6a_estimators_r2.json"
+  },
+  {
+   "check": "6b reader bank: no SCORE label or support row enters a fit, orientation or selection",
+   "status": "PASS",
+   "detail": "RED|0.5|skewed (income, occupation, pair) and REF|0.5|skewed L16, n = 2,000, 16 recipes, non-study seed: SCORE-label perturbation leaves every recipe score, VALIDATION AUC, orientation, convergence flag, population AUC and winner bitwise unchanged; refits without the appended support rows give bitwise-identical scores; recipe pops equal brute force (<= 3.3e-16); winners equal an independent implementation of the rule; VALIDATION-label perturbation changes all 16 VALIDATION AUCs (the test has power); _src_tab / _fit_one are text-equal to drf/devreaders.py.",
+   "out_file": "out/CHECK6b_bank.json"
+  },
+  {
+   "check": "7 provenance",
+   "status": "PASS",
+   "detail": "All 10 vendored files equal SOURCE_PROVENANCE.json and the 913eb5c91 blobs; the 5 lock-listed recipe files (and drf/devreaders.py) equal DEVGRID_CODE_LOCK.json; nrm/fa/prc.py blob hash equals provenance and both copied functions are text-equal; drf publication files equal provenance and the c4896479e blobs; LAWS.json p / q hashes, supports and A (within 1.6e-15 of the exact A) match. Since registration: edg_run.py and selftest.py changed; custody.py, publish.py and posthoc.py were added. All are disclosed (A1-A4); estimator / analysis files and GRID.json are unchanged.",
+   "out_file": "out/CHECK7_provenance.json"
+  },
+  {
+   "check": "8 (round 2) reproduce SUMMARY / POST_HOC entries from saved outputs with own code",
+   "status": "PASS",
+   "detail": "14 (cell, view, estimator) entries (cells 15, 17 REF|0.5|skewed L1024 at n = 2,000 / 20,000; 5 IND pair; 29 RED pair; 41 COMP pair; 48 clustered): R, mean, SD, MCSE, bias against the own exact A and RMSE all equal SUMMARY.json (1e-12); 10 comparisons from the saved [d, se_unit, se_person] triples (cell 17 L1024-L16 C_same / C_nested / D_bank, cell 29 pair-income, cell 28 income-occupation wrong-direction and power, cell 48 household and person SE) equal; 4 bank entries (winner SCORE / pop means, selection loss, A - best pop) equal; POST_HOC dbank_target REF|L1024-L16 and REF|L64-L16 (coverage, resolved rate, mean dpop) re-implemented and equal.",
+   "out_file": "out/CHECK8_reproduce_summaries.json"
+  },
+  {
+   "check": "9 (round 2) re-run repetitions from their seeds",
+   "status": "PASS",
+   "detail": "edg.simulate.one_rep re-run for (cell 17, rep 0, source check on), (cell 48, rep 7) and (cell 41, rep 499): the JSON lines are byte-identical to the saved lines. Own recomputation for (17, 0) from sample_rep: C_same (exact, own merging) and B_indep (float posterior keys) equal the saved values (max 1.8e-15 / 1.1e-16); with exact ties B_indep would differ by +9.9e-06 (L16) and -4.0e-04 (L1024) in this repetition (D1).",
+   "out_file": "out/CHECK9_rerun_repetitions.json"
+  },
+  {
+   "check": "10 (round 2) report numbers - ORIGINAL run (kept)",
+   "status": "FAIL",
+   "detail": "59 items against the report version of commit 6ceaa0b40: 9 flagged. Four were the verifier's own criterion (more decimals than printed; an upper-bound claim judged as equality). Five were genuine in that version; three of those were already revised in the current report (RED pair test variation -0.000 -> -0.001, cross-fit range -0.0006 -> -0.0005, RED ignore-one now scoped to pi = 0.5; RED|0.2|skewed had 4 of 10). Superseded by r2.",
+   "out_file": "out/CHECK10_report_numbers.json"
+  },
+  {
+   "check": "10 (round 2) report numbers - CORRECTED run r2 (current report)",
+   "status": "FAIL",
+   "detail": "64 items / 159 values against the current report (SHA-256 d2c896769455..., HEAD 523f0bec6), prioritising answers 1-5: 62 match. Two mismatches remain, both last-digit rounding: (1) lines 48 and 124 \"94.8-95.9%\" - the POST_HOC dbank_target coverage range is 94.78-95.85%, i.e. 94.8-95.8%; (2) line 100 COMP pair row \"0.092 | 0.075\" - SUMMARY cell 41 gives gap 0.09149 and optimism 0.07449, i.e. 0.091 and 0.074 (the 81% / 18% shares and the other entries match). No mismatch changes a conclusion.",
+   "out_file": "out/CHECK10_report_numbers_r2.json"
+  }
+ ],
+ "cpu_s_per_output": {
+  "CHECK0_vlib_selftest.json": 0.185,
+  "CHECK1_independence.json": 12.069,
+  "CHECK2_known_score.json": 1.624,
+  "CHECK3_ties_merging.json": 0.868,
+  "CHECK3b_known_score_ties.json": 2.089,
+  "CHECK3c_b_ties_vs_spec.json": 2.18,
+  "CHECK4_refinement.json": 0.957,
+  "CHECK5_red_comp.json": 0.524,
+  "CHECK6_code_review.json": 0.07,
+  "CHECK6a_estimators.json": 4.634,
+  "CHECK6a_estimators_r2.json": 5.677,
+  "CHECK6b_bank.json": 19.102,
+  "CHECK7_provenance.json": 0.54,
+  "CHECKS_build_record.json": 0.075,
+  "DIAG6a_dnested_ties.json": 2.851
+ },
+ "cpu_s_total_recorded": 53.445,
+ "B_tie_split_effect_sizes": {
+  "2000": {
+   "R2SE_pooled": "89/2100",
+   "R2SE_pooled_rate": 0.04238095238095238,
+   "R2SE_per_comparison_max": 0.1,
+   "M20_max_share": 0.36666666666666664,
+   "d_sd_max": 0.022134248942413583
+  },
+  "20000": {
+   "R2SE_pooled": "45/780",
+   "R2SE_pooled_rate": 0.057692307692307696,
+   "R2SE_per_comparison_max": 0.25,
+   "M20_max_share": 0.05,
+   "d_sd_max": 0.009306841182317928
+  }
+ },
+ "supersedes": "CHECKS_v1_superseded.json (kept): its 3d detail quoted an eyeballed R2SE range \"about 2-10%\"; v2 computes the ranges from the recorded values. No status changed.",
+ "round2": {
+  "appended_utc": "2026-10-25T18:04:00Z",
+  "entries_appended": 4,
+  "cpu_s_per_run": {
+   "CHECK8_reproduce_summaries.json": 1.603,
+   "CHECK10_report_numbers.json": 0.073,
+   "CHECK10_report_numbers_r2.json": 0.079
+  },
+  "cpu_s_total_recorded": 1.755,
+  "note": "CHECK8 and CHECK9 come from one process (its CPU is recorded in both files); round-1 entries unchanged"
+ }
+}
