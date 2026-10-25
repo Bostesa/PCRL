@@ -1,0 +1,326 @@
+{
+ "schema": "RFA1-rules-v1",
+ "campaign": "pcrl_reader_fit_aware_release_v1",
+ "author_role": "statistical reviewer",
+ "written_before_outcomes": "writing started 2026-10-25T21:19Z (date -u), before any outcome of this campaign; adapted to card RF_RFIT_v1 (read 21:44Z, with the coordinator's answers q1-q4) before registration; no label read, no real-data computation, no label-reading loader called",
+ "human_readable": "RULES.md (same directory)",
+ "implementation": "rfa/rules.py (pure functions; imports nrm.rules unchanged as NR; load_rules() checks this file against the module constants, the NRM1 RULES.json hash and the nrm/rules.py hash); invented-data tests: python3 -m rfa.test_rules (prints JSON; exit 0 iff all pass)",
+ "status_of_every_rule": "development rule on previously and adaptively used records (MODEL_FIT and MODEL_SELECT were used by earlier campaigns; NEURAL_RAW and the references were chosen on them); everything is exploratory; nothing is confirmation; no original limit changes; point eligibility (G1) gates, the confidence conjunction and the two-SE reserve are separate results that never gate; every uncertainty statement is asymptotic and conditional; no interval corrects the accumulated adaptive search",
+ "inherited": {
+  "module": "nrm.rules imported unchanged: point_eligibility (G1), reserve_status, mc_cell / se_mc handling, aggregate, benefit_screen, target_screen, recipient_screen, comparison, frontier_comparison, robustness, claims (G4, G5, G6); ohn.rules.conditions reached through nrm.rules (NR.OR) unchanged",
+  "nrm1_rules_json_sha256": "84f187768817e79ef9f2bb36151bea81f00b8f62d9179c8cd523069550674652",
+  "nrm_rules_py_sha256": "d5df868678d483a3452e251d8f24575932d23f0e5d22e3ef1ca3627a35030df1",
+  "derived_from": "sar/rules.py (SAR1-rules-v1; sar/rules.py 435abbce..., RULES.json f5b6a280...) and drf/rules.py (DRF1-rules-v1; drf/rules.py aa552f02..., RULES.json 5277b21d...), copied and adapted, never imported"
+ },
+ "z": 2.0,
+ "tie_tolerance": 1e-12,
+ "recipient_limit_auc": 0.01,
+ "se_floor_auc": 0.001,
+ "usefulness": {
+  "caps": {
+   "accuracy_loss": 0.01,
+   "nll_excess": 0.01,
+   "brier_excess": 0.005
+  },
+  "within_sex_guard_cap": 0.005,
+  "n_conditions": 28,
+  "conditions_per_version": [
+   "income|U0|accuracy_loss",
+   "income|U0|nll_excess",
+   "income|U0|brier_excess",
+   "income|Ucal|accuracy_loss",
+   "income|Ucal|nll_excess",
+   "income|Ucal|brier_excess",
+   "occupation|U0|accuracy_loss",
+   "occupation|U0|nll_excess",
+   "occupation|U0|brier_excess",
+   "occupation|Ucal|accuracy_loss",
+   "occupation|Ucal|nll_excess",
+   "occupation|Ucal|brier_excess",
+   "guard|sex0",
+   "guard|sex1"
+  ],
+  "definitions": "per version v (2 versions): 12 task clauses = 2 tasks x {U0_S<v>, Ucal_S<v>} x {accuracy loss = accuracy(reference argmax) - accuracy(release argmax) <= 0.010; NLL excess = NLL(release) - NLL(reference) <= 0.010 nats (probability floor 1e-12); summed Brier excess = summed-over-classes Brier(release) - Brier(reference) <= 0.005}, and 2 within-SEX guards = occupation summed-Brier excess vs U0_S<v> among SEX 0 (men) and SEX 1 (women) <= 0.005; all inclusive; 28 = 2 x (12 + 2). Code: scm_bench/selection.py clauses (lines 38-49) with scm_bench/common.py CAPS (line 45) and task_vectors (lines 213-220); ihs/evaluate.py utility (lines 75-99; SEs cluster_se / subgroup_se lines 57-72) with ihs/common.py GUARD (line 63); called by ohn/evaluate.py complete_eval (line 120) from sar/evaluate.py utility_of (lines 160-191; references tsz/evaluate.py refs_of lines 38-46); named and cap-checked by ohn/rules.py conditions (lines 103-130; CAPS line 30, GUARD_CAP line 31); gated by nrm/rules.py point_eligibility (lines 157-182; constants lines 46-49). Recipient gate: nrm/rules.py recipient_screen (lines 356-384; RECIPIENT_LIMIT line 48) inside comparison (lines 387-394). Material target: nrm/rules.py target_screen (lines 344-353) and claims G5 (lines 727-740)."
+ },
+ "sign_convention": "NR's: pair benefit b = comparator AUC - candidate AUC (positive favours the candidate); recipient difference r = candidate AUC - comparator AUC (positive = the candidate's single view is more recoverable); paired costs loss(candidate) - loss(comparator) (negative favours the candidate; accuracy enters as a loss); bracket spend d = cost(CAND) - cost(point) (d <= 0: the point spends at least as much); learning-curve change d_LC = b(FULL FIT) - b(HALF FIT) (negative = the benefit shrinks when the readers get the larger auxiliary sample)",
+ "resampling_and_uncertainty": {
+  "household": "per registered cell, household bootstrap of SCORE (B = 400 replicates, households resampled, release, fitted readers, orientation and the VALIDATION-selected winner held fixed) gives the cell SE; se_hh = the RMS of the cell SEs with the cell weights of the aggregate (an upper bound under any cross-cell correlation; it does not shrink with more cells); conditional on everything fitted: it does not cover refitting readers, re-selecting the winner or refitting the release",
+  "reader_split_and_version": "blocks = version x repetition (4 registered blocks), block mean = mean over reader seeds k0 / k1; se_rs = sqrt(sum_b (m_b - mean)^2 / 4): it contains the version difference (two release-fitting repeats), the reader-split difference (R1 / R2) and their interaction, and reader-seed variation only through the block means; each factor has about one degree of freedom",
+  "monte_carlo": "se_mc from cell MC SEs of randomized releases (0 for deterministic releases)",
+  "se_agg": "max(sqrt(se_hh^2 + se_rs^2 + se_mc^2), 0.001); 0 for an exact alias (ALIAS_ZERO, never positive)",
+  "resolved": "aggregate mean - 2 se_agg > threshold and both version means > threshold (threshold 0 for D2 / D3, 0.020 for D4)",
+  "usefulness_ses": "household-clustered SEs of each condition over MODEL_SELECT households (release fixed); MC SE in quadrature for randomized releases",
+  "bracket_ses": "household-clustered SEs of MODEL_FIT out-of-fold paired costs: a selection device for the saved points, never an inference",
+  "not_replication": "versions share every training row and the MODEL_SELECT people; repetitions R1-R4 deal the same people; reader seeds refit on the same households; MODEL_FIT folds and inner episodes overlap: none is an independent replication, and no fold or episode spread is used as an SE"
+ },
+ "reader_grid": {
+  "model_seed_base": 2026101205,
+  "seed_offset": 1200,
+  "seed_rule": "reader seed S<v>k<k> = MODEL_SEED_BASE + 1200 + 10 v + k exactly (k0, k1 registered; k2, k3 robustness; 2026102405-2026102408, 2026102415-2026102418); recorded distinct integers; none equal to MODEL_SEED_BASE + {300, ..., 1100} + 10 v + k (k = 0..9; 180 seeds)",
+  "forbidden_offsets": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900,
+   1000,
+   1100
+  ],
+  "bootstrap_seed_base": 2026102520,
+  "bootstrap_B": 400,
+  "bootstrap_rule": "household bootstrap of SCORE, B = 400 recorded, seed 2026102520 + 100 v + repetition index recorded per (version, repetition) as S<v><R> (2026102520-2026102523, 2026102620-2026102623; no seed shared with SAR1's 2026102400-03 / 2026102500-03 or DRF1's 2026102500-03 / 2026102600-03); the half-budget learning-curve cells reuse the same draws so their paired differences have a paired SE",
+  "repetition_index": {
+   "R1": 0,
+   "R2": 1,
+   "R3": 2,
+   "R4": 3
+  },
+  "split_tag": "RFA1_devgrid_R{r}",
+  "registered_cells": [
+   "S0R1k0",
+   "S0R1k1",
+   "S0R2k0",
+   "S0R2k1",
+   "S1R1k0",
+   "S1R1k1",
+   "S1R2k0",
+   "S1R2k1"
+  ],
+  "robustness_cells": "R3, R4 with k0-k3 and R1, R2 with k2, k3; never a decision input",
+  "validity": "READER_SEEDS_EFFECTIVE iff the seed rule and the bootstrap rule hold (B recorded and 400) and, per seed pair, every seed-dependent recipe is checked and every seed-dependent equality is explained: off the minimum set by NRM1 A-SC1 (iii) or the few-valued explanation; on the minimum set by the extra-trees support explanation or the few-valued explanation; minimum set = a D2 reading's CAND, START, CONT and the saved STOPFIT, ALTCRIT and RAWJ points (for the refit: the D2R release and its decisive comparators); references are off it; claims need grid_valid recorded and exactly true"
+ },
+ "er_explanation": {
+  "status": "PROSPECTIVE (inherited from SAR1; registered before any grid output)",
+  "min_leaf": {
+   "ET5": 5,
+   "ET25": 25
+  },
+  "pool_people": 8001,
+  "few_valued_max": 320,
+  "rule": "extra-trees support: a seed-dependent k-pair equality on the minimum set is explained iff the recipe is ET5 or ET25, NRM1 (iii) (a) + (b) + (c) hold and the recorded distinct-input count of the view is at most 8001 // min_leaf; few-valued: an equality anywhere is explained iff the view's recorded distinct-input count is at most 320 and the same recipe differs on another wire or view in the same version, repetition and seed pair; explained equalities are counted once (n_eff); any other seed-dependent equality invalidates the grid"
+ },
+ "decisions": {
+  "configuration": "CAND = RF_FULL: the reader-fit-aware continuation of NEURAL_RAW (occupation network only; income bitwise START's) at k*, the largest checkpoint S_k whose every S_10..S_k keeps estimate + 2 household-clustered SE of the 5-fold MODEL_FIT out-of-fold occupation spends within SAR1 FB_PFO_R1's budgets (selection data MODEL_FIT_OOF; no SEX-recovery diagnostic); chosen before any MODEL_SELECT read; D1-D5 are read at CAND only",
+  "D1": {
+   "labels": [
+    "TASK_FEASIBLE",
+    "CAND_INFEASIBLE",
+    "NO_FEASIBLE_POINT",
+    "NOT_FITTED_MECHANISM_INERT",
+    "INCOMPLETE"
+   ],
+   "confidence_labels": [
+    "CONFIDENCE_ALL_PASS",
+    "CONFIDENCE_UNRESOLVED",
+    "CONFIDENCE_VIOLATION",
+    "INCOMPLETE"
+   ],
+   "condition_states": [
+    "PASS",
+    "UNRESOLVED",
+    "VIOLATION"
+   ],
+   "cand_selection_data": [
+    "MODEL_FIT_OOF",
+    "MODEL_FIT_EPISODES"
+   ],
+   "rule": "gating: G1 = all 28 original conditions at the point (NR.point_eligibility) at CAND; INCOMPLETE if CAND's selection data are not recorded or not a MODEL_FIT source; reported separately and never gating: the confidence conjunction (per condition from its own household-clustered SE, sqrt(se^2 + se_mc^2), no floor: PASS iff value + 2 se <= cap, VIOLATION iff value - 2 se > cap, else UNRESOLVED) and the inherited two-SE reserve heuristic of CAND, START and CONT; flags START_POINT_INELIGIBLE, CONT_POINT_INELIGIBLE, POINT_FEASIBLE_NOT_CONFIDENCE_RESOLVED, POINT_FEASIBLE_NOT_RESERVE_QUALIFIED, CAND_SELECTED_ON_MODEL_FIT_SEX_RECOVERY_DIAGNOSTIC (disclosure); NOT_FITTED_MECHANISM_INERT when the F0 gate stopped the family; flag CAND_SELECTED_ON_MODEL_FIT_SEX_RECOVERY_DIAGNOSTIC replaces the draft's CAND_SELECTED_ON_MODEL_FIT_SEX_DIAGNOSTIC; F0_SEX_BASED_FIT_GATE_DISCLOSED"
+  },
+  "D2": {
+   "comparisons": [
+    "START",
+    "CONT",
+    "STOPFIT",
+    "ALTCRIT",
+    "RAWJ"
+   ],
+   "met_label": "COMPONENT_GAIN_BEYOND_START_AND_MECHANISM_CONTROLS",
+   "control_kinds": {
+    "STOPFIT": [
+     "PATH"
+    ],
+    "ALTCRIT": [
+     "PATH",
+     "POINT",
+     "ALIAS_OF_STOPFIT"
+    ],
+    "RAWJ": [
+     "PATH"
+    ]
+   },
+   "bracket_selection_data": [
+    "MODEL_FIT_OOF"
+   ],
+   "gating": "START, CONT, STOPFIT, ALTCRIT (unless an exact alias of STOPFIT, shown by identical wires: its artifact is reused and the comparison counted once) and RAWJ, all gating; a gating control recorded as not run for budget gives NOT_ASSESSED_CONTROLS_NOT_RUN; a missing control not so recorded is INCOMPLETE",
+   "paths": "every PATH (STOPFIT, a PATH ALTCRIT, RAWJ) = origin START + its distinct saved points (aliases once; an alias of START collapses into it); two points saved per path and version before any MODEL_SELECT read on MODEL_FIT out-of-fold paired total-NLL spend over START: LO = the largest path point with spend <= CAND's (START counts as 0) and HI = the smallest with spend >= CAND's + 2 SE (SE = the household-clustered SE, same data, of that point's paired difference against CAND); on MODEL_SELECT Q* = NR.frontier_comparison's bracketing point",
+   "single_point_rule": {
+    "states": [
+     "SPENDS_AT_LEAST_AS_MUCH",
+     "SPENDS_LESS_UNRESOLVED",
+     "SPENDS_LESS_RESOLVED"
+    ],
+    "rule": "for a POINT ALTCRIT (selected by CAND's own MODEL_FIT rule): d = pooled MODEL_SELECT paired total-NLL cost(CAND) - cost(point); d <= 0 spend-matched or favourable; 0 < d and d - 2 SE <= 0 credited with flag ALTCRIT_SPENDS_LESS_UNRESOLVED; d - 2 SE > 0 NOT_SEPARATED (reason NOT_SEPARATED_FROM_SPEND; passed_if_spend_matched reported); otherwise pass iff AGG_POSITIVE pair benefit, both recipient gates and no secondary metric resolved higher than the point"
+   },
+   "rule": "met iff (a) G1 at CAND; (b) vs START and (b') vs CONT: nrm.rules.comparison passes (AGG_POSITIVE pair benefit: mean - 2 se_agg > 0 and both version means > 0; recipient gate: each single view r_v <= 0.010 per version at the aggregate point); (c) each gating PATH control: NR.frontier_comparison = DOMINATES_CONTROL_FRONTIER at Q* (AGG_POSITIVE vs Q*; no secondary metric resolved higher vs Q*) AND the recipient gate vs Q* AND no cheaper path point resolved less recoverable than CAND; a POINT control by the single-point rule; (d) reader targeting: the non-table winner's point pair benefit > 0 in both version means vs START, CONT and every gating Q* / point",
+   "labels": "in order: NOT_ASSESSED_NO_FEASIBLE_POINT; NOT_ASSESSED_EXACT_ALIAS; INCOMPLETE (CAND status, selection data or utility); NOT_ASSESSED_TASK_INFEASIBLE; NOT_COMPUTED_GRID_VALIDITY_UNKNOWN / NOT_COMPUTED_GRID_INVALID; INCOMPLETE (START not NEURAL_RAW, control kinds or ids malformed, an alias without its wire check); NOT_ASSESSED_CONTROLS_NOT_RUN; INCOMPLETE (a gating control's selection data not recorded or not allowed; any needed input); READER_TARGETED; COMPONENT_GAIN_BEYOND_START_AND_MECHANISM_CONTROLS; NOT_SEPARATED (no gating comparison passes); PARTIAL_<passed, joined by +, in the order START, CONT, STOPFIT, ALTCRIT, RAWJ>_ONLY",
+   "no_bracket": "a path whose every point spends less MODEL_SELECT total NLL than CAND has no bracket: that comparison reads NOT_SEPARATED (reason NO_BRACKET, flag NO_BRACKET_<key>): a limit of the control path, never evidence of equality or of no effect",
+   "bounds": "for every gating comparison the aggregate mean, se_agg and mean +- 2 se_agg are reported (development bounds for this procedure on reused people; not population bounds; not corrected for the adaptive search)",
+   "partial": "no partial outcome is a claim; NOT_SEPARATED is the default reading, never \"equal\"; without STOPFIT the fit-aware derivative is not isolated",
+   "grid_fineness": {
+    "fraction": 0.25,
+    "rule": "per PATH control on MODEL_FIT out-of-fold paired costs before any MODEL_SELECT read: FINE iff LO >= 0.75 s (and <= s) and HI >= s + 2 SE and <= s + 2 SE + 0.25 s; COARSE_BELOW / COARSE_ABOVE / COARSE_BOTH; CONTROL_PATH_MAY_NOT_BRACKET (largest spend < s + 2 SE: extend the path before reading); SAVED_POINT_RULE_NOT_FOLLOWED; NOT_APPLICABLE_CAND_NOT_ABOVE_START; SELECTION_DATA_NOT_ALLOWED; INCOMPLETE; NOT_GIVEN; reported, never gating"
+   },
+   "altcrit_near_alias_lag": 0.01,
+   "card_RF_RFIT_v1": "STOPFIT = [RF_STOP_LO, RF_STOP_HI]; ALTCRIT = [RF_ALTC_HI] and RAWJ = [RF_RAWJ_HI], each with LO recorded on MODEL_FIT but not saved (lo_not_saved; flag LO_NOT_SAVED_SPEC_BUDGET_<key>; their cheaper-point check (c3) then covers START only); a bracket point that does not exist is not saved (the path is read on START and the saved points; a missing HI usually gives NO_BRACKET); ALTCRIT is a NEAR_ALIAS of STOPFIT iff the recorded median relative critic lag on the deployed fit is < 0.01: it still gates (an intersection can only be harder) but is never counted as an independent control (flag ALTCRIT_NEAR_ALIAS_OF_STOPFIT_NOT_INDEPENDENT, scope sentence D2_SCOPE_NEAR_ALIAS); a declared altcrit_near_alias disagreeing with the lag rule is INCOMPLETE; lag not recorded: flag ALTCRIT_LAG_NOT_RECORDED"
+  },
+  "LC": {
+   "labels": [
+    "BENEFIT_SHRINKS_RESOLVED",
+    "BENEFIT_SHRINKS_POINT",
+    "NO_SHRINKAGE_AT_POINT",
+    "NOT_RUN",
+    "INCOMPLETE"
+   ],
+   "family_labels": [
+    "LEARNABILITY_LIMITATION",
+    "NO_SHRINKAGE_SEEN",
+    "NOT_RUN",
+    "INCOMPLETE",
+    "NOT_COMPUTED_GRID_VALIDITY_UNKNOWN",
+    "NOT_COMPUTED_GRID_INVALID"
+   ],
+   "rule": "budgets fixed before any outcome: FULL = the declared FIT part, HALF = FIT fraction 0.5 by the inherited RFA1_devgrid_LC fold rule (the FIT households in folds 0-1 of 4; HALF within FIT; the 0.25 fraction is not run; VALIDATION, SCORE, recipes, seeds and bootstrap draws unchanged); read at CAND when D2 reached its conjuncts, on the registered cells, against START, CONT, every gating Q* / point and H_LJ; per comparator d_LC = b(FULL) - b(HALF) per cell, SE the paired-bootstrap SE when recorded for every cell else sqrt(se_FULL^2 + se_HALF^2) (flag LC_SE_UNPAIRED_BOUND), aggregated by NR.aggregate: BENEFIT_SHRINKS_RESOLVED (upper bound < 0 and both version means < 0), BENEFIT_SHRINKS_POINT (mean < 0), NO_SHRINKAGE_AT_POINT; limitation iff the full-budget point benefit > 0 and mean d_LC < 0; family LEARNABILITY_LIMITATION if any limitation (headline caveat), INCOMPLETE if a comparator is missing, else NO_SHRINKAGE_SEEN (never evidence of information removal; budgets above the declared FIT untested); the inner episodes' auxiliary training size is recorded (flags LC_INNER_EPISODE_SIZE_NOT_RECORDED, INNER_EPISODE_BUDGET_AT_LEAST_EVALUATION_FIT); descriptive, never changes D1-D6 or the class"
+  },
+  "D2R": {
+   "labels": [
+    "ROBUSTNESS_CONFIRMED",
+    "ROBUSTNESS_NOT_CONFIRMED",
+    "NOT_RUN",
+    "NOT_COMPUTED_GRID_VALIDITY_UNKNOWN",
+    "NOT_COMPUTED_GRID_INVALID",
+    "INCOMPLETE"
+   ],
+   "rule": "trigger fixed now: read at CAND whenever CAND is G1-feasible and the registered grid is valid (budget permitting; a skipped D2R reads NOT_RUN and is disclosed); decisive set {START, CONT, the registered STOPFIT, ALTCRIT (unless an alias) and RAWJ brackets or point}, never re-chosen; ROBUSTNESS_CONFIRMED per comparator iff nrm.rules.robustness confirms (AGG_POSITIVE on the robustness cells and on all cells), both recipient gates hold on the robustness cells, the registered cells are present and refit_effectiveness is REFIT_GENUINELY_EFFECTIVE; sign changes and robustness recipient failures (decisive or beside) are carried into the headline; descriptive; never changes D2"
+  },
+  "D3": {
+   "references": [
+    "NEURAL_RAW",
+    "H_LJ",
+    "B2TWIN",
+    "RETIRED_B3CTL",
+    "SUCC",
+    "TWJ",
+    "W",
+    "TR100",
+    "TT100"
+   ],
+   "rule": "NRM1 G4 at CAND (every point-eligible reference by the published point labels, all nine; no reserve rule removes a reference: AGG_POSITIVE pair benefit and the recipient gate, intersection-union) with the reader-budget credit rule; SUPERIOR_TO_ALL_ELIGIBLE_REFERENCES only if every one passes; the references passed and failed are listed; START = NEURAL_RAW is one of the nine"
+  },
+  "D4": {
+   "target_references": [
+    "NEURAL_RAW",
+    "H_LJ"
+   ],
+   "threshold_auc": 0.02,
+   "rule": "NRM1 G5 at CAND with the reader-budget credit rule: MATERIAL_0020_RESOLVED iff against each of NEURAL_RAW and H_LJ the aggregate mean - 2 se_agg > 0.020 and both version means > 0.020, with both recipient gates; smaller gains keep their own level (MATERIAL_0020_POINT_ONLY, POSITIVE_BELOW_MATERIAL_TARGET, NOT_MET); never weakened"
+  },
+  "D5": "NRM1 G6 unchanged only when a card claims joint design (a local twin and both sequential orders built); RFA1 plans no local twin: NOT_APPLICABLE_NOT_JOINT (no joint-design claim)",
+  "D6": "NOT_CLAIMED unless a separate prior-art review supplies NOVELTY_REVIEW_PENDING / NOVEL_PER_SEPARATE_REVIEW / PRIOR_ART_FOUND; never inferred from performance",
+  "F0": {
+   "labels": [
+    "MECHANISM_ACTIVE",
+    "MECHANISM_INERT"
+   ],
+   "rule": "card RF_RFIT_v1 5: before any arm is fitted, 64 MODEL_FIT episodes at START (8 groups; unbiased cross-group estimates); MECHANISM_INERT iff the orthogonal share < 0.05 and cos(E g_tot, E g_dir) > 0.995; an inert version saves nothing, so a reading with any inert version is MECHANISM_INERT (D1 NOT_FITTED_MECHANISM_INERT, D2-D5 and the learning curve NOT_ASSESSED_MECHANISM_INERT, class MECHANISM_INERT; flag MECHANISM_INERT_IN_ONE_VERSION_ONLY); a FITTED reading with an inert version, or MECHANISM_INERT without the record, is INCOMPLETE; a SEX-based MODEL_FIT gate that decides only whether the family is fitted, never an operating point (disclosed)"
+  },
+  "falsifiers": {
+   "keys": [
+    "F0",
+    "F1",
+    "F2",
+    "F3",
+    "F4",
+    "F5",
+    "F6"
+   ],
+   "rule": "the card's registered falsifiers, reported in decisions()['falsifiers'] and as FALSIFIER_<k>_TRIGGERED flags, never changing a label or the class: F0 from the F0 record; F2 (no resolved FULL benefit over STOPFIT at matched spend) TRIGGERED iff the STOPFIT frontier label at Q* is neither DOMINATES_CONTROL_FRONTIER nor SEPARATED_ON_PRIMARY_COST_ONLY (NOT_ASSESSABLE_NO_BRACKET without a bracket); F4 TRIGGERED iff the learning curve reads LEARNABILITY_LIMITATION; F1, F3, F5, F6 as recorded by the coordinator (falsifier_records), else NOT_RECORDED"
+  }
+ },
+ "outcome_class": {
+  "labels": [
+   "COMPETITIVE_CANDIDATE",
+   "MECHANISM_COMPONENT_NOT_COMPETITIVE",
+   "REFERENCE_ADVANTAGE_NOT_ATTRIBUTED",
+   "BOUNDED_NEGATIVE_EXPERIMENT",
+   "MECHANISM_INERT",
+   "NO_OUTPUT_CHANGE",
+   "TASK_INFEASIBLE",
+   "SELECTED_POINT_INFEASIBLE",
+   "MECHANISM_NOT_ASSESSED",
+   "INCOMPLETE"
+  ],
+  "rule": "first applicable: MECHANISM_INERT (the F0 gate stopped the family); TASK_INFEASIBLE; SELECTED_POINT_INFEASIBLE; INCOMPLETE (D1 incomplete, D2 incomplete or not computed); NO_OUTPUT_CHANGE (CAND = START exactly); MECHANISM_NOT_ASSESSED (a gating control not run); INCOMPLETE (D3 undecided); COMPETITIVE_CANDIDATE (D2 met and D3 met); MECHANISM_COMPONENT_NOT_COMPETITIVE (D2 met, D3 not); REFERENCE_ADVANTAGE_NOT_ATTRIBUTED (D3 met, D2 not; partial = D2's label); BOUNDED_NEGATIVE_EXPERIMENT (otherwise; partial = D2's label: NOT_SEPARATED, READER_TARGETED or PARTIAL_<passed>_ONLY, with the development bounds); D4, D5, D6, D2R and the learning curve never change the class; the five outcomes (usefulness, gain beyond the mechanism-specific controls, strong references, material target, joint design and novelty) are always reported separately in 'outcomes' with one statement",
+  "flags": [
+   "D3_WITHOUT_D2",
+   "D4_WITHOUT_D2",
+   "POINT_FEASIBLE_NOT_RESERVE_QUALIFIED",
+   "POINT_FEASIBLE_NOT_CONFIDENCE_RESOLVED",
+   "NO_POINT_MEETS_MODEL_FIT_RULE",
+   "CAND_OPERATING_POINT_DIFFERS_BY_VERSION",
+   "REVISION_BEYOND_PLANNED",
+   "D2R_SIGN_CHANGE_CARRIED_INTO_HEADLINE",
+   "D2R_RECIPIENT_FAILURE_CARRIED_INTO_HEADLINE",
+   "LEARNABILITY_LIMITATION_CARRIED_INTO_HEADLINE",
+   "FALSIFIER_<k>_TRIGGERED",
+   "F0_SEX_BASED_FIT_GATE_DISCLOSED",
+   "LO_NOT_SAVED_SPEC_BUDGET_<key>",
+   "ALTCRIT_NEAR_ALIAS_OF_STOPFIT_NOT_INDEPENDENT",
+   "the D1, D2, D5, learning-curve and MC flags"
+  ]
+ },
+ "registration_status": {
+  "kinds": [
+   "ADAPTIVE",
+   "REVISED"
+  ],
+  "family_pattern": "(RFA|FAM|FS_[A-Za-z0-9]+)",
+  "registered_families": [
+   "RFA"
+  ],
+  "planned_revisions": [
+   0,
+   1
+  ],
+  "starts": {
+   "RFA": "NEURAL_RAW"
+  },
+  "registered": "a reading is registered iff it is revision 0 of RFA (card RF_RFIT_v1; the code family FAM is the same family, canonicalised to RFA, so two registered readings under the two names are refused) and its card was committed before any MODEL_SELECT outcome of this campaign; the one planned substantive revision R1 (with its own isolating control) is REVISED_R1 if its card preceded every MODEL_SELECT outcome, else ADAPTIVE_R1; a family name other than RFA, FAM or FS_<letters/digits> is refused",
+  "tag": "otherwise <KIND>_<parts> (REVISED / ADAPTIVE; FS, R<n>, R0_LATE_CARD); every label prefixed <tag>__",
+  "multiplicity": "one AGG_POSITIVE comparison passes a true null in about 0.07-2% of replicates under six moderate NRM1 known laws and about 8% when one version or split dominates (NRM1 RULES.md 5.5); a D2 look is an intersection-union conjunction of up to five such comparisons plus reader targeting, so its false-pass rate is at most that of its weakest member; with K D2 looks the chance that at least one passes by chance is at most K times the per-look rate; no multiplicity correction is applied or claimed",
+  "family_aliases": {
+   "FAM": "RFA"
+  }
+ },
+ "scope": [
+  "Lower recovery for the declared development readers is not protection against every reader.",
+  "MODEL_SELECT is adaptively used: development evidence, never confirmation.",
+  "Versions share training rows; repetitions share households; reader recipes and overlapping splits are not independent datasets.",
+  "A reserve-frontier result is not superiority over every historical method.",
+  "Novelty is never inferred from performance.",
+  "A lower reader AUC is evidence about the declared finite-data reader procedure and its auxiliary budget, not an arbitrary-attacker guarantee and not information removal.",
+  "Point feasibility, the confidence conjunction and the reserve heuristic are separate results.",
+  "A revision or replacement-family reading is never the registered result.",
+  "The five outcomes (usefulness, gain beyond the mechanism-specific controls, strong references, material target, joint design and novelty) are reported separately; none implies another."
+ ],
+ "change_record": [
+  "family RFA (START = NEURAL_RAW, frozen), one MODEL_FIT-selected operating point per version; UM, the strength machinery, strongest_nonzero and CALIBRATION bracket data removed",
+  "D2 gates on START, CONT (always gating) and the matched mechanism controls STOPFIT (PATH), ALTCRIT (PATH, POINT by the DRF1 single-point spend rule, or an exact alias of STOPFIT counted once) and RAWJ (PATH, SAR1's ALT); met label COMPONENT_GAIN_BEYOND_START_AND_MECHANISM_CONTROLS; partials named by what passed; development bounds reported",
+  "new: the learning-curve reading (FULL vs a fixed HALF of FIT), a shrinking benefit carried into the headline as a learnability limitation",
+  "D2R: the decisive set adds every gating control; robustness recipient gates required and their failures carried into the headline (DRF1); the beside list is de-duplicated (DRF1's cosmetic defect)",
+  "five separately reported outcomes; outcome classes COMPETITIVE_CANDIDATE, MECHANISM_COMPONENT_NOT_COMPETITIVE, REFERENCE_ADVANTAGE_NOT_ATTRIBUTED, BOUNDED_NEGATIVE_EXPERIMENT (with D2's partial name), MECHANISM_NOT_ASSESSED, SELECTED_POINT_INFEASIBLE",
+  "reader grid: +1200 offset, 300-1100 forbidden (180 seeds), bootstrap base 2026102520 (rfa/devreaders.py BOOT_SEED), B = 400 recorded, split tag RFA1_devgrid_R{r}",
+  "2026-10-25 about 21:45-21:55Z (before registration; card RF_RFIT_v1 and the coordinator's answers q1-q4): family alias FAM -> RFA; CAND status MECHANISM_INERT from the F0 gate (class MECHANISM_INERT); lo_not_saved (ALTCRIT, RAWJ save HI only); ALTCRIT NEAR_ALIAS by the 1% critic-lag rule (still gating, not independent); falsifiers F0-F6 reported; CAND selection data MODEL_FIT_OOF with no SEX-recovery diagnostic (flag renamed CAND_SELECTED_ON_MODEL_FIT_SEX_RECOVERY_DIAGNOSTIC); learning-curve HALF = the inherited fold rule, 0.25 not run, paired SEs from the shared bootstrap draws"
+ ]
+}
