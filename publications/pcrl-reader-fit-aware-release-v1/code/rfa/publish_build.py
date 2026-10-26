@@ -55,7 +55,11 @@ def owner_patterns():
 # Leak-scan hits reviewed by the coordinator (2026-10-24, before 07:29Z by `date -u`) and judged harmless: the verifier's own
 # description, table and search patterns name the credential words its scan looked for; no credential is present. Matched on file and
 # problem.
-REVIEWED_SCAN_HITS = set()   # RFA1: none reviewed yet (the SAR1 entries named that campaign's verifier files)
+# RFA1 (reviewed 2026-10-26 at about 00:41Z by `date -u`, after the build of research commit 60acaf352 refused on it): the verifier's
+# wave-5 scan code holds the bare session-scratch folder prefixes (the strings the shared scan's "session scratch path" rule matches)
+# as classification patterns (line 93); no session identifier or path follows them. Disclosed in PROTOCOL_DEVIATIONS item 13 and
+# PUBLICATION_RECEIPT.json.
+REVIEWED_SCAN_HITS = {('results/roles/verifier/code/v5_pubscan.py', 'session scratch path')}
 _SAR1_REVIEWED = {('results/roles/verifier/VERIFICATION_REPORT.md', 'credential-like string'),
                       ('results/roles/verifier/code/v3_assemble.py', 'credential-like string'),
                       ('results/roles/verifier/code/v3_pubscan.py', 'credential-like string')}   # its own search regexes

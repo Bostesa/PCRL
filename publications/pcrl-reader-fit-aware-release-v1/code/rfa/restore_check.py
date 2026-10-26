@@ -9,8 +9,8 @@
 - every deployment package (under the campaign's private deploy/ folder) redeploys restored raw inputs and reproduces its stored wire
   bitwise, with every refusal (rfa.deploy check; for RFA1 the inputs are MODEL_FIT's, see below). Derived from nrm.restore_check
   (relative imports resolve to rfa).
-Adapted for RFA1 (2026-10-25): the frozen inputs of family DR (rfa.dr.SOURCE_PINS: the NRM1 task cache, the FRC1 SEX-side cache,
-the FRC1 twin model, the FRC1 utility ledger) re-hash against their pins; every DR MODEL.pkl against its MODEL.json; every bank member
+Adapted for RFA1 (2026-10-25): every FAM MODEL.pkl re-hashes against its MODEL.json (family FAM reads no frozen source artefact at
+deployment; its starts were pinned at admission); every bank member
 of every reader grid re-loads from the restored files and reproduces the wire hashes the grid recorded (references and the FRC1 twin
 included); the deployment packages are checked on MODEL_FIT raw inputs and on the attacked MODEL_SELECT output (DEV_REPORT is not
 used); and the check fails if a reader grid exists but no custody reader was restored."""
@@ -105,13 +105,10 @@ def main(out):
         dep = {'all_bitwise': None, 'all_refused': None}
     # source artefacts this campaign reads: the frozen inputs of family DR (pinned in rfa.dr), and the wire of every bank member the
     # reader grids read (references and the twin included), against the hashes the grids recorded
+    # RFA1: family FAM reads no frozen source artefact at deployment (its models are its own MODEL.pkl files, re-hashed below); the
+    # U0 / NEURAL_RAW starts live in the archived-and-kept replication tree outside the backup and were pinned at admission
+    # (STORAGE_ADMISSION.json); they are needed only to refit, never to restore or redeploy.
     src_bad, src_n = [], 0
-    from . import dr as DRM
-    for key, want in DRM.SOURCE_PINS.items():
-        src_n += 1
-        q = DRM._src_path(key)
-        if not q.is_file() or C.sha(q) != want:
-            src_bad.append(key)
     from . import devreaders as DR
     members_ok, members_bad = 0, []
     for g in sorted((C.RUNS / 'GRID').glob('*/S*/GRID.json')) if (C.RUNS / 'GRID').is_dir() else []:
@@ -130,7 +127,7 @@ def main(out):
                 members_bad.append(f"{G['bank_id']}/S{G['seed']}/{m}")
     cache_bad2 = []
     model_bad, model_n = [], 0
-    for mj in [m for fam in ('DR',) for m in sorted(C.RUNS.glob(f'{fam}/*/V*/MODEL.json'))]:
+    for mj in [m for fam in ('FAM',) for m in sorted(C.RUNS.glob(f'{fam}/*/V*/MODEL.json'))]:
         model_n += 1
         if C.sha(mj.parent / 'MODEL.pkl') != json.loads(mj.read_text())['model_sha256']:
             model_bad.append(str(mj.parent.relative_to(C.RUNS)))

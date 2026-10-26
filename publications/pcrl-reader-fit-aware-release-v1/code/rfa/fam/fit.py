@@ -126,6 +126,11 @@ class OccTrainer:
         _, self.hh_of_row = np.unique(np.asarray(unit), return_inverse=True)
         self.hh_size = np.bincount(self.hh_of_row)
         self.recipe_rf = recipe_rf
+        self.rf_module = None                                   # the objective module (None = rfa.fam.rfit; a revision sets its own)
+
+    def rf(self):
+        from . import rfit
+        return self.rf_module or rfit
 
     def params(self):
         return list(self.occ.parameters())
@@ -168,7 +173,7 @@ def _objective_call(obj, tr, A, E):
 def calibrate(tr, rho, n_draws=16):
     """lambda = rho x median ||grad CE_occ|| / median ||grad S_FULL|| over fixed draws at the trainer's current weights."""
     import torch
-    from . import rfit as RF
+    RF = tr.rf()
     rr = tr.recipe_rf or RF.RECIPE_RF
     ep_rng = np.random.default_rng(seed_for('RFA1-calibration-episodes', tr.seed) % 2 ** 32)
     task_rng = np.random.default_rng(seed_for('RFA1-calibration-task', tr.seed) % 2 ** 32)
@@ -230,7 +235,7 @@ GATE = {'episodes': 64, 'groups': 8, 'orthogonal_below': 0.05, 'cos_above': 0.99
 def mechanism_gate(tr, n_episodes=GATE['episodes'], groups=GATE['groups']):
     """F0 at the trainer's current weights (START): g_dir and g_fit of the FULL objective on fixed gate episodes (no update)."""
     import torch
-    from . import rfit as RF
+    RF = tr.rf()
     rr = tr.recipe_rf or RF.RECIPE_RF
     ep_rng = np.random.default_rng(seed_for('RFA1-gate-episodes', tr.seed) % 2 ** 32)
     obj = RF.EpisodeObjective('FULL', tr.seed, recipe=rr)
@@ -253,7 +258,7 @@ def run_arm(tr, mode, lam, total_steps, every, on_ck, log_every=10, stop_at=None
     separately (the update is their sum) and logs the systematic statistics per 40-step epoch (F1); every arm with episodes logs the
     held-out degree-2 Fisher monitor and the A-row SD of the logit differences every `monitor_every` steps (diagnostics only)."""
     import torch
-    from . import rfit as RF
+    RF = tr.rf()
     rr = tr.recipe_rf or RF.RECIPE_RF
     opt = torch.optim.Adam(tr.params(), lr=RECIPE['learning_rate'], betas=RECIPE['betas'], eps=RECIPE['eps'], weight_decay=0.0)
     task_rng = np.random.default_rng(seed_for('THP1task', tr.seed) % 2 ** 32)
@@ -323,14 +328,17 @@ def run_arm(tr, mode, lam, total_steps, every, on_ck, log_every=10, stop_at=None
                                                          'diagnostic fit for the lag only')}
 
 
-def arm_paths(X, yO, sex, unit, version, start_w, total_steps, every, rho, arms=ARMS, stop_at=None, log=None, recipe_rf=None):
+def arm_paths(X, yO, sex, unit, version, start_w, total_steps, every, rho, arms=ARMS, stop_at=None, log=None, recipe_rf=None,
+              rf_module=None):
     """The requested arms from START's weights; lambda calibrated once on FULL and shared. {arm: {step: weights}}, records."""
     paths, recs = {}, {}
     cal_tr = OccTrainer(version, start_w['income'], start_w['occupation'], X, yO, sex, unit, recipe_rf)
+    cal_tr.rf_module = rf_module
     cal = calibrate(cal_tr, rho) if any(a != 'TASK' for a in arms) else {'lambda': 0.0, 'medians': None}
     del cal_tr
     for arm in arms:
         tr = OccTrainer(version, start_w['income'], start_w['occupation'], X, yO, None if arm == 'TASK' else sex, unit, recipe_rf)
+        tr.rf_module = rf_module
         ck = {}
         lam = 0.0 if arm == 'TASK' else cal['lambda']
         res = run_arm(tr, arm, lam, total_steps, every, lambda s, w: ck.__setitem__(s, w),
@@ -357,7 +365,10 @@ def fit_path_share(logs):
 # ---------------------------------------------------------------- the fit stage (one unit per version)
 def stage_fit(version, data, card, save, roles=None, log=print, record_dir=None, total_steps=TOTAL_STEPS, every=EVERY, budget=None,
               u0=None, neural_raw=None, check_neural_raw=True, reader_check=True, rho=RECIPE['rho'], recipe_rf=None,
-              configs=None, record_name=None):
+              configs=None, record_name=None, rf_module=None, alias_check=None, revision=None):
+    """One version's fit unit. A revision passes its own objective module (`rf_module`), recipe, configuration ids (`configs[base]['id']`),
+    record name and an `alias_check(base_cfg, arm, step, weights) -> existing config id | None` that reuses a bitwise-identical saved
+    configuration instead of saving a new one."""
     PD, PFO = _pd(), _pfo()
     from .. import famrun as FR
     t0 = time.process_time()
@@ -377,16 +388,19 @@ def stage_fit(version, data, card, save, roles=None, log=print, record_dir=None,
     nr_weights, nr_pins = neural_raw if neural_raw is not None else PD.neural_raw_admitted(version, names)
     pins = {**pins, **nr_pins}
     n = len(unit)
-    from . import rfit as RF
+    from . import rfit as RF0
+    RF = rf_module or RF0
+    rev = revision or REVISION
     rname = record_name or f'FIT_RF_V{int(version)}.json'
     # 0. F0, the mechanism gate at START (all MODEL_FIT rows; no update): an inert fit path stops the unit before any arm is fitted
     gate_w = nr_weights if nr_weights is not None else {t: PD.layers_of(payload[t]) for t in TASKS}
     gtr = OccTrainer(version, gate_w['income'], gate_w['occupation'], X, yO, sex, unit, recipe_rf)
+    gtr.rf_module = rf_module
     gate = mechanism_gate(gtr)
     del gtr
     log(json.dumps({'gate': {k: gate[k] for k in ('label', 'systematic_share', 'orthogonal_share', 'cos_tot_dir', 'n')}}))
     if gate['label'] == 'MECHANISM_INERT':
-        out = {'version': int(version), 'revision': REVISION, 'recipe': RECIPE, 'recipe_rf': recipe_rf or RF.RECIPE_RF,
+        out = {'version': int(version), 'revision': rev, 'recipe': RECIPE, 'recipe_rf': recipe_rf or RF.RECIPE_RF,
                'pins_sha256': pins, 'mechanism_gate': gate, 'stop': 'MECHANISM_INERT', 'saved': {}, 'cpu_s': time.process_time() - t0}
         if record_dir is not False:
             C.write_json((record_dir or C.RESULTS / 'fam') / rname, out)
@@ -405,7 +419,7 @@ def stage_fit(version, data, card, save, roles=None, log=print, record_dir=None,
         rj, rj_rec = PFO.rawj_path(X[tr], yI[tr], yO[tr], sex[tr], row_id[tr], version, st, rawj_total, every,
                                    log=lambda s: log(f'fold {j} {s}'))
         start_w = rj[origin]
-        ap, ap_recs = arm_paths(X[tr], yO[tr], sex[tr], unit[tr], version, start_w, total_steps, every, rho,
+        ap, ap_recs = arm_paths(X[tr], yO[tr], sex[tr], unit[tr], version, start_w, total_steps, every, rho, rf_module=rf_module,
                                 log=lambda s: log(f'fold {j} {s}'), recipe_rf=recipe_rf)
         for key, ck in [('RAWJ', rj)] + [(a, ap[a]) for a in ARMS]:
             for s, W in ck.items():
@@ -434,7 +448,7 @@ def stage_fit(version, data, card, save, roles=None, log=print, record_dir=None,
            'fit_path_share_by_fold': fps}
     cand = {'config': 'RF_FULL', 'strength': k_star, 'checkpoint': None if k_star is None else f'S{k_star}',
             'status': 'NO_FEASIBLE_STRENGTH' if k_star is None else 'FITTED', 'spend_over_start': None}
-    out = {'version': int(version), 'revision': REVISION, 'recipe': RECIPE, 'pins_sha256': pins, 'epochs_admitted': epochs_adm,
+    out = {'version': int(version), 'revision': rev, 'recipe': RECIPE, 'pins_sha256': pins, 'epochs_admitted': epochs_adm,
            'selection': sel, 'cand': cand, 'cont': {'config': 'RF_TASK', 'strength': k_star, 'gating': True}, 'paths': {},
            'fold_records': fold_recs, 'start_spend_over_fold_start': FK.jsonable_spend(sp[('RAWJ', origin)]),
            'mechanism_gate': gate}
@@ -474,7 +488,7 @@ def stage_fit(version, data, card, save, roles=None, log=print, record_dir=None,
     stop_at = {'FULL': k_star, 'TASK': k_star,
                'STOPFIT': max([s for s in (br['STOPFIT']['lo'], br['STOPFIT']['hi']) if s is not None] or [every]),
                'ALTCRIT': br['ALTCRIT']['hi'] or every}
-    full_ap, full_ap_rec = arm_paths(X, yO, sex, unit, version, start_full, total_steps, every, rho, stop_at=stop_at,
+    full_ap, full_ap_rec = arm_paths(X, yO, sex, unit, version, start_full, total_steps, every, rho, stop_at=stop_at, rf_module=rf_module,
                                      log=lambda s: log(f'full {s}'), recipe_rf=recipe_rf)
     checks = {'deployed_start': 'NEURAL_RAW__rho1.0__E2.pt' if nr_weights is not None else f'deployed RAWJ S{origin} (invented-data check only)'}
     if check_neural_raw:
@@ -498,17 +512,24 @@ def stage_fit(version, data, card, save, roles=None, log=print, record_dir=None,
     if br['ALT']['hi'] is not None:
         plan.append(('RF_RAWJ_HI', 'RAWJ', br['ALT']['hi']))
     saved, views = {}, {'FOLD_START': oof[('RAWJ', 0)], 'START': start_oof}
+    out['aliases'] = {}
     for base_cfg, arm, s in plan:
         cfg = configs[base_cfg]['id'] if 'id' in configs[base_cfg] else base_cfg
         W = full_rj[s] if arm == 'RAWJ' else full_ap[arm][s]
+        hit = alias_check(base_cfg, arm, s, W) if alias_check is not None else None
+        if hit is not None:                              # a bitwise-identical saved configuration: reused, not saved again
+            out['aliases'][cfg] = {'alias_of': hit, 'arm': arm, 'checkpoint': f'S{s}'}
+            views[cfg] = oof[(arm, s)]
+            log(json.dumps({'alias': {cfg: hit}}))
+            continue
         pl = {'op': 'net', 'arm': arm, 'checkpoint': f'S{s}', 'weights': W}
         meta = FK.write_model(FAMILY, cfg, version, {'feature_names': names, 'recipe': RECIPE, 'recipe_rf': out['recipe_rf'],
-                                                     'pins_sha256': pins, 'revision': REVISION, **pl})
+                                                     'pins_sha256': pins, 'revision': rev, **pl})
         arrays = FK.release_all(NET.predict, cfg, version, roles)
         Lx = L[(arm, s)]
         d = Lx['tot_nll'] - L_start['tot_nll']
         key = configs[base_cfg]['path']
-        extra = {'revision': REVISION, 'path': key, 'arm': arm, 'checkpoint': f'S{s}', 'strength': s, 'selection_k_star': k_star,
+        extra = {'revision': rev, 'path': key, 'arm': arm, 'checkpoint': f'S{s}', 'strength': s, 'selection_k_star': k_star,
                  'model_sha256': meta['model_sha256'], 'pins_sha256': pins, 'checks': checks,
                  'oof_spend_over_fold_start': FK.jsonable_spend(FK.spend(Lx, fold_start, unit, sex)),
                  'oof_spend_over_start': {'value': float(d.mean()), 'se': FK.cluster_se(d, unit)},
@@ -523,7 +544,7 @@ def stage_fit(version, data, card, save, roles=None, log=print, record_dir=None,
     if reader_check:
         t1 = time.process_time()
         out['mf_reader_check'] = {'note': 'descriptive MODEL_FIT out-of-fold readers; never a decision input',
-                                  'auc': FK.mf_reader_check(views, sex, unit, f'RFA_mfcheck_RF_{REVISION}_S{int(version)}'),
+                                  'auc': FK.mf_reader_check(views, sex, unit, f'RFA_mfcheck_RF_{rev}_S{int(version)}'),
                                   'cpu_s': time.process_time() - t1}
     out.update({'saved': saved, 'n_saved_new': len(saved), 'checks': checks,
                 'full_records': {'RAWJ': {k: v for k, v in full_rj_rec.items() if k != 'logs'},

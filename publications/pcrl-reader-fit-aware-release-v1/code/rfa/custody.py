@@ -5,12 +5,12 @@
                                                   # mounted, unmounted or forced by this tool)
 
 Adapted from sar.custody (constants only). A backup holds: TIP_COMMIT; the branch bundle (base = the strong-anchor research tip
-73931682e this branch started from .. this branch); code.tar (git archive of the code and the public records the check needs);
+913eb5c91 this branch started from .. this branch); code.tar (git archive of the code and the public records the check needs);
 private.tar.gz (this campaign's private tree, plus the inherited private files the code reads); MANIFEST.sha256; RESTORE_CHECK.json.
 
 Private scope (RFA1): this campaign's tree (runs, reader cache, packages, ledgers, access log); the income-headroom tree (the admitted
-mirror the access layer reads and the frozen reference bank the reader grid loads); W's occupation witness (A1_PO_16); the frozen
-inputs of family DR (the NRM1 task cache fa_cache, the FRC1 SEX-side cache fa_cache and the FRC1 twin TWB_C64's model and release).
+mirror the access layer reads and the frozen reference bank the reader grid loads); W's occupation witness (A1_PO_16); and,
+kept from DRF1's scope for safety, the NRM1 task cache, the FRC1 SEX-side cache and the FRC1 twin TWB_C64 (not read by family FAM).
 The other inherited trees of the working cache are not read and stay out. The check re-hashes the manifest, verifies the bundle,
 extracts both archives into a fresh directory and runs rfa.restore_check there with the restored code. A read-back right after
 writing on a still-mounted drive is WARM (possibly served from cache), never a cold check.
@@ -29,8 +29,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CAMPAIGN = 'pcrl_reader_fit_aware_release_v1'
 BRANCH = 'research/pcrl-reader-fit-aware-release-v1'
-BASE = '73931682e'                                                   # the strong-anchor release research tip = this branch's base
-CODE = ['rfa', 'sar', 'ipr', 'ddr', 'fsa', 'frc', 'nrm', 'tsz', 'cts', 'ohn', 'ihs', 'ffv', 'amd', 'scm_bench', 'acs_replication', 'acs_hybrids',
+BASE = '913eb5c91'                                                   # RFA1: the direct-recovery frontier research tip = this branch's base
+CODE = ['rfa', 'drf', 'sar', 'ipr', 'ddr', 'fsa', 'frc', 'nrm', 'tsz', 'cts', 'ohn', 'ihs', 'ffv', 'amd', 'scm_bench', 'acs_replication', 'acs_hybrids',
         'task_conditioned_representation', 'task_headroom', 'mechanism_design', f'results/{CAMPAIGN}',
         'results/pcrl_input_and_pair_release_v1', 'results/pcrl_dual_design_release_v1',
         'results/pcrl_finite_solver_adequacy_v1', 'results/pcrl_finite_routing_comparison_v1', 'results/pcrl_new_release_mechanisms_v1',
@@ -38,7 +38,8 @@ CODE = ['rfa', 'sar', 'ipr', 'ddr', 'fsa', 'frc', 'nrm', 'tsz', 'cts', 'ohn', 'i
         'results/pcrl_occupation_headroom_overnight_v1', 'results/pcrl_income_headroom_successor_v1',
         'results/pcrl_frozen_finalist_validation_v1', 'results/pcrl_autonomous_method_development_v1',
         'results/pcrl_acs_protected_tree_replication_v1', 'results/pcrl_acs_frozen_hybrids_v1', 'results/pcrl_scm_engineering_benchmark_v1',
-        'results/pcrl_scm_utility_matched_v1', 'results/pcrl_correction_transfer_stability_v1']
+        'results/pcrl_scm_utility_matched_v1', 'results/pcrl_correction_transfer_stability_v1',
+        'results/pcrl_strong_anchor_release_v1', 'results/pcrl_direct_recovery_frontier_v1']
 PRIVATE = [f'.private/{CAMPAIGN}', '.private/pcrl_income_headroom_successor_v1',
            '.private/pcrl_occupation_headroom_overnight_v1/runs/A/A1_PO_16', '.private/pcrl_new_release_mechanisms_v1/fa_cache',
            '.private/pcrl_finite_routing_comparison_v1/fa_cache', '.private/pcrl_finite_routing_comparison_v1/runs/FA/TWB_C64']

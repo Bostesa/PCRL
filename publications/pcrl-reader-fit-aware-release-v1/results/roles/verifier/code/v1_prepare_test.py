@@ -229,6 +229,13 @@ def test_grid_and_refit():
     ok['refit_validation_auc_reproduced (abs < 1e-12)'] = rf_worst['val_auc'] < 1e-12
     out['refit_bitwise_count'] = sum(r['bitwise_scores'] for r in refits.values())
     out['refit_count'] = len(refits)
+    # the prepared later-wave cores (vcore) on the same invented grid files
+    import vcore
+    gc = vcore.grid_core(GRID_DIR / 'S0', caches['own'], 0, sex, unit, bank, [('B', 'A')])
+    rc = vcore.refit_core(GRID_DIR / 'S0', caches['own'], 0, sex, unit, bank, [(cell, 'A', 'pair'), (cell, 'B', 'pair'), (cell, 'B', 'income')])
+    ok['vcore_grid_core_agrees'] = bool(gc['agree'])
+    ok['vcore_refit_core_bitwise'] = bool(rc['all_bitwise']) and rc['max_abs_score_auc_diff'] == 0.0
+    out['vcore'] = {'grid_core_worst': gc['worst_abs_diff'], 'grid_core_mismatches': gc['mismatches'], 'refit_core': rc}
     return all(ok.values()), {**out, 'checks': ok}
 
 

@@ -100,6 +100,12 @@ def main():
     rec = {'adam_steps': [], 'clip_calls': [], 'episodes': [], 'obj_calls': [], 'trainers': []}
     orig_adam, orig_clip = torch.optim.Adam, torch.nn.utils.clip_grad_norm_
     orig_parts, orig_episode, orig_init = RF.EpisodeObjective.objective_parts, FIT.OccTrainer.episode, FIT.OccTrainer.__init__
+    orig_fit_reader = RF.fit_reader
+    rec['fit_reader_calls'] = []
+
+    def rec_fit_reader(*a, **k):
+        rec['fit_reader_calls'].append(state['arm'])
+        return orig_fit_reader(*a, **k)
     state = {'arm': None}
 
     class RecAdam(orig_adam):
@@ -154,6 +160,7 @@ def main():
         RF.EpisodeObjective.objective_parts = rec_parts
         FIT.OccTrainer.episode = rec_episode
         FIT.OccTrainer.__init__ = rec_init
+        RF.fit_reader = rec_fit_reader
         FIT.run_arm = rec_run_arm
         FIT.calibrate = rec_cal
         paths, recs = FIT.arm_paths(X, yO, sex, unit, version, start_w, STEPS, 1, 1.0, recipe_rf=rr)
@@ -161,6 +168,7 @@ def main():
         torch.optim.Adam, torch.nn.utils.clip_grad_norm_ = orig_adam, orig_clip
         RF.EpisodeObjective.objective_parts, FIT.OccTrainer.episode, FIT.OccTrainer.__init__ = orig_parts, orig_episode, orig_init
         FIT.run_arm, FIT.calibrate = orig_run_arm, orig_cal
+        RF.fit_reader = orig_fit_reader
     num['arm_paths_cpu_s'] = time.process_time() - t1
     arms = list(FIT.ARMS)
     # ---- (a) lambda: one calibration on FULL, shared by FULL / STOPFIT / ALTCRIT; TASK 0
@@ -294,9 +302,16 @@ def main():
     num['FULL_logged_fit_share'] = [l.get('output_grad_norms', {}).get('fit_share') for l in full_logs]
     fps = FIT.fit_path_share(full_logs)
     num['fit_path_share_helper_returns'] = fps
-    chk['DEFECT_PROBE fit_path_share helper finds the logged share'] = fps is not None
-    num['objective_counters_field'] = recs['FULL'].get('objective_counters')
-    chk['DEFECT_PROBE objective_counters recorded'] = recs['FULL'].get('objective_counters') is not None
+    logged = [x for x in num['FULL_logged_fit_share'] if isinstance(x, (int, float))]
+    chk['DEFECT_PROBE fit_path_share helper finds the logged share'] = fps is not None and abs(fps['median'] - statistics.median(logged)) < 1e-15
+    calls = {a: rec['fit_reader_calls'].count(a) for a in arms + ['CALIBRATION']}
+    crit = {a: len([s_ for s_ in rec['adam_steps'] if s_['arm'] == a and s_['n_tensors'] == 1]) for a in arms}
+    num['inner_fit_accounting'] = {a: {'recorded_inner_reader_fits': recs[a].get('inner_reader_fits'), 'actual_exact_fit_reader_calls': calls[a],
+                                       'actual_critic_adam_steps': crit[a]} for a in arms}
+    num['inner_fit_accounting']['CALIBRATION_actual_exact_fit_reader_calls'] = calls['CALIBRATION']
+    chk['DEFECT_PROBE inner_reader_fits equals the actual exact fits (FULL, STOPFIT)'] = all(
+        recs[a].get('inner_reader_fits') == calls[a] for a in ('FULL', 'STOPFIT'))
+    chk['DEFECT_PROBE inner_reader_fits equals the actual exact fits (ALTCRIT)'] = recs['ALTCRIT'].get('inner_reader_fits') == calls['ALTCRIT']
     num['mechanism_by_epoch_FULL'] = recs['FULL'].get('mechanism_by_epoch')
     num['monitors_logged'] = {a: len(recs[a].get('monitors', [])) for a in arms}
     # ---- (f) mechanism_stats vs the verifier's own cross-group estimator on invented vectors

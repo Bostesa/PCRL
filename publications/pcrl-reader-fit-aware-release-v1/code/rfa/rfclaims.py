@@ -8,8 +8,8 @@ applies the statistical reviewer's frozen rules `rfa.rules` (RFA1-rules-v1) unch
 
 The plan is written from the MODEL_FIT fit records only (saved configurations, operating points, bracket spends, the F0 gate and the
 ALTCRIT lag) and must be committed before the reading's first MODEL_SELECT utility or reader computation (`run` refuses an
-uncommitted plan). Grid members carry the plan's member names (CAND, CONT, STOP_LO, STOP_HI, ALTC_HI, RAWJ_HI); references keep their
-benchmark names (START = NEURAL_RAW). Reused helpers: `rfa.claims` (grid loading, seed records and checks, extra readers, evaluation
+uncommitted plan). Grid members carry the configuration ids (RF_FULL, RF_TASK, RF_STOP_LO, RF_STOP_HI, RF_ALTC_HI, RF_RAWJ_HI; a revision's
+own ids through --config-map); references keep their benchmark names (START = NEURAL_RAW). Reused helpers: `rfa.claims` (grid loading, seed records and checks, extra readers, evaluation
 records, paired costs, registration status, reader-budget flags, split records).
 """
 from __future__ import annotations
@@ -20,8 +20,11 @@ from pathlib import Path
 
 import numpy as np
 
+from nrm import rules as NR
+
 from . import claims as CL
 from . import common as C
+from . import famkit as FK
 from . import rules as RU
 
 REFS = CL.REFS
@@ -46,7 +49,7 @@ def _fineness(recs):
                 continue
             g = p['grid']
             hi, lo = p.get('hi'), p.get('lo')
-            src[v] = {'cand': r['cand']['spend_over_start']['value'],
+            src[str(v)] = {'cand': r['cand']['spend_over_start']['value'],
                       'lower': None if lo is None else g[str(lo)]['spend_over_start'],
                       'upper': None if hi is None else g[str(hi)]['spend_over_start'],
                       'upper_se': None if hi is None else g[str(hi)]['se_diff_vs_cand'],
@@ -57,22 +60,26 @@ def _fineness(recs):
 
 
 def write_plan(name, fit_record, card, revision=0, prefix='', config_map=None, bank=None, lc_bank=None, rob_bank=None,
-               inner_size=None):
+               inner_size=None, beside=None):
     from . import devreaders as DR
     cmap = config_map or DEFAULT_MAP
     recs = {v: json.loads((FIT_DIR / fit_record.format(v=v)).read_text()) for v in C.VERSIONS}
     saved = {v: set((recs[v].get('saved') or {})) for v in C.VERSIONS}
-    members, missing = {}, []
-    for m, cfg in cmap.items():
+    members, missing, role_of = {}, [], {}
+    for role, cfg in cmap.items():                    # grid member names are the config ids (the rules' record ids)
         if all(cfg in saved[v] for v in C.VERSIONS):
-            members[m] = f'{FAMILY_DIR}/{cfg}'
+            members[cfg] = f'{FAMILY_DIR}/{cfg}'
+            role_of[cfg] = role
         elif any(cfg in saved[v] for v in C.VERSIONS):
-            missing.append({'member': m, 'config': cfg, 'saved_in_versions': [v for v in C.VERSIONS if cfg in saved[v]]})
-    cand = 'CAND' if 'CAND' in members else None
-    paths = {k: [m for m in ('STOP_LO', 'STOP_HI', 'ALTC_HI', 'RAWJ_HI') if PATH_OF[m] == k and m in members] or None
-             for k in ('STOPFIT', 'ALTCRIT', 'RAWJ')}
+            missing.append({'role': role, 'config': cfg, 'saved_in_versions': [v for v in C.VERSIONS if cfg in saved[v]]})
+    cand = cmap['CAND'] if cmap['CAND'] in members else None
+    cont = cmap['CONT'] if cmap['CONT'] in members else None
+    paths = {k: [cfg for cfg, role in role_of.items() if PATH_OF.get(role) == k] or None for k in ('STOPFIT', 'ALTCRIT', 'RAWJ')}
     lags = {v: recs[v].get('altcrit_rel_lag_median_deployed') for v in C.VERSIONS}
-    near_alias = all(isinstance(x, (int, float)) and x < NEAR_ALIAS_LAG for x in lags.values())
+    lag_vals = [x for x in lags.values() if isinstance(x, (int, float))]
+    lag = max(lag_vals) if len(lag_vals) == len(C.VERSIONS) else None     # the larger version median (conservative for NEAR_ALIAS)
+    near_alias = lag is not None and lag < NEAR_ALIAS_LAG
+    f0 = {v: (recs[v].get('mechanism_gate') or {}).get('label') for v in C.VERSIONS}
     unit = C.features('MODEL_SELECT')['unit']
     fit_sizes = {r: int(DR.roles_of(unit, r)['FIT'].sum()) for r in DR.REPS}
     half_sizes = {r: int(DR.lc_fit(unit, DR.roles_of(unit, r)['FIT'], 0.5).sum()) for r in DR.REPS}
@@ -80,11 +87,12 @@ def write_plan(name, fit_record, card, revision=0, prefix='', config_map=None, b
     plan = {'plan_id': name, 'family': 'RFA', 'card': card, 'revision': int(revision), 'label_prefix': prefix, 'written_utc': C.now(),
             'fit_records': {v: f'results/{C.CAMPAIGN}/fam/{fit_record.format(v=v)}' for v in C.VERSIONS},
             'fit_records_sha256': {v: C.sha(FIT_DIR / fit_record.format(v=v)) for v in C.VERSIONS},
-            'start': {'id': 'NEURAL_RAW'}, 'cand': cand, 'cont': 'CONT' if 'CONT' in members else None, 'members': members,
-            'missing_in_one_version': missing, 'paths': paths,
-            'control_kind': {'ALTCRIT': 'PATH'}, 'altcrit_near_alias': near_alias, 'altcrit_rel_lag_median': lags,
+            'start': {'id': 'NEURAL_RAW'}, 'cand': cand, 'cont': cont, 'members': members, 'roles': role_of,
+            'missing_in_one_version': missing, 'paths': paths, 'lo_not_saved': ['ALTCRIT', 'RAWJ'], 'f0': f0,
+            'control_kind': {'ALTCRIT': 'PATH'}, 'altcrit_near_alias': near_alias, 'altcrit_median_relative_lag': lag,
+            'altcrit_rel_lag_median_by_version': lags,
             'selection_data': {'STOPFIT': 'MODEL_FIT_OOF', 'ALTCRIT': 'MODEL_FIT_OOF', 'RAWJ': 'MODEL_FIT_OOF'},
-            'cand_meta': {'selection_data': 'MODEL_FIT_OOF', 'selection_uses_sex_diagnostic': False,
+            'cand_meta': {'selection_data': 'MODEL_FIT_OOF', 'selection_uses_sex_recovery_diagnostic': False,
                           'operating_point': {v: (recs[v].get('cand') or {}).get('checkpoint') for v in C.VERSIONS},
                           'alias_of_start': False,
                           'disclosure': 'the F0 mechanism gate (SEX-based, MODEL_FIT only) decided whether the family was fitted; it '
@@ -96,7 +104,27 @@ def write_plan(name, fit_record, card, revision=0, prefix='', config_map=None, b
             'learning_curve_budgets': {'FULL': int(round(np.mean(list(fit_sizes.values())))),
                                        'HALF': int(round(np.mean(list(half_sizes.values())))),
                                        'per_repetition': {'FULL': fit_sizes, 'HALF': half_sizes}},
-            'inner_episode_fit_size': int(inner_size or rr.get('n_A') or 0), 'joint': None, 'novelty': None}
+            'inner_episode_fit_size': int(inner_size or rr.get('n_A') or 0), 'joint': None, 'novelty': None,
+            'beside_members': dict(beside or {})}
+    # identity disclosure (reviewer addendum 1, 2.1): a revision's TASK / RAW-J point bitwise equal to a v1 configuration keeps its own
+    # id; the identity is recorded here, never in alias_of
+    ident = {}
+    for role, v1cfg in (('CONT', 'RF_TASK'), ('RAWJ_HI', 'RF_RAWJ_HI')):
+        cfg = cmap.get(role)
+        if not cfg or cfg == v1cfg or cfg not in members:
+            continue
+        same = {}
+        for v in C.VERSIONS:
+            try:
+                a, b = FK.load_model(FAMILY_DIR, cfg, v), FK.load_model(FAMILY_DIR, v1cfg, v)
+            except FileNotFoundError:
+                same[v] = None
+                continue
+            same[v] = all(len(a['weights'][t]) == len(b['weights'][t]) and
+                          all(bool((x[0] == y[0]).all() and (x[1] == y[1]).all()) for x, y in zip(a['weights'][t], b['weights'][t]))
+                          for t in ('income', 'occupation'))
+        ident[cfg] = {'v1_config': v1cfg, 'bitwise_equal_by_version': same}
+    plan['bitwise_identity_with_v1'] = ident
     out = CLAIMS_DIR / f'PLAN_{name}.json'
     if out.exists():
         raise PermissionError(f'{out.name} exists (write-once)')
@@ -140,6 +168,90 @@ def _diff_se(lc_bank, cand, comps):
     return {c: x for c, x in out.items() if x}
 
 
+TREE_TABLE = ('HGB15', 'ET25', 'LOOKUP', 'CATI1')
+LINEAR = 'LOG_LR'
+
+
+def _avg(xs):
+    xs = [x for x in xs if isinstance(x, (int, float))]
+    return float(np.mean(xs)) if xs else None
+
+
+def falsifiers(plan, grid, cand, rec):
+    """The card's registered falsifier records F1, F3, F5, F6 ('TRIGGERED' | 'NOT_TRIGGERED'; descriptive, never a label):
+    F1 from the deployed FULL fit's per-epoch mechanism statistics up to S_k*; F5 and F6 from the deployed FULL fit's logs and
+    monitors (MODEL_FIT training diagnostics); F3 from the grid's descriptive per-recipe SCORE AUCs of the pair view against
+    STOPFIT's bracketing point (rfa.rules.brackets on the MODEL_SELECT paired costs). Missing inputs leave the key out (the rules then
+    read NOT_RECORDED)."""
+    out, det = {}, {}
+    recs = {}
+    for v, p in (plan.get('fit_records') or {}).items():
+        q = C.ROOT / p
+        if q.is_file():
+            recs[int(v)] = json.loads(q.read_text())
+    if recs:
+        f1, f5, f6 = [], [], []
+        for v, r in recs.items():
+            k = (r.get('cand') or {}).get('strength')
+            mech = (((r.get('full_records') or {}).get('FULL') or {}).get('mechanism_by_epoch')) or []
+            orth = [m.get('orthogonal_share') for m in mech if k is not None and m.get('epoch_end_step', 10 ** 9) <= max(k, 40)]
+            orth = [x for x in orth if isinstance(x, (int, float))]
+            f1.append(bool(orth) and min(orth) < 0.05)
+            det[f'F1_V{v}'] = {'orthogonal_shares_to_k_star': orth}
+            logs = r.get('full_logs_FULL') or []
+            signs = [t.get('orientation_sign_E') for l in logs for t in ((l.get('terms') or {}).values()) if isinstance(t, dict)]
+            signs = [s for s in signs if isinstance(s, (int, float))]
+            neg = sum(1 for s in signs if s < 0) / len(signs) if signs else None
+            f5.append(neg is not None and neg > 0.5)
+            det[f'F5_V{v}'] = {'negative_orientation_fraction': neg, 'n_terms_logged': len(signs)}
+
+            def term(l, key):
+                t = (l.get('terms') or {}).get('pair/simple') or {}
+                return t.get(key)
+            head, tail = logs[:4], logs[-4:]
+            db = (_avg([term(l, 'auc_binormal_E') for l in head]) or 0) - (_avg([term(l, 'auc_binormal_E') for l in tail]) or 0)
+            de = (_avg([term(l, 'auc_exact_E') for l in head]) or 0) - (_avg([term(l, 'auc_exact_E') for l in tail]) or 0)
+            mons = (((r.get('full_records') or {}).get('FULL') or {}).get('monitors')) or []
+            m0 = _avg([m.get('pair') for m in mons[:2]])
+            m1 = _avg([m.get('pair') for m in mons[-2:]])
+            sd0 = ((mons[0].get('sd_A') or {}).get('occupation') if mons else None) or []
+            sd1 = ((mons[-1].get('sd_A') or {}).get('occupation') if mons else None) or []
+            shrink = any(b < a / 10.0 for a, b in zip(sd0, sd1)) if sd0 and sd1 else False
+            trig6 = (db - de > 0.02) or (m0 is not None and m1 is not None and m1 - m0 > 0.01) or shrink
+            f6.append(trig6)
+            det[f'F6_V{v}'] = {'binormal_drop_minus_exact_drop': db - de, 'fisher2_pair_first': m0, 'fisher2_pair_last': m1,
+                               'sd_shrink_over_10x': shrink, 'logged_steps': len(logs), 'monitors': len(mons),
+                               'note': 'first / last four logged steps (pair/simple term); first / last two monitors'}
+        out['F1'] = 'TRIGGERED' if any(f1) else 'NOT_TRIGGERED'
+        out['F5'] = 'TRIGGERED' if any(f5) else 'NOT_TRIGGERED'
+        out['F6'] = 'TRIGGERED' if any(f6) else 'NOT_TRIGGERED'
+    try:
+        br = RU.brackets(rec.get('costs_vs') or {}, rec.get('paths') or {}, rec.get('control_kind') or {}, rec.get('alias_of') or {},
+                         origin=plan['start']['id'])
+        q = (br.get('STOPFIT') or {}).get('bracket')
+    except Exception as e:                                   # recorded, never fatal: F3 is descriptive
+        q, det['F3_error'] = None, repr(e)
+    if q is not None:
+        gains = {}
+        for recipe in TREE_TABLE + (LINEAR,):
+            vals = []
+            for cell in NR.REGISTERED:
+                try:
+                    a = grid['cells'][cell][cand]['pair']['per_recipe_score_auc'][recipe]
+                    b = grid['cells'][cell][q]['pair']['per_recipe_score_auc'][recipe]
+                except (KeyError, TypeError):
+                    vals = None
+                    break
+                vals.append(float(b) - float(a))
+            gains[recipe] = None if vals is None else float(np.mean(vals))
+        g_tree = _avg([gains[r] for r in TREE_TABLE])
+        g_lin = gains[LINEAR]
+        if g_tree is not None and g_lin is not None:
+            out['F3'] = 'TRIGGERED' if (g_lin > 0 and g_tree < 0.5 * g_lin) else 'NOT_TRIGGERED'
+        det['F3'] = {'stopfit_bracket': q, 'mean_gain_over_stopfit_by_recipe': gains, 'tree_table_mean': g_tree, 'linear': g_lin}
+    return out, det
+
+
 def build(plan, grid, bank, lc_grid=None, lc_bank=None, gv_effective=None):
     mem = plan['members']
     cand, start = plan['cand'], plan['start']['id']
@@ -148,21 +260,26 @@ def build(plan, grid, bank, lc_grid=None, lc_bank=None, gv_effective=None):
            'card_committed_before_any_model_select_outcome': ok, 'registration_status_detail': reg}
     ev_s = CL.evals_of(f'REF:{start}')
     rec['start'] = {'id': start, 'evals': {v: e['utility'] for v, e in (ev_s or {}).items()}}
+    rec['f0'] = {int(v): x for v, x in (plan.get('f0') or {}).items()}
     if cand is None:
-        rec['cand'] = {'status': 'NO_FEASIBLE_POINT'}
+        inert = any(x == 'MECHANISM_INERT' for x in rec['f0'].values())
+        rec['cand'] = {'status': 'MECHANISM_INERT' if inert else 'NO_FEASIBLE_POINT'}
         return rec
     ev_c = CL.evals_of(mem[cand])
     cm = plan.get('cand_meta') or {}
     rec['cand'] = {'status': 'FITTED' if ev_c else 'MISSING', 'config_id': cand,
                    'evals': {v: e['utility'] for v, e in (ev_c or {}).items()},
                    'operating_point': cm.get('operating_point'), 'selection_data': cm.get('selection_data'),
-                   'selection_uses_sex_diagnostic': bool(cm.get('selection_uses_sex_diagnostic')),
+                   'selection_uses_sex_recovery_diagnostic': bool(cm.get('selection_uses_sex_recovery_diagnostic')),
                    'alias_of_start': bool(cm.get('alias_of_start'))}
     cont = plan.get('cont')
     if cont:
         rec['cont'] = {'config_id': cont, 'evals': {v: e['utility'] for v, e in (CL.evals_of(mem[cont]) or {}).items()}}
     rec['paths'] = plan['paths']
     rec['control_kind'] = plan.get('control_kind') or {}
+    rec['lo_not_saved'] = plan.get('lo_not_saved') or []
+    rec['altcrit_median_relative_lag'] = plan.get('altcrit_median_relative_lag')
+    rec['altcrit_near_alias'] = plan.get('altcrit_near_alias')
     rec['selection_data'] = plan.get('selection_data') or {}
     rec['controls_not_run'] = plan.get('controls_not_run') or {}
     rec['alias_of'] = plan.get('alias_of') or {}
@@ -179,6 +296,7 @@ def build(plan, grid, bank, lc_grid=None, lc_bank=None, gv_effective=None):
     rec['reader_budget'] = CL.reader_budget_flags(bank, cand)
     rec['joint'] = None
     rec['novelty'] = None
+    rec['falsifier_records'], rec['falsifier_detail'] = falsifiers(plan, grid, cand, rec)
     if lc_grid is not None:
         comps = [start] + ids + ['H_LJ']
         rec['learning_curve'] = {'grid_valid': gv_effective, 'budgets': plan.get('learning_curve_budgets', {}),
@@ -187,7 +305,72 @@ def build(plan, grid, bank, lc_grid=None, lc_bank=None, gv_effective=None):
     return rec
 
 
-def run(plan_path, bank, out, lc_bank=None):
+def family_change(grid, cand, other, costs, prefix='ADAPTIVE_R1__'):
+    """Beside reading FC_R1 (RULES_ADDENDUM_1_R1.md section 3): the family change CAND vs `other` (the v1 candidate) at their own
+    operating points; descriptive, never gating, never an attribution to the new family."""
+    entry = (grid.get('paired') or {}).get(cand, {}).get(other)
+    if not entry or costs is None:
+        return {'label': prefix + 'INCOMPLETE', 'missing': {'grid_entry': not entry, 'costs': costs is None}}
+    c = NR.comparison(entry)
+    d, dflags = NR._primary(costs)
+    if d is None:
+        return {'label': prefix + 'INCOMPLETE', 'missing': {'primary_cost': True}}
+    sec = {m: NR._pooled({v: (costs.get(v) or costs.get(str(v)) or {}).get(m) for v in NR.VERSIONS}) for m in NR.SECONDARY}
+    if any(x is None for x in sec.values()):
+        return {'label': prefix + 'INCOMPLETE', 'missing': {'secondary': [m for m, x in sec.items() if x is None]}}
+    higher = [m for m, x in sec.items() if x['value'] - 2 * x['se'] > 0]
+    dv, ds = d['value'], d['se']
+    state = 'R1_SPENDS_NO_MORE' if dv <= 0 else ('R1_SPENDS_MORE_RESOLVED' if dv - 2 * ds > 0 else 'R1_SPENDS_MORE_UNRESOLVED')
+    agg = c['benefit']
+    mean = ((agg.get('aggregate') or {}).get('mean'))              # NR.benefit_screen keeps the aggregate under 'aggregate'
+    if agg.get('label') == 'INCOMPLETE' or mean is None:
+        return {'label': prefix + 'INCOMPLETE', 'missing': {'aggregate': True}, 'benefit': agg}
+    if agg.get('resolved') and c['recipient_gate_pass'] and state != 'R1_SPENDS_MORE_RESOLVED' and not higher:
+        lab = 'FAMILY_CHANGE_RESOLVED'
+    elif agg.get('resolved') and c['recipient_gate_pass']:
+        lab = 'FAMILY_CHANGE_WITH_HIGHER_SPEND'
+    elif agg.get('resolved'):
+        lab = 'FAMILY_CHANGE_RECIPIENT_GATE_FAILED'
+    elif mean > 0:
+        lab = 'FAMILY_CHANGE_POINT_ONLY'
+    else:
+        lab = 'FAMILY_CHANGE_NOT_POSITIVE'
+    return {'label': prefix + lab, 'cand': cand, 'other': other, 'benefit_mean': mean,
+            'benefit_se_agg': (agg.get('aggregate') or {}).get('se_agg'),
+            'benefit_version_means': {v: x.get('mean') for v, x in ((agg.get('aggregate') or {}).get('per_version') or {}).items()},
+            'benefit': agg, 'recipient': c['recipient'],
+            'primary_cost_difference': d, 'primary_flags': dflags, 'spend_state': state, 'secondary': sec,
+            'secondary_resolved_higher': higher,
+            'note': 'descriptive beside reading (RULES_ADDENDUM_1_R1.md 3): R1 differs from v1 in its inner family set, its re-calibrated '
+                    'lambda and its k*; never a component gain and never an attribution to the new family'}
+
+
+def lc_seed_checks(lc_grid, frac='0.5', pairs=((0, 1),)):
+    """rfa.claims.seed_checks on the half-budget cells (`<cell>@0.5`): NR.parse_cell does not read '@' names, so the base cell name is
+    parsed and the reader-seed pair is compared within the same FIT fraction (statistical reviewer, claims review wave 1, item 2)."""
+    checks = []
+    suf = f'@{frac}'
+    for cell, cres in lc_grid['cells'].items():
+        if not cell.endswith(suf):
+            continue
+        base = cell[:-len(suf)]
+        v, rep, k = NR.parse_cell(base)
+        for a, b in pairs:
+            if k != a:
+                continue
+            other = base[:-1] + str(b) + suf
+            for member, ent in cres.items():
+                for view, e in ent.items():
+                    f0 = (e.get('extras') or {}).get('score_sha256') or {}
+                    f1 = (((lc_grid['cells'].get(other) or {}).get(member) or {}).get(view, {}).get('extras') or {}).get('score_sha256') or {}
+                    for recipe in NR.SEED_DEPENDENT + NR.SEED_INVARIANT:
+                        if recipe in f0 and recipe in f1:
+                            checks.append({'recipe': recipe, 'view': view, 'wire': member, 'v': v, 'R': rep, 'k_pair': [a, b],
+                                           'equal_k0_k1': f0[recipe] == f1[recipe], 'fraction': float(frac)})
+    return checks
+
+
+def run(plan_path, bank, out, lc_bank=None, d2r_dir=None):
     plan = json.loads(Path(plan_path).read_text())
     if not C.committed(Path(plan_path)):
         raise PermissionError('the claims plan must be committed before the grid outputs it governs are read')
@@ -199,15 +382,33 @@ def run(plan_path, bank, out, lc_bank=None):
     checks = CL.seed_checks(grid)
     gv = RU.grid_validity(seeds, checks, minimum, distinct, boot_seeds=boot, boot_B=400)
     lc_grid = CL.load_grid(lc_bank) if lc_bank else None
-    rec = build(plan, grid, bank, lc_grid=lc_grid, lc_bank=lc_bank, gv_effective=gv['effective'])
+    gv_lc = None
+    if lc_grid is not None:                          # the half-budget cells' own validity (RULES.md 9; reviewer wave 1, item 2)
+        lc_checks = lc_seed_checks(lc_grid)
+        gv_lc = RU.grid_validity(seeds, lc_checks, minimum, CL.distinct_inputs(lc_bank), boot_seeds=boot, boot_B=400)
+        gv_lc['n_checks'] = len(lc_checks)
+    rec = build(plan, grid, bank, lc_grid=lc_grid, lc_bank=lc_bank,
+                gv_effective=None if gv_lc is None else gv_lc['effective'])
     rec['grid_valid'] = gv['effective']
+    if d2r_dir:                                      # the reading's second split (descriptive; never changes D2 or the class)
+        rec['d2r'] = json.loads((Path(d2r_dir) / 'D2R.json').read_text())['d2r']
     dec = RU.decisions(rec)
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
+    for name, spec in (plan.get('beside_members') or {}).items():     # the beside family-change reading (R1 only)
+        C.write_json_x(out / f'FAMILY_CHANGE_vs_{name}.json',
+                       {'schema': 'RFA1-family-change-v1', 'utc': C.now(), 'plan': plan.get('plan_id'),
+                        'reading': family_change(grid, plan['cand'], name, CL.costs_between(plan['members'][plan['cand']], spec))})
+    C.write_json_x(out / 'FALSIFIER_DETAIL.json', {'schema': 'RFA1-falsifier-detail-v1', 'utc': C.now(), 'plan': plan.get('plan_id'),
+                                                   'records': rec.get('falsifier_records'), 'detail': rec.get('falsifier_detail'),
+                                                   'lc_grid_validity': gv_lc,
+                                                   'note': 'descriptive inputs of the card falsifiers F1, F3, F5, F6 (never a label); F3 '
+                                                           'uses CATI1 for the card\'s CATI; F5 computes the orientation disjunct only'})
     C.write_json_x(out / 'DECISIONS.json', {'schema': 'RFA1-decisions-v1', 'utc': C.now(), 'plan': plan.get('plan_id'), 'bank': bank,
                                             'lc_bank': lc_bank, 'plan_sha256': C.sha(Path(plan_path)),
                                             'rules_sha256': C.sha(RU.RULES_PATH), 'decisions': dec, 'grid_validity': gv,
-                                            'grid_validity_checks': len(checks), 'seeds': seeds, 'boot_seeds': boot,
+                                            'grid_validity_checks': len(checks), 'lc_grid_validity': gv_lc,
+                                            'seeds': seeds, 'boot_seeds': boot,
                                             'registration_status': rec.get('registration_status_detail'),
                                             'reader_budget': rec.get('reader_budget'),
                                             'altcrit_near_alias': plan.get('altcrit_near_alias'),
@@ -283,7 +484,7 @@ def write_banks(plan_path):
     output exists."""
     from . import banks as BK
     plan = json.loads(Path(plan_path).read_text())
-    members = {m: s for m, s in plan['members'].items()}
+    members = {**{m: s for m, s in plan['members'].items()}, **(plan.get('beside_members') or {})}
     main_out = BK.write(plan['bank'], f"RFA1 reading {plan['plan_id']}: CAND, CONT and the saved control points with every reference",
                         members, [plan['cand']], reps=['R1', 'R2'], reader_seeds=[0, 1])
     lc_mem = {m: BK.family_member(s) for m, s in members.items()}
@@ -324,8 +525,9 @@ def main(argv=None):
     p = sub.add_parser('plan'); p.add_argument('--name', required=True); p.add_argument('--fit-record', required=True)
     p.add_argument('--card', required=True); p.add_argument('--revision', type=int, default=0); p.add_argument('--prefix', default='')
     p.add_argument('--config-map', default=None); p.add_argument('--bank'); p.add_argument('--lc-bank'); p.add_argument('--rob-bank')
+    p.add_argument('--beside', action='append', default=[], help='NAME=FAMILY/CONFIG beside member (family-change reading)')
     r = sub.add_parser('run'); r.add_argument('--plan', required=True); r.add_argument('--bank', required=True)
-    r.add_argument('--lc-bank'); r.add_argument('--out', required=True)
+    r.add_argument('--lc-bank'); r.add_argument('--out', required=True); r.add_argument('--d2r-dir')
     d = sub.add_parser('d2r'); d.add_argument('--plan', required=True); d.add_argument('--main', required=True)
     d.add_argument('--rob', required=True); d.add_argument('--out', required=True)
     a = ap.parse_args(argv)
@@ -335,9 +537,9 @@ def main(argv=None):
         write_rob_bank(a.plan); return 0
     if a.cmd == 'plan':
         write_plan(a.name, a.fit_record, a.card, a.revision, a.prefix, json.loads(a.config_map) if a.config_map else None,
-                   a.bank, a.lc_bank, a.rob_bank)
+                   a.bank, a.lc_bank, a.rob_bank, beside=dict(x.split('=', 1) for x in a.beside))
     elif a.cmd == 'run':
-        run(a.plan, a.bank, a.out, a.lc_bank)
+        run(a.plan, a.bank, a.out, a.lc_bank, a.d2r_dir)
     else:
         d2r(a.plan, a.main, a.rob, a.out)
     return 0
