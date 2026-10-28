@@ -1,0 +1,27 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.8in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{pdftitle={Adversary and methodology meeting},pdfauthor={Nathan Samson}}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\pagestyle{empty}
+\begin{document}
+{\Large\bfseries Adversary and methodology meeting}\hfill 27 October 2026
+\par
+The current empirical paper asks what recipients can infer from the information a prediction service delivers, not whether we can construct an attacker that defeats every protection method. Its latest verifiable source is papers/combined\_empirical\_v2/ at 9e6d01f28 (16 October 2026). It combines four stored Adult/HMDA experiments. It does not incorporate the later ACS method-development benchmark.
+
+I recommend an authorised recipient that receives one fixed purpose-specific release for each person it serves and tries to infer a declared prohibited attribute. The legitimate service is prediction for a permitted task, through a representation for downstream classification or a task score or decision. The attacker receives labelled releases for other people to fit and select a reader, but receives only the contracted release for a target person. It has no target inputs or labels, model weights, gradients, fitted defense map, or chosen or repeated queries. Public algorithm knowledge is permitted, although the main reader bank does not exploit it. This matters even if the evaluated methods resist: it asks whether information delivered for one task can support an additional inference at the declared auxiliary-data budget. Our particular income/occupation service is illustrative, not a documented deployment. Sensitive labels and their corresponding same-population releases are granted resources whose real availability is unknown. A coalition of two recipients with perfectly linked outputs is a separate conditional extension, not the primary actor.
+
+Prior work already studies auxiliary-data attribute inference. LEACE promises linear protection, so nonlinear recovery is outside that promise. FARE explicitly anticipates arbitrary downstream classifiers of its cell representation. Its demographic-parity certificate is not an AUC guarantee. Adding an untreated task output or another recipient's output changes the released surface. The original PCRL paper already considered linked purpose representations. Our addition is the same-model, utility-qualified comparison of native checks and declared output contracts, not a new adversary.
+
+The implemented pipeline separates owner task/defense fitting, reader fitting, reader selection and final scoring. The auxiliary releases and sensitive labels come from hash-assigned Adult/HMDA roles, not independently acquired external data. Readers fit on one role, select by validation log loss and score on another. However, FARE and noise tuning also use attacker-validation feedback. Utility sometimes measures a refitted probe rather than the released head. All assessment rows had appeared in earlier analyses. Intervals condition on the fitted models and finite reader bank. The original noisy likelihood-ratio attacks sometimes additionally receive clean auxiliary features, but neither see a clean target feature nor imply repeated queries or model weights. No new algorithm has been established.
+
+\textbf{Meeting questions}\begin{enumerate}\setlength{\itemsep}{3pt}
+\item Do we agree to make the release-only single recipient primary, with the labelled-release budget an explicit conditional assumption and perfect-linkage pooling an optional extension?
+\item What permitted service requires the released object: downstream features, calibrated scores, ranking, or decisions alone? If only decisions are needed, score-release claims should be narrowed. If auxiliary pairs are not credible, the results remain a controlled conditional audit, without a demonstrated deployment interpretation.
+\item Under that access, do we accept the present evidence as development-only measurement, with defense-validation feedback and native guarantee scopes disclosed, before discussing any proposed method or restructuring the paper?
+\end{enumerate}
+\vfill{\footnotesize Sources and explicit unknowns: \texttt{SOURCE\_MAP.md}. Access dimensions: \texttt{ACCESS\_EVIDENCE.csv}.}
+\end{document}
