@@ -3,81 +3,229 @@
   "presentation_url": "https://docs.google.com/presentation/d/1R1DXAxTXviP6HBjsFsOfqxcppBcKJHdte2e9LxsgBPI/edit?usp=drivesdk",
   "source_template": "/Users/nathansamson/Downloads/UMBC presentation template (2).pptx",
   "template_sha256": "88283524f58906f98bb1f70b40cd8a092a5ffd6998c48d598cedc397fd75dbfa",
+  "base_revision": "e52c4380d601cdc0066823bcb77c6ddd5886bc41",
   "slides": [
     {
       "slide_id": "p2",
       "title_id": "p2_i63",
-      "body_id": "p2_i64",
+      "title": "Prior work and our recipient",
       "notes_id": "p2:notes_i61",
-      "title": "Prior work and the attacker we want to study",
-      "paragraphs": [
-        "Example: a company receives income predictions, then tries to infer sex, which the policy forbids. This is an illustrative service.",
-        "LEACE: protects released features against linear classifiers.",
-        "FARE: replaces records with cell labels. Its fairness certificate covers any classifier using those labels.",
-        "Our attacker: gets the agreed information about each person, plus labelled outputs for other people to train an inference model.",
-        "Not given: the person’s original record, model weights or repeated queries.",
-        "Precedent: earlier attribute-inference attacks already learn from labelled examples."
-      ],
-      "notes": "The income/sex example is illustrative, not an observed service. Prohibited means disallowed by the stated benchmark policy, not a legal finding. FARE cell labels identify the group assigned by its encoder.\n\nMAIN SLIDE 1. About two minutes.\n\nDr. Yus is asking why a recipient with exactly this access is worth studying before we decide how to attack it. We recommend an authorised recipient, not an insider. It receives an agreed output for a permitted task and attempts an additional, prohibited attribute inference. It learns from sensitive-labelled releases of other people. The target contributes only the assigned release.\n\nThe prior-work comparison is deliberately scoped. LEACE protects against linear recovery from its erased representation. A nonlinear classifier changes the attack class, so its success does not refute LEACE. FARE explicitly anticipates malicious consumers and arbitrary downstream classifiers of its finite representation. Its certificate is about demographic-parity distance, not our AUC. If an own head reads only the cell, its output remains a function of the cell. A separate clean output is different access.\n\nSong and Shmatikov already study supervised attribute inference from a representation. Their inference attacker receives auxiliary inputs with sensitive labels and an encoder oracle, which our main bank does not receive. Their separate repurposing attack should not be imported as weights access here. Our recipient is not a new adversary, and these access sets are not globally ordered. The original PCRL paper also studied concatenated purpose representations, while the original Outputs Leak What They Use paper exposed representations and outputs.\n\nThe proposed core is the release-only single recipient. The access table treats clean auxiliary features, public noise-law knowledge and linked recipients separately. Public algorithm knowledge is compatible with the core, although our main bank only refits to defended releases.\n\nSources: SOURCE_MAP IDs M1 sections2–5, O1 section5.5, O2 paper.tex192–269, L1 definitions2.1–2.3/section3 and footnote5 p8, F1 sections1 and3–5, S1 section3.1/Figure1 and4.2. Official code pins L2 and F2. Full dimensions are in ACCESS_EVIDENCE.csv."
+      "notes": "The recipient is the party allowed to receive model information for a stated purpose. The comparison table separates what each study exposes from the class of protection or attack it considers. LEACE limits linear recovery from erased features. Nonlinear recovery does not refute that guarantee. FARE's certificate covers any downstream classifier using only its finite cell, and measures demographic-parity distance rather than our AUC. Song and Shmatikov already study sensitive-attribute inference. Their inference attacker has labelled auxiliary inputs and a black-box encoder oracle. Our main bank instead receives the corresponding labelled releases. These access sets differ, so we do not call ours globally stronger.\n\nOur recommended primary receives exactly its agreed view for a person, once, and learns from releases and protected labels of other records. It has no raw target input or label, model weights, fitted defense map, gradients or chosen/repeated queries. Public algorithm knowledge is permitted, although the main bank simply refits to the defended releases. The table is a summary. The full access table records the separate experiments and exceptions.\n\nSources: SOURCE_MAP.md M1 sections2\u20135; L1/L2 LEACE definitions2.1\u20132.3/section3, official version0.2.4; F1/F2 FARE sections1,3\u20135 and official tree/evaluator; S1 Song section3.1/Figure1 and4.2. No claim of a new adversary.",
+      "template_layout": "p12",
+      "body_mapping": "Replace paragraph body with evidence table, process diagram or original paper figure. Keep title and inherited UMBC artwork."
     },
     {
       "slide_id": "p3",
       "title_id": "p3_i69",
-      "body_id": "p3_i70",
+      "title": "What the attacker receives",
       "notes_id": "p3:notes_i67",
-      "title": "Why study this access?",
-      "paragraphs": [
-        "Purpose: can information provided for an allowed task also support a prohibited inference? This matters even if every defense resists.",
-        "Attack: train a classifier using other people’s outputs and sensitive labels. Choose it using separate validation examples. Score it on held-out records.",
-        "Agree first: labelled outputs are a benchmark assumption. Is that access credible, and what output does the permitted task need?",
-        "Optional extension: two recipients pool outputs for the same person. We assume exact matching. No deployment with all these properties has been documented."
-      ],
-      "notes": "The income/sex example is illustrative, not an observed service. Prohibited means disallowed by the stated benchmark policy, not a legal finding. FARE cell labels identify the group assigned by its encoder.\n\nMAIN SLIDE 2. About two minutes.\n\nStart from the legitimate service. FARE explicitly separates a data producer and downstream consumer, so the recipient-side question has a published setting. Our particular income/occupation prediction service is an illustration rather than a documented bank or Census deployment. A recipient could be authorised to use features for downstream prediction or receive a score or decision for a permitted task. Which object the service genuinely needs is the first substantive choice. The evaluation asks about additional inference from that delivered object, not from raw inputs the recipient is assumed to possess. Holding target inputs back isolates the release, but recipients with inputs are also plausible and are simply not evaluated here.\n\nThe supervised attack needs sensitive labels AND the corresponding auxiliary releases. Public labels alone are insufficient. The benchmark supplies those pairs from other records of the same dataset. No source establishes that a real recipient can acquire this amount of matched information. That is an explicit conditional data grant. If Dr. Yus rejects it as a deployment assumption, the measured result remains a conditional audit, and the paper must narrow its practical claim rather than invent another source of data.\n\nFor the optional coalition, the two recipients must actually hold both outputs. A common provider might identify the same account, or both parties might know whom they serve. Those are illustrative linkage mechanisms, not observations in this experiment. The code aligns two outputs by row_id and grants perfect linkage. It does not evaluate how parties obtain identifiers or permission to pool. Rejecting that assumption leaves the single-recipient findings intact and removes coalition claims about practical exposure.\n\nAfter access is agreed, discuss methodology: owner fitting, separate reader fitting and selection, final scoring, utility and feedback. All four experiments are development evidence on reused assessment records. There is no successful new algorithm to present next. Paper structure follows these choices.\n\nSources: F1 section1 for producer/consumer setting; M1 sections1–3, Table1 access, section5 protocol; C2–C7 for implementation. A1 and S1 establish auxiliary-inference precedents, not our service availability. R1 records corrected access and withdrawn injectivity claims."
+      "notes": "This is an illustrative service. A provider gives an income prediction to a recipient for an allowed task. We ask whether the recipient can use that delivered information, with labelled examples, to infer sex. This is not a claim about an observed bank, Census service or legal violation. The person being scored contributes only the agreed output. The labelled examples contain other people's outputs and known sensitive labels. The benchmark grants these pairs. Public sensitive labels alone would not supply the matching model outputs, and we have not shown how a real recipient acquires the declared sample.\n\nDr. Yus's first decision is whether this is an actor and data budget worth studying. The question remains meaningful if every defense resists, since resistance would be evidence under that stated access. Next agree what the permitted service needs to deliver: features, scores or decisions. A two-recipient extension is separate. It requires both parties to receive their outputs and be able to match the same person. Our one evaluated coalition assumes perfect linkage by aligned rows. A shared account identifier is only an illustrative route, not something we observed.\n\nAfter agreeing the adversary, discuss methodology. There is no successful new algorithm established in the record. Paper structure comes afterward. Sources: M1 sections1\u20133/Table1; F1 producer/consumer setting; C2\u2013C7 implementation; O1 original coalition; R1 corrected motivation. Main slides1\u20132 are about3\u20135minutes together.",
+      "template_layout": "p12",
+      "body_mapping": "Replace paragraph body with evidence table, process diagram or original paper figure. Keep title and inherited UMBC artwork."
     },
     {
       "slide_id": "p4",
       "title_id": "p4_i75",
-      "body_id": "p4_i76",
+      "title": "Appendix: how the attack is evaluated",
       "notes_id": "p4:notes_i73",
-      "title": "Appendix: different access means different attacks",
-      "paragraphs": [
-        "Core attacker: one agreed view per person, plus labelled examples from other people.",
-        "Noise-aware attacker: also knows the noise distribution and its scale.",
-        "Clean-example attacker: also gets auxiliary features before noise was added. This is extra data, not automatically access to model weights.",
-        "Two recipients: receive both purpose outputs, matched to the same person.",
-        "Separate assumptions: repeated queries and model weights. The main classifier bank did not receive either."
-      ],
-      "notes": "The income/sex example is illustrative, not an observed service. Prohibited means disallowed by the stated benchmark policy, not a legal finding. FARE cell labels identify the group assigned by its encoder.\n\nAPPENDIX. The noise-aware variants were exploratory in Experiment1 and only attacked noisy features. A2 uses algorithm/noise-law knowledge while retaining release-only auxiliary inputs. A4 additionally receives pre-noise features for auxiliary fitting records. Neither receives a clean scored target vector or encoder/head parameters, and neither is an averaging attack. Three noise release seeds are separately attacked experimental realizations, not three queries pooled for a target. The original durable-guarantees LRT likewise does not imply model weights merely because it has clean auxiliary examples. Cell-conditional readers use released-cell counts and are not fitted-tree readers. The true-task-label reference reads the scored person's actual task label and must not be described as this recipient.\n\nCoalition: one Adult income+occupation pair targeting race, no defended pairs or imperfect linkage. Canonical record keys assign roles/group duplicates. Pair construction actually asserts matching row_id before concatenation. These are different functions.\n\nSources: M1 section3 and access Table1; C4 RELEASE_ACCESS_TABLE.csv rows8–9 and access.py29–39/59–77; D1 battery.py53–106; C6 odx/run.py199–210; C3 oar/study.py372–382. Source map pins all code."
+      "notes": "The owner first fits the task and defense on its owner-side data. The attacker then fits classifiers on attacker_fit, chooses recipes by attacker_val log loss and measures recovery on assessment. The scoring evaluator uses assessment labels to compute AUC. Those labels are not inputs to the attacker's target prediction. Logistic regression has5 settings, boosted trees20 and the MLP18. The nonlinear recipe selected at seed0 is refitted at seeds1 and2. Tree/neural early stopping uses a10% internal fitting holdout.\n\nThe dashed feedback arrow is important: FARE configurations and noise scale were also chosen using attacker-validation performance. FARE minimizes validation nonlinear AUC among configurations satisfying the task-probe accuracy rule. The easier task additionally requires80% of probe gain. This is development feedback rather than independent defense tuning. Utility sometimes measures a refitted probe, whereas Experiment4 measures the released useful head. All assessment records had been used in earlier analyses, and intervals condition on fitted models and readers.\n\nE1 fitting/selection/scoring: Adult7571/2239/5250, HMDA6794/2089/4778. E2\u2013E3: Adult6065/2235/5243, HMDA5388/2082/4764. E4 uses Adult roles only. Certification carve-out is1500/1385, affecting all arms. Owner defense_fit has24127/63704 records with20% head holdout in E2\u2013E4. E1 retained overlaps before a later sensitivity removal.\n\nSources: M1 section5; C2 bench.py648\u2013694/recipes.py71\u201390; C3 oar/study.py56\u201385,134\u2013149,325\u2013341 and fare_run.py25\u201347; C4\u2013C7 protocols. Full source pins and budgets remain in ACCESS_EVIDENCE.csv.",
+      "template_layout": "p12",
+      "body_mapping": "Replace paragraph body with evidence table, process diagram or original paper figure. Keep title and inherited UMBC artwork."
     },
     {
       "slide_id": "p5",
       "title_id": "p5_i81",
-      "body_id": "p5_i82",
+      "title": "Appendix: recovery and task usefulness",
       "notes_id": "p5:notes_i79",
-      "title": "Appendix: how the existing evaluation works",
-      "paragraphs": [
-        "Provider: fits the task models and defenses.",
-        "Attacker: fits classifiers on one group, selects using a second group, and scores on a third.",
-        "Defense feedback: FARE and noise choices also used attacker-validation results.",
-        "Usefulness: some experiments measure a separate task classifier. Experiment 4 measures the model whose output is actually given to the recipient.",
-        "Reused records: all scoring records had been analysed before. These are development results, not fresh confirmation."
-      ],
-      "notes": "The income/sex example is illustrative, not an observed service. Prohibited means disallowed by the stated benchmark policy, not a legal finding. FARE cell labels identify the group assigned by its encoder.\n\nAPPENDIX. Native historical check is separate from these attacker roles: one-hot ridge is fitted AND scored in sample on the test representation, with the scored sensitive labels. Provider training uses source train data. For Experiments2–4, defense_fit excludes train/test overlaps and supplies owner head_fit/head_val (20% holdout). The reader roles are hash-assigned groups of source test records. A certification carve-out of1,500 Adult/1,385 HMDA rows reduces every arm's reader budget. Experiment1 initially retained source-overlap records, with removal sensitivity reported later.\n\nThe common reader slate is LR5 regularization settings, GBT20 configurations, MLP18. Selection at seed0 uses validation log loss, followed by refits of the selected nonlinear recipe at seeds1 and2. Trees and MLP hold out10% of fitting rows for early stopping. Assessment labels do not select readers. For concatenations, validation candidates may ignore a component.\n\nFARE is also selected on validation nonlinear AUC among admissible probe-accuracy configurations. Noise scale is selected there. Thus defense and attack selection share validation feedback. The easier-task FARE comparison adds80% probe-gain retention. Utility probe labels live in attacker roles, whereas released own heads fit/select on owner roles. In Experiment4, heads and defenses are reused.\n\nMacro one-vs-rest AUC covers supported classes, not arbitrary rare groups. Three stored encoder seeds are averaged. Inference differs across experiments: E1/E2 one-sided Bonferroni percentile bounds (24/12 endpoints,20,000 bootstrap draws), E3/E4 simultaneous two-sided Bonferroni normal intervals from1,999 group bootstrap draws. E1 level bars differ from E2–E4 contrasts. No new statistic was calculated for this deck.\n\nSources: M1 section5; C2 bench.py648–694 and recipes.py71–90; C3 oar/study.py56–85/134–149/325–341 and fare_run.py25–47; C4–C7 protocols and historical pins."
+      "notes": "Existing paper Figure2, copied without changing any plotted value. This is the useful logistic-head comparison on Adult income/sex. The x-axis is accuracy gain over a constant predictor. The y-axis is sensitive-attribute recovery AUC, with higher values meaning the tested attacker can distinguish the attribute more easily. Left: output scores. Right: hard decisions. Large markers are means over three stored encoder seeds. Small pale markers are per-seed values. Displayed bars are marginal90% intervals, not the simultaneous intervals used for the registered endpoints.\n\nFARE lowered recovery from useful-head scores, but its one-point accuracy non-inferiority condition was not established. The zero-fairness tree accounts for part of that reduction. This is a utility-qualified comparison against a finite bank of readers, not an optimal privacy claim. Releasing a useful head's scores is different from adding the untreated clean output as a bypass. The records, defenses and heads were reused, so this is development evidence.\n\nSource: papers/combined_empirical_v2/figures/fig_useful_head.pdf at9e6d01f28. Caption main.tex551\u2013559. C7 useful-head protocol and committed primary/utility outputs. No plot data or analysis script was changed.",
+      "template_layout": "p12",
+      "body_mapping": "Replace paragraph body with evidence table, process diagram or original paper figure. Keep title and inherited UMBC artwork."
     },
     {
       "slide_id": "p6",
       "title_id": "p6_i87",
-      "body_id": "p6_i88",
+      "title": "Appendix: output format and pooling",
       "notes_id": "p6:notes_i85",
-      "title": "Appendix: what the results do and do not show",
-      "paragraphs": [
-        "LEACE: nonlinear recovery does not contradict its linear guarantee.",
-        "FARE: its certificate concerns demographic parity, not our recovery score. Weak certificates do not prove the theorem wrong.",
-        "Stored PCRL check: 11 of 42 checks exceeded the stated threshold. This does not show that every training step violated its constraint.",
-        "Extra outputs: adding a clean task output or another recipient changes what the attacker sees.",
-        "Limits: testing a finite set of classifiers does not prove protection against every attack. No successful new algorithm has been established."
-      ],
-      "notes": "The income/sex example is illustrative, not an observed service. Prohibited means disallowed by the stated benchmark policy, not a legal finding. FARE cell labels identify the group assigned by its encoder.\n\nAPPENDIX. The empirical contribution is a common audit of native checks, actual released surfaces and usefulness, including matched zero-fairness compression controls and one linked-output pair. It does not need a novel adversary. Nonlinear recovery after linear erasure, output leakage and composition are already known. FARE covers nonlinear downstream functions of the cell, so do not call nonlinear recovery simply out of FARE scope. Its protected quantity is demographic-parity distance, while this audit measures AUC. The unavailable/weak certificate does not establish violation. A head using only the cell does not add a new surface beyond that cell; the clean bypass does.\n\nNative11/42 count is corrected in the current source, superseding older12/42 text. Model/head quality matters: low recovery from poor frozen decisions is not useful protection. Useful-head FARE reduction did not establish the one-point accuracy non-inferiority requirement. Coalition results are one untreated Adult pair, not a general composition or information-theoretic synergy result. High or low finite-reader AUC does not identify population information removal. Determinism does not imply injectivity, and sample uniqueness does not prove population sensitive-posterior preservation. Later negative method studies remain negative.\n\nThe sequence for discussion is adversary/motivation, empirical methodology, then whether any proposed algorithm has a defensible goal, and only afterward manuscript structure. No new training, reader fitting, statistics or data-role opening occurred during this preparation.\n\nSources: M1 sections5–7, C1/C4 native check, F1 and C5 certificate scope, C7 utility-qualified results, R1 CORRECTIONS sections1/6/7."
+      "notes": "Existing paper Figure3, copied without changing any plotted value. Left: frozen-head output formats for one recipient. Full logits, probabilities, centred logits and hard decisions are different visible objects. The low recovery from these frozen hard decisions coincided with weak task predictions. It is not evidence of useful protection by itself. Right: one Adult coalition, income and occupation-group outputs pooled to infer race. The label employment refers to occupation-group prediction. Both outputs are matched to the same record, with perfect linkage granted. No linkage procedure is tested.\n\nBars are means over three stored encoder seeds without intervals. The original axes begin near0.45, not zero. Registered secondary pair contrasts were reported separately, with full-logit pair0.917 versus stronger single0.845, centred0.883 versus0.792, and hard decision0.611 versus0.576. The joint bank can choose a single recipient, and some single comparators use format banks, so the searches are not identical. These are existing results, not new calculations. The gain is not a mutual-information synergy or composition theorem.\n\nSource: papers/combined_empirical_v2/figures/fig_formats_pairs.pdf at9e6d01f28, main.tex629\u2013652; C6 odx/run.py193\u2013214. Full qualifications remain in SOURCE_MAP.md and the prior access table.",
+      "template_layout": "p12",
+      "body_mapping": "Replace paragraph body with evidence table, process diagram or original paper figure. Keep title and inherited UMBC artwork."
     }
-  ]
+  ],
+  "native_text_objects": [
+    {
+      "id": "vis_access_intro",
+      "slide_id": "p2",
+      "text": "Recipient: whoever gets released features, scores or decisions for an allowed task."
+    },
+    {
+      "id": "vis_access_limits",
+      "slide_id": "p2",
+      "text": "Our primary receives no target inputs, weights, gradients or repeated queries.\nThe benchmark supplies its labelled examples."
+    },
+    {
+      "id": "vis_service_intro",
+      "slide_id": "p3",
+      "text": "Illustrative service: a recipient gets an income prediction for an allowed task."
+    },
+    {
+      "id": "vis_provider",
+      "slide_id": "p3",
+      "text": "Prediction service"
+    },
+    {
+      "id": "vis_recipient",
+      "slide_id": "p3",
+      "text": "Recipient gets\none output"
+    },
+    {
+      "id": "vis_inference",
+      "slide_id": "p3",
+      "text": "Predicts sex"
+    },
+    {
+      "id": "vis_auxiliary",
+      "slide_id": "p3",
+      "text": "Other people's outputs\n+ known sex labels"
+    },
+    {
+      "id": "vis_aux_assumption",
+      "slide_id": "p3",
+      "text": "The benchmark grants these examples. Their real availability is unknown."
+    },
+    {
+      "id": "vis_meeting_question",
+      "slide_id": "p3",
+      "text": "Do we agree that this recipient has these examples?\nWhich outputs does the permitted task need?"
+    },
+    {
+      "id": "vis_owner_fit",
+      "slide_id": "p4",
+      "text": "Owner fits task\nand defense"
+    },
+    {
+      "id": "vis_fit",
+      "slide_id": "p4",
+      "text": "Fit attack"
+    },
+    {
+      "id": "vis_select",
+      "slide_id": "p4",
+      "text": "Choose model"
+    },
+    {
+      "id": "vis_score",
+      "slide_id": "p4",
+      "text": "Measure recovery"
+    },
+    {
+      "id": "vis_feedback_label",
+      "slide_id": "p4",
+      "text": "Validation also tuned\nFARE and noise."
+    },
+    {
+      "id": "vis_fit_label",
+      "slide_id": "p4",
+      "text": "Fitting examples\nwith sensitive labels"
+    },
+    {
+      "id": "vis_select_label",
+      "slide_id": "p4",
+      "text": "Separate validation\nexamples and labels"
+    },
+    {
+      "id": "vis_score_label",
+      "slide_id": "p4",
+      "text": "Target outputs only.\nEvaluator checks\ntrue labels."
+    },
+    {
+      "id": "vis_dev_limit",
+      "slide_id": "p4",
+      "text": "The scoring records were previously analysed.\nIntervals describe the fitted models and attacks."
+    },
+    {
+      "id": "vis_fig_useful_head_caption",
+      "slide_id": "p5",
+      "text": "Adult income/sex. Scores on the left, decisions on the right."
+    },
+    {
+      "id": "vis_fig_useful_head_footer",
+      "slide_id": "p5",
+      "text": "FARE's accuracy was not shown to stay within 1 percentage point of the untreated model.\nThree encoder seeds. Bars show 90% intervals. The paper gives formal test intervals."
+    },
+    {
+      "id": "vis_fig_formats_pairs_caption",
+      "slide_id": "p6",
+      "text": "Left: one recipient. Right: two recipients with records matched exactly."
+    },
+    {
+      "id": "vis_fig_formats_pairs_footer",
+      "slide_id": "p6",
+      "text": "Bars average three encoder seeds. No intervals are shown. Axes start near 0.45.\nThe frozen decisions were weak predictors. This is one pair with perfect record matching."
+    }
+  ],
+  "comparison_table": [
+    [
+      "Study",
+      "What the recipient receives",
+      "Scope or question"
+    ],
+    [
+      "LEACE",
+      "Erased features",
+      "Linear recovery from those features"
+    ],
+    [
+      "FARE",
+      "A finite cell label",
+      "Any classifier using only that cell"
+    ],
+    [
+      "Song & Shmatikov",
+      "Target features, labelled inputs and encoder queries",
+      "Sensitive-attribute inference"
+    ],
+    [
+      "Our primary",
+      "One agreed view, plus labelled examples",
+      "Recovery from the delivered information"
+    ]
+  ],
+  "assets": [
+    {
+      "name": "fig_useful_head",
+      "slide_id": "p5",
+      "image_id": "vis_fig_useful_head_image",
+      "source_pdf": "papers/combined_empirical_v2/figures/fig_useful_head.pdf",
+      "source_pdf_sha256": "b7827b7750bb12597b951ee0747377d009820ef996863ca464d515aa8a3bccdd",
+      "png": "/Users/nathansamson/PCRL/.worktrees/adversary-methodology-meeting-v1/advisor_meetings/2026-10-29-umbc-google-slides/assets/fig_useful_head.png",
+      "png_sha256": "81e464837b051b37fbf16d072296a02ae2aaf91320cdbed920908c49c857aaa5",
+      "width_pt": 590,
+      "height_pt": 232.46,
+      "x_pt": 55,
+      "y_pt": 128,
+      "rendering": "pdftoppm -scale-to2000 -singlefile -png, original PDF unchanged"
+    },
+    {
+      "name": "fig_formats_pairs",
+      "slide_id": "p6",
+      "image_id": "vis_fig_formats_pairs_image",
+      "source_pdf": "papers/combined_empirical_v2/figures/fig_formats_pairs.pdf",
+      "source_pdf_sha256": "9be104dfcca6b0af40590781ecf800824d39c703792ea6db18b27f330628d5a2",
+      "png": "/Users/nathansamson/PCRL/.worktrees/adversary-methodology-meeting-v1/advisor_meetings/2026-10-29-umbc-google-slides/assets/fig_formats_pairs.png",
+      "png_sha256": "eaa997212523a91277b5d13ed9a1f497ac4bc4fb8d66b4bf0dace08aecd60dc7",
+      "width_pt": 620,
+      "height_pt": 225.68,
+      "x_pt": 40,
+      "y_pt": 123,
+      "rendering": "pdftoppm -scale-to2000 -singlefile -png, original PDF unchanged"
+    }
+  ],
+  "wiki_guide": "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing",
+  "scope": "Presentation edits only. Existing scientific figures reused. No new calculations.",
+  "layout_fixes": {
+    "table_note_y_pt": 362,
+    "figure_footnote_y_pt": 365,
+    "reason": "Separate the table note from the table and keep figure notes clear of the lower edge."
+  },
+  "native_revision": "JC58SVslGsitqA"
 }
